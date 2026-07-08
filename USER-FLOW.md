@@ -506,6 +506,138 @@ Dokumen ini menjelaskan alur pengguna (user flow) untuk Platform CMS dari awal s
 
 ---
 
+### 4.3 Flow Super Admin: Register Module (via CLI)
+
+**Tujuan**: Register module baru ke database saat generate via CLI
+
+**Langkah**:
+
+1. Developer run CLI command:  
+   `platform-cli generate:module products`
+2. CLI generate code files (controller, service, repository, entity, DTO)
+3. CLI auto-register module ke database:
+   - Insert ke table `modules`
+   - name: 'products'
+   - display_name: 'Product Management'
+   - route_prefix: '/products'
+   - icon: 'package'
+   - is_core: false
+   - version: '1.0.0'
+4. CLI auto-create permissions:
+   - Insert ke table `module_permissions`
+   - products.create, products.read, products.update, products.delete
+5. CLI success message dengan module details
+6. Module sekarang available untuk di-enable per tenant
+7. Audit log: Module registered
+
+**Diagram**:
+
+```
+[CLI Generate] --> [Generate Code Files]
+    --> [Register to modules table]
+    --> [Create Permissions]
+    --> [Success Message]
+```
+
+---
+
+### 4.4 Flow Tenant Admin: Enable/Disable Module
+
+**Tujuan**: Tenant Admin enable atau disable module untuk tenant
+
+**Langkah Enable Module**:
+
+1. Tenant Admin login
+2. Tenant Admin navigate ke Settings > Modules
+3. System show list available modules:
+   - Filter by subscription tier (only show allowed modules)
+   - Core modules (marked, cannot disable)
+   - Optional modules dengan toggle
+4. Tenant Admin toggle ON untuk module "Product Management"
+5. System check:
+   - Subscription tier allows module?
+   - Module is_active globally?
+6. System show confirmation: Enable Product Management?
+7. Tenant Admin confirm
+8. System enable module:
+   - Insert/Update tenant_modules
+   - is_enabled = true
+   - enabled_at = now
+   - enabled_by = current admin
+9. System return success
+10. Frontend refresh menu sidebar (auto-show new menu item)
+11. Frontend show success toast: Module berhasil diaktifkan
+12. Audit log: Module enabled
+
+**Langkah Disable Module**:
+
+1. Tenant Admin toggle OFF untuk module
+2. System check: Bukan core module?
+3. System show confirmation: Disable module ini?
+4. Tenant Admin confirm
+5. System disable:
+   - Update tenant_modules: is_enabled = false
+   - disabled_at = now
+   - disabled_by = current admin
+6. System return success
+7. Frontend remove menu item dari sidebar
+8. Frontend show success: Module dinonaktifkan
+9. Audit log: Module disabled
+
+**Diagram**:
+
+```
+[Settings > Modules] --> [List Available Modules]
+    --> [Toggle Module] --> {Enable atau Disable?}
+        --> Enable: [Check Subscription] --> [Enable Module]
+            --> [Refresh Menu] --> [Show New Menu Item]
+        --> Disable: [Check Not Core] --> [Disable Module]
+            --> [Remove Menu Item]
+```
+
+---
+
+### 4.5 Flow System: Module Guard Check
+
+**Tujuan**: System check module enabled sebelum allow route access
+
+**Langkah**:
+
+1. User navigate ke route `/products`
+2. Request hit backend API
+3. Module Guard Middleware triggered:
+   - Extract tenant dari JWT token
+   - Extract module dari route (/products → "products" module)
+4. System check cache (Redis):
+   - Key: `tenant:{tenant_id}:modules:enabled`
+   - Check if "products" in cached list
+5. Jika not in cache:
+   - Query database: tenant_modules
+   - Check: tenant_id + module_id + is_enabled = true
+   - Cache result di Redis (TTL: 5 minutes)
+6. System evaluate:
+   - Module enabled? → Continue to controller
+   - Module disabled? → Return 403 Forbidden
+7. Jika disabled:
+   - Response: {error: "Module tidak tersedia untuk tenant ini"}
+   - Frontend show 403 page
+   - Audit log: Module access denied
+8. Jika enabled:
+   - Request proceed to controller
+   - Normal flow continues
+
+**Diagram**:
+
+```
+[User Request /products] --> [Module Guard]
+    --> [Extract Tenant & Module] --> [Check Cache]
+    --> {Module Enabled?}
+        --> Yes: [Allow Access] --> [Controller]
+        --> No: [403 Forbidden] --> [Error Page]
+```
+
+---
+
 ## 5. Flow Approval (Phase 2 - Out of MVP Scope)
 
 **Note**: Approval workflow tidak termasuk MVP Phase 1, tapi didokumentasikan untuk Phase 2.

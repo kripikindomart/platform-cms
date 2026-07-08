@@ -391,17 +391,50 @@ src/
 │   │   │   └── page.tsx
 │   │   └── register/
 │   │       └── page.tsx
-│   ├── (dashboard)/
+│   ├── (portal)/
 │   │   ├── layout.tsx
-│   │   ├── page.tsx (dashboard)
-│   │   └── users/
-│   │       ├── page.tsx (list)
-│   │       ├── create/
-│   │       │   └── page.tsx
-│   │       └── [id]/
-│   │           ├── page.tsx (detail)
-│   │           └── edit/
-│   │               └── page.tsx
+│   │   ├── page.tsx (redirect ke /portal/workspace)
+│   │   ├── workspace/ (dashboard)
+│   │   │   └── page.tsx
+│   │   ├── mgmt/ (management)
+│   │   │   ├── accounts/ (users)
+│   │   │   │   ├── page.tsx (list)
+│   │   │   │   ├── new/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       ├── page.tsx (detail)
+│   │   │   │       └── edit/
+│   │   │   │           └── page.tsx
+│   │   │   ├── access/ (roles)
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── new/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       └── page.tsx
+│   │   │   └── orgs/ (tenants - Super Admin only)
+│   │   │       ├── page.tsx
+│   │   │       ├── new/
+│   │   │       │   └── page.tsx
+│   │   │       └── [id]/
+│   │   │           └── page.tsx
+│   │   ├── config/ (settings)
+│   │   │   ├── general/
+│   │   │   │   └── page.tsx
+│   │   │   ├── security/
+│   │   │   │   └── page.tsx
+│   │   │   └── modules/
+│   │   │       └── page.tsx
+│   │   ├── data/ (master data)
+│   │   │   ├── categories/
+│   │   │   │   └── page.tsx
+│   │   │   └── tags/
+│   │   │       └── page.tsx
+│   │   ├── activity/ (audit logs)
+│   │   │   └── page.tsx
+│   │   └── profile/ (user profile)
+│   │       ├── page.tsx
+│   │       └── edit/
+│   │           └── page.tsx
 │   └── api/
 │       └── [...routes]/ (jika perlu)
 ├── components/
@@ -410,10 +443,16 @@ src/
 │   │   ├── Header.tsx
 │   │   ├── Sidebar.tsx
 │   │   └── Footer.tsx
-│   └── users/
-│       ├── UserTable.tsx
-│       ├── UserForm.tsx
-│       └── UserCard.tsx
+│   ├── accounts/ (users)
+│   │   ├── AccountTable.tsx
+│   │   ├── AccountForm.tsx
+│   │   └── AccountCard.tsx
+│   ├── access/ (roles)
+│   │   ├── AccessTable.tsx
+│   │   └── AccessForm.tsx
+│   └── orgs/ (tenants)
+│       ├── OrgTable.tsx
+│       └── OrgForm.tsx
 ├── lib/
 │   ├── api.ts (API client)
 │   ├── utils.ts
@@ -422,6 +461,111 @@ src/
     ├── auth.ts (Zustand)
     └── user.ts
 ```
+
+### 6.1.1 Route Path Security Strategy
+
+**WAJIB gunakan path yang tidak mudah ditebak**:
+
+**Path Mapping (Frontend → Backend)**:
+```typescript
+// JANGAN gunakan path yang obvious
+❌ /dashboard/users → users
+❌ /dashboard/roles → roles
+❌ /dashboard/tenants → tenants
+❌ /dashboard/audit-logs → audit-logs
+
+// ✅ GUNAKAN path yang ter-obfuscate
+✅ /portal/mgmt/accounts → users (API: /api/v1/users)
+✅ /portal/mgmt/access → roles (API: /api/v1/roles)
+✅ /portal/mgmt/orgs → tenants (API: /api/v1/tenants)
+✅ /portal/activity → audit-logs (API: /api/v1/audit-logs)
+✅ /portal/data/categories → categories (API: /api/v1/categories)
+✅ /portal/config/general → settings (API: /api/v1/settings)
+```
+
+**Alasan**:
+- 🔒 Security through obscurity (layer tambahan)
+- 🔒 Menyulitkan attacker untuk menebak struktur
+- 🔒 Menghindari automated scanning tools
+- 🔒 Mengurangi exposure dari URL patterns
+
+**Path Glossary** (Dokumentasikan mapping):
+```typescript
+// lib/routes.ts
+export const ROUTES = {
+  // Portal
+  WORKSPACE: '/portal/workspace',
+  
+  // Management
+  ACCOUNTS: '/portal/mgmt/accounts',
+  ACCOUNTS_NEW: '/portal/mgmt/accounts/new',
+  ACCOUNTS_DETAIL: (id: string) => `/portal/mgmt/accounts/${id}`,
+  ACCOUNTS_EDIT: (id: string) => `/portal/mgmt/accounts/${id}/edit`,
+  
+  ACCESS: '/portal/mgmt/access',
+  ACCESS_NEW: '/portal/mgmt/access/new',
+  ACCESS_DETAIL: (id: string) => `/portal/mgmt/access/${id}`,
+  
+  ORGS: '/portal/mgmt/orgs',
+  ORGS_NEW: '/portal/mgmt/orgs/new',
+  ORGS_DETAIL: (id: string) => `/portal/mgmt/orgs/${id}`,
+  
+  // Config
+  CONFIG_GENERAL: '/portal/config/general',
+  CONFIG_SECURITY: '/portal/config/security',
+  CONFIG_MODULES: '/portal/config/modules',
+  
+  // Data
+  DATA_CATEGORIES: '/portal/data/categories',
+  DATA_TAGS: '/portal/data/tags',
+  
+  // Activity
+  ACTIVITY: '/portal/activity',
+  
+  // Profile
+  PROFILE: '/portal/profile',
+  PROFILE_EDIT: '/portal/profile/edit',
+} as const;
+
+// Usage
+import { ROUTES } from '@/lib/routes';
+
+<Link href={ROUTES.ACCOUNTS}>Accounts</Link>
+<Link href={ROUTES.ACCOUNTS_DETAIL('123')}>Detail</Link>
+```
+
+**Alternative Path Options** (pilih salah satu):
+
+**Option 1: Abbreviated (Current)**
+```
+/portal/mgmt/accounts (users)
+/portal/mgmt/access (roles)
+/portal/mgmt/orgs (tenants)
+```
+
+**Option 2: Code-like**
+```
+/portal/sys/usr (users)
+/portal/sys/rbac (roles)
+/portal/sys/tnts (tenants)
+```
+
+**Option 3: Generic**
+```
+/portal/manage/entities (users)
+/portal/manage/permissions (roles)
+/portal/manage/clients (tenants)
+```
+
+**Option 4: Business Terms**
+```
+/portal/team/members (users)
+/portal/team/groups (roles)
+/portal/admin/organizations (tenants)
+```
+
+**Recommendation**: Gunakan **Option 1 (Abbreviated)** - balance antara security dan usability.
+
 
 ### 6.2 Naming Conventions Frontend
 
@@ -1333,12 +1477,14 @@ docs: update {DOCUMENT_NAME} - {change description}
 - ❌ Ignore pattern yang sudah ada
 - ❌ Membuat struktur folder berbeda
 - ❌ Menggunakan library berbeda tanpa alasan kuat
+- ❌ Menggunakan path/route yang obvious dan mudah ditebak
 
 **WAJIB**:
 - ✅ Cek file/kode existing SEBELUM membuat
 - ✅ Extend/update kode existing
 - ✅ Follow pattern yang sudah ada
 - ✅ Reuse components/functions yang ada
+- ✅ Gunakan path yang ter-obfuscate (lihat section 6.1.1)
 - ✅ Tanya jika tidak yakin
 
 ### 13.2 JANGAN Membuat Fitur di Luar Scope

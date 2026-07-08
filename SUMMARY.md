@@ -1,5 +1,26 @@
 # Platform CMS - Summary
 
+## 📋 Dokumen Utama
+
+**⭐ PROJECT-BRIEF.md** - **START HERE**  
+Dokumen pondasi yang berisi 14 section lengkap dari nama proyek sampai urutan dokumen berikutnya. Ini adalah **single source of truth** untuk development.
+
+[👉 Baca PROJECT-BRIEF.md](./PROJECT-BRIEF.md)
+
+---
+
+## 📚 Dokumentasi Lengkap
+
+Untuk dokumentasi detail discovery, lihat folder `docs/`:
+- [00-clarifications.md](docs/00-clarifications.md) - Klarifikasi teknis
+- [01-project-overview.md](docs/01-project-overview.md) - Overview
+- [02-modules-and-features.md](docs/02-modules-and-features.md) - Modules
+- [03-mvp-roadmap.md](docs/03-mvp-roadmap.md) - Roadmap 16 minggu
+- [04-technical-requirements.md](docs/04-technical-requirements.md) - Tech specs
+- [README.md](docs/README.md) - Documentation index
+
+---
+
 ## 📋 Ringkasan Eksekutif
 
 Platform CMS adalah **core framework/starter** untuk membangun aplikasi enterprise-grade dengan fokus pada:

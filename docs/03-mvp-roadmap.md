@@ -1,253 +1,395 @@
 # MVP dan Roadmap Development
 
-## Fitur MVP Tahap Pertama (Phase 1)
+## FOKUS: Build CORE Platform Dulu
 
-### Durasi Target: 8-12 minggu
+**PENTING**: Fokus Phase 1 adalah membangun **CORE framework/platform** yang reusable. Aplikasi Kemendagri PTSP adalah **use case implementation** yang akan dibangun setelah CORE selesai.
 
-### 1. Core Framework Setup (Next.js 16)
-**Estimasi: 1-2 minggu**
-- Setup project structure dengan Next.js 16
+## Fitur MVP Tahap Pertama (Phase 1) - CORE Platform
+
+### Durasi Target: 12-16 minggu
+
+### 1. Project Setup & Structure (Minggu 1-2)
+**Estimasi: 2 minggu**
+
+#### Backend Setup (NestJS)
+- Initialize NestJS project dengan TypeScript
+- Setup project structure (core/, modules/, shared/)
+- ESLint, Prettier, Husky configuration
+- Environment configuration (.env management)
+- Basic middleware setup (logging, cors, helmet)
+
+#### Frontend Setup (Next.js)
+- Initialize Next.js 15 dengan App Router
 - TypeScript configuration
-- ESLint dan Prettier setup
+- Tailwind CSS + shadcn/ui setup
 - Folder structure standardization
-- Environment configuration
-- Basic middleware setup
+- API client configuration (axios/fetch)
+
+#### Development Tools
+- Setup nvm-windows untuk Node.js 20 LTS
+- Install pnpm package manager
+- PostgreSQL 15+ installation (Windows/WSL2)
+- Redis setup (Memurai/WSL2)
+- Git configuration dan SSH keys
 
 **Deliverables:**
-- Project boilerplate
-- Development environment
-- Basic routing structure
-- Configuration files
+- ✅ Backend boilerplate (NestJS)
+- ✅ Frontend boilerplate (Next.js)
+- ✅ Development environment documented
+- ✅ Git workflow established
 
-### 2. Database Driver System (PostgreSQL + ORM)
-**Estimasi: 2 minggu**
-- Database driver abstraction layer
-- PostgreSQL sebagai primary database
-- ORM selection dan setup (Drizzle atau Prisma)
-- Connection pooling
-- Basic migration system
-- Database seeding
+---
+
+### 2. Database Layer & Multi-tenancy (Minggu 3-5)
+**Estimasi: 3 minggu**
+
+#### Database Driver System
+- Drizzle ORM setup dengan PostgreSQL
+- Database connection management
+- Connection pooling configuration
+- Multi-database support abstraction (PostgreSQL, MySQL)
+- Migration system setup
+
+#### Multi-tenancy Implementation
+- Schema-based multi-tenancy design
+- Tenant middleware untuk automatic schema switching
+- Tenant management module (CRUD tenants)
+- Tenant database seeding utility
+- Tenant isolation testing
+
+#### Soft Delete Framework
+- Base entity dengan soft delete columns
+- BaseRepository dengan soft delete methods
+- Global query filters untuk exclude deleted
+- Restore functionality
+- Audit trail untuk delete operations
 
 **Deliverables:**
-- Database connection manager
-- Migration framework
-- Seed data system
-- Query builder abstraction
+- ✅ Database connection manager
+- ✅ Migration framework
+- ✅ Multi-tenant middleware
+- ✅ Soft delete base repository
+- ✅ Tenant management API
 
-### 3. Basic Authentication System
-**Estimasi: 2 minggu**
-- JWT-based authentication
-- User registration dan login
+---
+
+### 3. Authentication & Authorization Core (Minggu 6-8)
+**Estimasi: 3 minggu**
+
+#### Authentication Module
+- JWT-based authentication (access + refresh tokens)
+- User registration dengan validation
+- Login/logout functionality
 - Password hashing (bcrypt)
-- Basic role management
-- Session management
-- Password reset functionality
+- Password reset via email
+- Email verification (optional untuk MVP)
+
+#### Authorization Framework
+- Role-based access control (RBAC)
+- Permission system (CASL integration)
+- Tenant-aware authorization
+- Guards dan decorators untuk route protection
+- Admin vs User role separation
+
+#### Session Management
+- Redis-based session storage
+- Session timeout configuration
+- Concurrent session handling
+- Session audit logging
 
 **Deliverables:**
-- Auth middleware
-- User model dan controllers
-- Login/register endpoints
-- Basic role system
+- ✅ Auth module (NestJS)
+- ✅ Login/Register UI (Next.js)
+- ✅ JWT middleware
+- ✅ RBAC framework
+- ✅ Session management
 
-### 4. Security Sanitization Layer
-**Estimasi: 1 minggu**
-- Input validation middleware
-- XSS prevention
-- SQL injection protection
-- Request sanitization
-- Response encoding
-- Security headers
+---
 
-**Deliverables:**
-- Validation middleware
-- Sanitization utilities
-- Security configuration
-- Input validators
-
-### 5. Error Handling Framework
-**Estimasi: 1 minggu**
-- Centralized error handling
-- Custom error classes
-- Structured error responses
-- Logging integration
-- Error categorization
-- Client-friendly error messages
-
-**Deliverables:**
-- Error handling middleware
-- Error response format
-- Logging system
-- Error utilities
-
-### 6. CLI Builder Basic (CRUD generator)
+### 4. Security Layer (Minggu 9-10)
 **Estimasi: 2 minggu**
-- CLI framework setup
-- Basic CRUD generator
-- Model generator
-- Controller generator
-- Route generator
-- Migration generator
+
+#### Input Validation & Sanitization
+- DTO validation dengan class-validator
+- Zod schema validation
+- XSS prevention (HTML sanitization)
+- SQL injection protection (parameterized queries)
+- Input trimming dan normalization
+
+#### Output Security
+- Response sanitization
+- Security headers middleware (helmet)
+- CORS configuration
+- CSRF protection
+- Rate limiting per endpoint
+
+#### File Upload Security
+- File type validation
+- File size limits
+- Secure file storage
+- Filename sanitization
+- Virus scanning preparation (hooks)
 
 **Deliverables:**
-- CLI tool executable
-- CRUD templates
-- Generator commands
-- Documentation
+- ✅ Validation pipes (NestJS)
+- ✅ Sanitization utilities
+- ✅ Security middleware
+- ✅ File upload module
+- ✅ Rate limiting
 
-### 7. Basic UI Framework (shadcn/ui)
+---
+
+### 5. Error Handling & Logging (Minggu 11)
 **Estimasi: 1 minggu**
-- shadcn/ui integration
-- Basic component library
-- Theme configuration
-- Layout components
-- Form components
-- Navigation components
+
+#### Centralized Error Handling
+- Global exception filter (NestJS)
+- Custom exception classes
+- Error categorization
+- Detailed error responses (per-field errors)
+- User-friendly error messages (Indonesian)
+
+#### Logging System
+- Structured logging (Winston)
+- Request/Response logging (Morgan)
+- Performance logging
+- Error logging dengan stack traces
+- Log rotation configuration
+
+#### Monitoring Preparation
+- Request ID tracking
+- Performance metrics collection
+- Health check endpoints
+- Database connection monitoring
 
 **Deliverables:**
-- UI component library
-- Theme system
-- Layout templates
-- Form builders
+- ✅ Exception filters
+- ✅ Logging configuration
+- ✅ Health check API
+- ✅ Error response standards
 
-### 8. Documentation System
+---
+
+### 6. CLI Builder Tool (Minggu 12-14)
+**Estimasi: 3 minggu**
+
+#### CLI Framework
+- Commander.js setup
+- CLI package structure
+- Configuration management
+- Template engine (Handlebars/EJS)
+
+#### Code Generators
+- **Module Generator**: Generate NestJS module (controller, service, repository, DTO, entity)
+- **CRUD Generator**: Full CRUD dengan soft delete
+- **Frontend Generator**: Next.js page + components
+- **Migration Generator**: Database migration files
+- **Test Generator**: Unit test templates
+
+#### Templates
+- NestJS controller template
+- NestJS service template
+- Drizzle schema template
+- Next.js page template
+- shadcn form template
+
+#### AI-Friendly Features
+- Simple command structure
+- Consistent naming conventions
+- Auto-documentation generation
+- Context-aware generation
+
+**Deliverables:**
+- ✅ CLI executable (`ptsp-cli`)
+- ✅ Module generator command
+- ✅ CRUD generator command
+- ✅ Frontend generator command
+- ✅ Template library
+- ✅ CLI documentation
+
+---
+
+### 7. Frontend Foundation (Minggu 15)
 **Estimasi: 1 minggu**
-- API documentation generator
-- Code documentation
-- README templates
-- Installation guides
-- Usage examples
+
+#### UI Components (shadcn/ui)
+- Layout components (Header, Sidebar, Footer)
+- Form components (Input, Select, Textarea, etc.)
+- Table component dengan pagination
+- Modal/Dialog components
+- Button variants
+- Toast notifications
+
+#### Theme & Styling
+- Dark/Light mode support
+- Color scheme configuration
+- Responsive design utilities
+- Typography system
 
 **Deliverables:**
-- Documentation generator
-- API docs
-- Developer guides
-- Examples
+- ✅ Component library
+- ✅ Layout system
+- ✅ Theme configuration
+- ✅ Responsive design
 
-### 9. Git Integration & Issue Management
-**Estimasi: 0.5 minggu**
-- GitHub integration
-- Issue templates
-- PR templates
-- Workflow automation
-- Commit conventions
+---
+
+### 8. Documentation System (Minggu 16)
+**Estimasi: 1 minggu**
+
+#### API Documentation
+- OpenAPI/Swagger setup (NestJS)
+- Auto-generated API docs
+- DTO documentation
+- Example requests/responses
+
+#### Code Documentation
+- TSDoc comments standards
+- Architecture documentation
+- Database schema documentation
+- CLI usage documentation
+
+#### Developer Guides
+- Getting started guide
+- Development workflow
+- CLI builder guide
+- Deployment guide
 
 **Deliverables:**
-- GitHub workflows
-- Issue templates
-- Documentation templates
+- ✅ Swagger API docs
+- ✅ README documentation
+- ✅ Architecture docs
+- ✅ Developer guides
+
+---
 
 ## Fitur Lanjutan Tahap Berikutnya
 
-### Phase 2: Advanced Features (12-16 minggu)
+### Phase 2: Enhanced Core Features (8-12 minggu)
 
-#### Advanced Builder System
-- **Advanced UI Builder** (4 minggu)
-  - Drag-and-drop interface
-  - Visual form builder
-  - Component customization
-  - Real-time preview
-  - Export/import functionality
+#### UI Builder (Visual Module Creator)
+- Drag-and-drop form builder
+- Visual entity designer
+- Relationship mapper
+- Permission configurator
+- Real-time preview
 
-- **Performance Monitoring Dashboard** (3 minggu)
-  - Real-time metrics
-  - Performance analytics
-  - Alert system
-  - Resource monitoring
-  - Usage statistics
+#### Advanced Security
+- Multi-factor authentication (MFA)
+- OAuth integration (Google, Microsoft)
+- IP whitelisting
+- Advanced audit logging
+- Security dashboard
 
-- **Multi-database Support** (3 minggu)
-  - MySQL driver
-  - SQLite support
-  - Database switching
-  - Migration compatibility
-  - Performance optimization
+#### Performance Optimization
+- Redis caching layer
+- Query optimization tools
+- Database indexing automation
+- CDN integration
+- Performance monitoring dashboard
 
-- **Advanced Security Features** (2 minggu)
-  - Multi-factor authentication
-  - OAuth integration
-  - Advanced rate limiting
-  - Security scanning
-  - Vulnerability assessment
+#### Background Jobs
+- Queue system (Bull + Redis)
+- Job scheduling
+- Email queue
+- Report generation queue
+- Failed job handling
 
-#### AI Context Management (3 minggu)
-- Context optimization for AI models
-- Intelligent code suggestions
-- Auto-completion system
-- Code analysis tools
-- AI-friendly documentation
+### Phase 3: Enterprise Features & Kemendagri App (16-20 minggu)
 
-### Phase 3: Enterprise Features (16-20 minggu)
+#### Use Case: Kemendagri PTSP Monitoring
 
-#### Advanced Infrastructure
-- **Advanced Caching System** (4 minggu)
-  - Multi-layer caching
-  - Cache optimization
-  - Cache analytics
-  - Distributed caching
-  - Cache warming
+**Multi-tenant Setup**
+- Tenant untuk setiap provinsi/kabupaten/kota
+- Kemendagri pusat sebagai super-admin
+- Data isolation per tenant
+- Centralized reporting
 
-- **Queue & Background Jobs** (4 minggu)
-  - Job scheduling
-  - Queue management
-  - Background processing
-  - Job monitoring
-  - Failed job handling
+**PTSP Features**
+- Monitoring perizinan per daerah
+- Dashboard analytics untuk Kemendagri
+- Document management
+- Workflow automation
+- Notification system
+- Export/import data
+- Mobile-responsive interface
 
-- **Real-time Features** (4 minggu)
-  - WebSocket support
-  - Real-time notifications
-  - Live updates
-  - Collaboration features
-  - Event streaming
+**Reporting & Analytics**
+- Real-time monitoring dashboard
+- Custom report builder
+- Data visualization (charts, maps)
+- Export ke PDF/Excel
+- Scheduled reports
 
-- **Advanced Analytics** (4 minggu)
-  - Business intelligence
-  - Custom dashboards
-  - Data visualization
-  - Report generation
-  - Predictive analytics
+**Compliance & Security**
+- Government data compliance
+- Audit trail lengkap
+- Data retention policies
+- Backup dan disaster recovery
 
-#### Plugin Ecosystem (4 minggu)
-- Plugin architecture
-- Plugin marketplace
-- Third-party integrations
-- API extensions
-- Custom modules
+---
 
 ## Success Criteria
 
-### Phase 1 (MVP)
-- [ ] Dapat membuat aplikasi baru dalam <5 menit
-- [ ] Generate CRUD lengkap dalam <2 menit via CLI
+### Phase 1 (CORE Platform) ✅
+- [ ] Dapat setup new project dalam <10 menit
+- [ ] Generate full CRUD module dalam <2 menit via CLI
 - [ ] Response time API <200ms
-- [ ] Zero security vulnerabilities in security scan
-- [ ] 100% test coverage untuk core modules
-- [ ] Complete documentation untuk semua features
+- [ ] Zero critical security vulnerabilities
+- [ ] 80%+ test coverage untuk core modules
+- [ ] Complete documentation
+- [ ] Multi-tenancy working dengan 10+ test tenants
+- [ ] Soft delete implemented di semua entities
 
-### Phase 2
-- [ ] UI builder dapat membuat form kompleks
-- [ ] Performance monitoring mendeteksi bottlenecks
-- [ ] Support minimal 3 database engines
-- [ ] AI dapat generate module dengan 90% akurasi
+### Phase 2 (Enhanced Features)
+- [ ] UI builder dapat generate form kompleks
+- [ ] Performance monitoring dashboard aktif
+- [ ] Background jobs system reliable
+- [ ] Advanced security features implemented
 
-### Phase 3
+### Phase 3 (Kemendagri Implementation)
+- [ ] Support 500+ tenants (PTSP daerah)
 - [ ] Handle 10,000+ concurrent users
-- [ ] Real-time features dengan <100ms latency
-- [ ] Plugin ecosystem dengan minimal 10 plugins
-- [ ] Advanced analytics dengan custom reports
+- [ ] Real-time monitoring dashboard
+- [ ] Complete PTSP workflow implemented
+- [ ] Government compliance verified
+
+---
 
 ## Risk Mitigation
 
 ### Technical Risks
-- **Performance Degradation**: Regular benchmarking dan optimization
-- **Security Vulnerabilities**: Continuous security scanning
-- **Database Compatibility**: Extensive testing across databases
-- **AI Integration Complexity**: Incremental implementation
+- **Windows Development**: WSL2 untuk compatibility, documented setup
+- **Multi-tenancy Complexity**: Extensive testing, tenant isolation verification
+- **Performance**: Regular benchmarking, optimization cycles
+- **Security**: Continuous scanning, penetration testing
+- **Soft Delete**: Query optimization, index strategy
 
 ### Project Risks
-- **Scope Creep**: Strict phase boundaries
-- **Resource Constraints**: Prioritized feature development
-- **Timeline Delays**: Buffer time dan parallel development
+- **Scope Creep**: Strict phase boundaries, clear definitions
+- **Timeline**: Buffer time, parallel development
+- **Resource**: Focus on CORE first, then use cases
 
 ---
+
+## Development Rules
+
+### CORE Development (Phase 1)
+1. ✅ **Build reusable components** - Think framework, not app-specific
+2. ✅ **Document everything** - AI and junior devs must understand
+3. ✅ **Test thoroughly** - Core must be rock-solid
+4. ✅ **Security first** - No shortcuts on security
+5. ✅ **Soft delete always** - Protect data at all costs
+6. ✅ **Multi-tenant aware** - Every module considers tenancy
+7. ✅ **CLI-friendly** - Easy to generate and extend
+
+### Issue Management
+1. ✅ **Sangat detail** - Junior programmer dan AI must understand
+2. ✅ **Bahasa Indonesia** - Clear, professional Indonesian
+3. ✅ **Acceptance criteria** - Clear definition of done
+4. ✅ **Testing checklist** - What needs to be tested
+5. ✅ **Documentation requirement** - What needs to be documented
+
+---
+
 *Roadmap ini akan disesuaikan berdasarkan feedback dan learning selama development*

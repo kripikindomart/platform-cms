@@ -16,6 +16,7 @@
 - Profile management
 - User preferences
 - Account lifecycle management
+- Account Active / Nonactive
 
 #### 3. Role & Permission Management
 - Hierarchical role system

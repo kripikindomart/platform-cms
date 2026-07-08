@@ -3,70 +3,242 @@
 ## Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 16 (latest stable)
-- **Language**: TypeScript
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript 5+
 - **UI Library**: shadcn/ui
 - **Styling**: Tailwind CSS
-- **State Management**: React Context / Zustand
+- **State Management**: Zustand / TanStack Query
 - **Form Handling**: React Hook Form
 - **Validation**: Zod
+- **Charts**: Recharts / Apache ECharts (untuk monitoring dashboard)
 
 ### Backend
-- **Runtime**: Node.js (LTS)
-- **Framework**: Next.js API Routes / Express.js
-- **Language**: TypeScript
-- **Database ORM**: Drizzle ORM (recommended) / Prisma
-- **Authentication**: JWT + bcrypt
-- **Validation**: Zod
+- **Framework**: NestJS 10+ (Node.js + TypeScript)
+- **Architecture**: Modular Monolith (Microservices-ready)
+- **Language**: TypeScript 5+
+- **API Style**: REST + GraphQL (untuk complex queries)
+- **Database ORM**: Drizzle ORM
+- **Authentication**: Passport.js + JWT
+- **Authorization**: CASL (Attribute-based Access Control)
+- **Validation**: class-validator + Zod
 - **Documentation**: OpenAPI/Swagger
+- **Queue**: Bull + Redis (async processing)
 
 ### Database
 - **Primary**: PostgreSQL 15+
-- **Development**: PostgreSQL / SQLite
-- **Caching**: Redis
-- **Search**: PostgreSQL Full-Text / Elasticsearch (future)
+- **Multi-tenancy**: Schema-based isolation
+- **Connection Pool**: PgBouncer / Drizzle built-in
+- **Caching**: Redis 7+
+- **Search**: PostgreSQL Full-Text Search (built-in)
+- **Backup**: Point-in-time recovery (automated)
 
-### Infrastructure
-- **Containerization**: Docker
-- **Process Manager**: PM2
-- **Monitoring**: Winston + Morgan
-- **Testing**: Jest + Testing Library
-- **Linting**: ESLint + Prettier
+### Development Environment (Windows)
+- **Runtime**: Node.js 20 LTS (via nvm-windows)
+- **Package Manager**: pnpm (faster than npm/yarn)
+- **Database**: PostgreSQL 15+ (Windows native / WSL2)
+- **Redis**: Redis on Windows (Memurai) / WSL2
+- **Process Manager**: PM2 (development) / Windows Service (production)
+- **Terminal**: PowerShell / Windows Terminal
+- **Git**: Git for Windows + SSH key
+
+### Production Infrastructure
+- **Containerization**: Docker + Docker Compose (production only)
+- **Orchestration**: Kubernetes (K8s) - untuk scale nasional
+- **Load Balancer**: Nginx / Traefik
+- **File Storage**: MinIO (self-hosted S3) / AWS S3
+- **Monitoring**: Prometheus + Grafana + ELK Stack
+- **Process Manager**: PM2 Cluster / K8s
+- **Testing**: Vitest + Testing Library + Playwright
+- **Linting**: ESLint + Prettier + Husky
 - **CI/CD**: GitHub Actions
 
 ## Architecture Principles
 
-### 1. Modular Architecture
+### 1. Separation of Concerns: Frontend + Backend
+
+**Project Structure:**
 ```
-src/
-├── core/           # Core framework modules
-├── modules/        # Business modules
-├── shared/         # Shared utilities
-├── types/          # TypeScript definitions
-└── tests/          # Test files
+platform-cms/
+├── backend/                      # NestJS Application
+│   ├── src/
+│   │   ├── core/                 # Core framework modules
+│   │   │   ├── database/         # DB driver, migrations
+│   │   │   ├── auth/             # Authentication module
+│   │   │   ├── security/         # Sanitization, validation
+│   │   │   ├── monitoring/       # Performance tracking
+│   │   │   ├── tenancy/          # Multi-tenant support
+│   │   │   └── common/           # Shared utilities
+│   │   ├── modules/              # Business modules (generated)
+│   │   │   ├── users/
+│   │   │   ├── roles/
+│   │   │   └── [...]/
+│   │   ├── shared/               # Shared DTOs, interfaces
+│   │   └── main.ts
+│   ├── drizzle/                  # Database schemas & migrations
+│   ├── test/
+│   └── package.json
+│
+├── frontend/                     # Next.js Application
+│   ├── app/                      # App Router
+│   │   ├── (auth)/               # Auth routes group
+│   │   ├── (dashboard)/          # Dashboard routes
+│   │   ├── api/                  # Minimal API (proxy optional)
+│   │   └── layout.tsx
+│   ├── components/               # UI Components (shadcn)
+│   ├── lib/                      # Frontend utilities
+│   ├── hooks/                    # Custom React hooks
+│   └── package.json
+│
+├── cli/                          # CLI Builder Tool
+│   ├── commands/                 # CLI commands
+│   ├── templates/                # Code templates
+│   │   ├── backend/              # NestJS templates
+│   │   └── frontend/             # Next.js templates
+│   ├── generators/               # Code generators
+│   └── package.json
+│
+├── shared/                       # Shared types & schemas
+│   ├── types/                    # TypeScript definitions
+│   └── schemas/                  # Zod validation schemas
+│
+├── docs/                         # Documentation
+└── docker/                       # Docker configs (production)
 ```
 
-### 2. Clean Architecture Layers
-- **Presentation Layer**: UI components dan API routes
-- **Business Logic Layer**: Services dan use cases
-- **Data Access Layer**: Repository pattern dengan ORM
-- **Infrastructure Layer**: Database, caching, external services
+### 2. Clean Architecture Layers (Backend - NestJS)
 
-### 3. Database Driver Abstraction
+**Modular Architecture:**
+- **Presentation Layer**: Controllers (REST/GraphQL endpoints)
+- **Application Layer**: Services (business logic)
+- **Domain Layer**: Entities, DTOs, Interfaces
+- **Infrastructure Layer**: Database, cache, external services
+- **Core Layer**: Framework utilities (auth, security, monitoring)
+
+**Module Pattern (NestJS):**
 ```typescript
-interface DatabaseDriver {
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-  query(sql: string, params?: any[]): Promise<any>;
-  transaction(callback: Function): Promise<any>;
+@Module({
+  imports: [DatabaseModule, SecurityModule],
+  controllers: [UsersController],
+  providers: [UsersService, UsersRepository],
+  exports: [UsersService]
+})
+export class UsersModule {}
+```
+
+### 3. Multi-tenancy Architecture
+
+**Schema-based Isolation (PostgreSQL):**
+```typescript
+// Tenant middleware untuk set search_path
+@Injectable()
+export class TenantMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    const tenantId = this.extractTenantFromToken(req);
+    req['tenantSchema'] = `tenant_${tenantId}`;
+    next();
+  }
 }
 
-class PostgreSQLDriver implements DatabaseDriver { ... }
-class MySQLDriver implements DatabaseDriver { ... }
-class SQLiteDriver implements DatabaseDriver { ... }
+// Setiap request automatic switch ke schema tenant
+// tenant_kemendagri_pusat
+// tenant_ptsp_dki_jakarta
+// tenant_ptsp_kab_bandung
 ```
 
-### 4. Security First Approach
+**Keuntungan:**
+- Data isolation per tenant
+- Security: tenant tidak bisa akses data tenant lain
+- Backup per tenant
+- Compliance dengan regulasi pemerintah
+
+### 4. Database Driver Abstraction
+
+**Drizzle ORM dengan Multi-Database Support:**
+```typescript
+// Database configuration
+interface DatabaseConfig {
+  type: 'postgresql' | 'mysql' | 'sqlite';
+  host: string;
+  port: number;
+  database: string;
+  schema?: string; // untuk multi-tenancy
+}
+
+// Drizzle instance dengan driver abstraction
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle as drizzleMysql } from 'drizzle-orm/mysql2';
+
+class DatabaseService {
+  private db: any;
+  
+  async connect(config: DatabaseConfig) {
+    switch(config.type) {
+      case 'postgresql':
+        this.db = drizzle(pgPool);
+        break;
+      case 'mysql':
+        this.db = drizzleMysql(mysqlPool);
+        break;
+    }
+  }
+}
+```
+
+### 5. Soft Delete Pattern (Critical Data Protection)
+
+**IMPORTANT**: Semua data krusial menggunakan **soft delete**, tidak ada hard delete.
+
+```typescript
+// Base entity dengan soft delete
+export const baseColumns = {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdBy: bigint('created_by', { mode: 'number' }),
+  updatedBy: bigint('updated_by', { mode: 'number' }),
+  deletedAt: timestamp('deleted_at'), // Soft delete
+  deletedBy: bigint('deleted_by', { mode: 'number' })
+};
+
+// Query dengan filter soft delete otomatis
+export class BaseRepository<T> {
+  async findAll() {
+    return this.db
+      .select()
+      .from(this.table)
+      .where(isNull(this.table.deletedAt)); // Exclude deleted
+  }
+  
+  async softDelete(id: number, userId: number) {
+    return this.db
+      .update(this.table)
+      .set({ 
+        deletedAt: new Date(), 
+        deletedBy: userId 
+      })
+      .where(eq(this.table.id, id));
+  }
+  
+  async restore(id: number) {
+    return this.db
+      .update(this.table)
+      .set({ 
+        deletedAt: null, 
+        deletedBy: null 
+      })
+      .where(eq(this.table.id, id));
+  }
+}
+```
+
+**Keuntungan Soft Delete:**
+- ✅ Data tidak hilang permanent
+- ✅ Audit trail lengkap
+- ✅ Dapat di-restore jika kesalahan
+- ✅ Compliance dengan regulasi pemerintah
+- ✅ Forensic capability
+
+### 6. Security First Approach
 - Input sanitization pada setiap layer
 - Output encoding untuk XSS prevention
 - Parameterized queries untuk SQL injection prevention
@@ -212,13 +384,21 @@ interface PaginationMeta {
 
 ### Field Standards
 ```sql
--- Standard fields for all tables
+-- Standard fields untuk semua tables (dengan soft delete)
 id BIGSERIAL PRIMARY KEY,
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
 created_by BIGINT REFERENCES users(id),
-updated_by BIGINT REFERENCES users(id)
+updated_by BIGINT REFERENCES users(id),
+deleted_at TIMESTAMP WITH TIME ZONE,        -- Soft delete
+deleted_by BIGINT REFERENCES users(id)      -- Who deleted
 ```
+
+**Soft Delete Policy:**
+- ✅ Semua DELETE operations harus menggunakan soft delete
+- ✅ Hard delete hanya untuk cleanup otomatis (setelah retention period)
+- ✅ UI harus provide "restore" functionality
+- ✅ Admin dapat melihat deleted records dengan filter khusus
 
 ### Indexing Strategy
 - Primary key pada id fields

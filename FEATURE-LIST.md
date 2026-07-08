@@ -47,9 +47,10 @@ Dokumen ini berisi daftar lengkap modul dan fitur yang akan dikembangkan dalam P
 | 12 | CLI Builder | 7 | P1 | ✅ MVP |
 | 13 | API Layer | 6 | P0 | ✅ MVP |
 | 14 | Frontend Foundation | 9 | P0 | ✅ MVP |
+| 15 | Module Management | 6 | P1 | ✅ MVP |
 
-**Total Fitur**: 93 fitur  
-**MVP (Phase 1)**: 73 fitur  
+**Total Fitur**: 99 fitur  
+**MVP (Phase 1)**: 79 fitur  
 **Phase 2+**: 20 fitur
 
 ---
@@ -347,6 +348,21 @@ Dokumen ini berisi daftar lengkap modul dan fitur yang akan dikembangkan dalam P
 
 ---
 
+## 15. Modul Module Management
+
+**Deskripsi Modul**: Mengelola module registry, enable/disable module per tenant, dan dynamic feature loading.
+
+| No | Fitur | Deskripsi | Prioritas | Status MVP |
+|----|-------|-----------|-----------|------------|
+| 15.1 | Module Registry | Table modules di database (global). Store module metadata: name, display_name, description, icon, route_prefix, is_core, version. Auto-register saat CLI generate module. List all available modules (Super Admin). | P1 | ✅ MVP |
+| 15.2 | Module Permissions Mapping | Table module_permissions untuk link permissions ke module. Setiap module punya set permissions default (create, read, update, delete). Auto-create permissions saat register module. | P1 | ✅ MVP |
+| 15.3 | Tenant Module Enable/Disable | Table tenant_modules untuk track enabled modules per tenant. Tenant Admin bisa enable/disable non-core modules. Core modules (authentication, user management, role management) always enabled. Check subscription tier sebelum enable module. | P1 | ✅ MVP |
+| 15.4 | Module Configuration per Tenant | JSONB config field di tenant_modules. Per-tenant module settings (custom labels, limits, features). API get module config untuk frontend. Validation config structure. | P1 | ✅ MVP |
+| 15.5 | Dynamic Menu Generation | Generate sidebar menu dari enabled modules. Filter menu by user permissions. Order menu by module.order field. Icon dan route auto-loaded dari module metadata. | P1 | ✅ MVP |
+| 15.6 | Module Guard Middleware | Check module enabled untuk tenant sebelum allow access. Return 403 jika module not enabled. Apply guard ke semua routes dalam module. Cache enabled modules per tenant di Redis. | P1 | ✅ MVP |
+
+---
+
 ## Mapping Fitur ke MVP Timeline
 
 ### Week 1-2: Project Setup
@@ -357,6 +373,7 @@ Dokumen ini berisi daftar lengkap modul dan fitur yang akan dikembangkan dalam P
 
 ### Week 3-5: Database dan Multi-Tenancy
 - **Modul 4**: Multi-Tenancy (semua fitur)
+- **Modul 15**: Module Management (15.1, 15.2 - Module Registry & Permissions)
 - Database migration system
 - Soft delete implementation
 
@@ -368,6 +385,7 @@ Dokumen ini berisi daftar lengkap modul dan fitur yang akan dikembangkan dalam P
 ### Week 9-10: Security Layer
 - **Modul 6**: Security Layer (semua fitur)
 - **Modul 7**: Audit Log (7.1-7.3)
+- **Modul 15**: Module Management (15.3, 15.6 - Enable/Disable & Guard)
 
 ### Week 11: Error Handling dan Logging
 - **Modul 14**: Frontend Foundation (14.7 Error Handling)
@@ -382,6 +400,7 @@ Dokumen ini berisi daftar lengkap modul dan fitur yang akan dikembangkan dalam P
 ### Week 15: Frontend Foundation
 - **Modul 14**: Frontend Foundation (14.1-14.6, 14.8-14.9)
 - **Modul 8**: Dashboard (8.1-8.6)
+- **Modul 15**: Module Management (15.4, 15.5 - Config & Dynamic Menu)
 - shadcn/ui integration
 
 ### Week 16: Documentation dan Polish
@@ -441,14 +460,14 @@ Dokumen ini berisi daftar lengkap modul dan fitur yang akan dikembangkan dalam P
 
 ## Summary
 
-**Total Fitur Defined**: 93 fitur  
-**MVP Fitur**: 73 fitur (79%)  
-**Phase 2 Fitur**: 16 fitur (17%)  
+**Total Fitur Defined**: 99 fitur  
+**MVP Fitur**: 79 fitur (80%)  
+**Phase 2 Fitur**: 16 fitur (16%)  
 **Phase 3/Out of Scope**: 4 fitur (4%)  
 
 **Modul Priorities**:
 - **P0 (Critical)**: 6 modul → 57 fitur
-- **P1 (High)**: 4 modul → 16 fitur  
+- **P1 (High)**: 5 modul → 22 fitur  
 - **P2 (Medium)**: 4 modul → 20 fitur
 
 **Development Approach**:

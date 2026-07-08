@@ -529,6 +529,31 @@ Platform CMS adalah core framework starter yang menyediakan foundation siap paka
 
 ---
 
+#### K. Module Management
+
+**Fitur**:
+- Module registry (database untuk semua modules)
+- Module permissions mapping (link permissions ke module)
+- Tenant module enable/disable (per-tenant activation)
+- Module configuration per tenant (custom config JSONB)
+- Dynamic menu generation (auto-generate dari enabled modules)
+- Module guard middleware (check module enabled sebelum access)
+
+**User Stories**:
+- Sebagai Super Admin, saya ingin register module baru agar tersedia untuk tenants
+- Sebagai Tenant Admin, saya ingin enable/disable modules agar bisa customize features
+- Sebagai System, saya ingin dynamic menu generation agar hanya show enabled modules
+- Sebagai Developer, saya ingin module guard agar prevent access ke disabled modules
+- Sebagai Product Manager, saya ingin module per subscription tier agar bisa monetize features
+
+**Business Value**:
+- Flexibility: Tenant bisa customize modules sesuai kebutuhan
+- Monetization: Module bundling per subscription tier
+- Scalability: Easy add new modules tanpa affect existing tenants
+- Security: Module-level access control
+
+---
+
 ## 7. Fitur di Luar Scope MVP
 
 ### Phase 2 (Setelah MVP)
@@ -739,6 +764,79 @@ Platform CMS adalah core framework starter yang menyediakan foundation siap paka
 - [ ] Data kembali muncul di list
 - [ ] Audit log recorded
 - [ ] Success message
+
+**Priority**: P1 (HIGH)
+
+---
+
+### Epic 6: Module Management
+
+#### US-010: Register Module
+**Sebagai** Super Admin  
+**Saya ingin** register module baru ke system  
+**Agar** module tersedia untuk di-enable per tenant
+
+**Acceptance Criteria**:
+- [ ] CLI command generate module otomatis register ke DB
+- [ ] Insert ke table modules (name, display_name, route_prefix, icon)
+- [ ] Auto-create permissions untuk module (create, read, update, delete)
+- [ ] Module visible di module list (Super Admin)
+- [ ] Module metadata lengkap (version, description)
+- [ ] Audit log: Module registered
+
+**Priority**: P1 (HIGH)
+
+---
+
+#### US-011: Enable/Disable Module per Tenant
+**Sebagai** Tenant Admin  
+**Saya ingin** enable/disable modules untuk tenant saya  
+**Agar** bisa customize features sesuai kebutuhan
+
+**Acceptance Criteria**:
+- [ ] List available modules (based on subscription tier)
+- [ ] Toggle enable/disable per module
+- [ ] Core modules (authentication, user mgmt) tidak bisa disabled
+- [ ] Check subscription tier allows module
+- [ ] Insert/Update tenant_modules table
+- [ ] Menu sidebar auto-update setelah enable/disable
+- [ ] Audit log: Module enabled/disabled
+
+**Priority**: P1 (HIGH)
+
+---
+
+#### US-012: Dynamic Menu Generation
+**Sebagai** System  
+**Saya ingin** auto-generate menu dari enabled modules  
+**Agar** user hanya melihat menu untuk modules yang aktif
+
+**Acceptance Criteria**:
+- [ ] Fetch enabled modules untuk tenant
+- [ ] Filter menu by user permissions
+- [ ] Order menu by module.order field
+- [ ] Icon dan route auto-loaded dari module metadata
+- [ ] Menu items grouped by category (jika ada)
+- [ ] Cache enabled modules di Redis
+- [ ] Real-time menu update saat module enabled/disabled
+
+**Priority**: P1 (HIGH)
+
+---
+
+#### US-013: Module Guard Middleware
+**Sebagai** System  
+**Saya ingin** check module enabled sebelum allow access  
+**Agar** prevent access ke disabled modules
+
+**Acceptance Criteria**:
+- [ ] Extract module dari route path
+- [ ] Check tenant_modules: is module enabled?
+- [ ] Return 403 jika module disabled
+- [ ] Error message: Module tidak tersedia untuk tenant ini
+- [ ] Apply guard to all routes in module
+- [ ] Cache module status untuk performance
+- [ ] Audit log: Module access denied
 
 **Priority**: P1 (HIGH)
 
@@ -1102,3 +1200,44 @@ Platform CMS adalah core framework starter yang menyediakan foundation siap paka
 ---
 
 *Dokumen ini adalah Product Requirements Document yang menerjemahkan kebutuhan bisnis dari BRD menjadi spesifikasi produk. Untuk implementasi teknis, lihat technical documents (Architecture, Database Design, API Standards).*
+| Requirement | Target | Implementation |
+|-------------|--------|----------------|
+| Language | Bahasa Indonesia | All UI text, error messages |
+| Error Messages | Clear, per-field, actionable | Validation with detailed feedback |
+| No Emoji in UI | Strictly enforced | Design system guidelines |
+| Responsive Design | Mobile-first | Tailwind CSS breakpoints |
+| Accessibility | WCAG 2.1 Level AA (target) | Semantic HTML, ARIA labels |
+| Developer Onboarding | <1 hari | Comprehensive documentation |
+| Form Validation | Real-time feedback | React Hook Form + Zod |
+| Loading States | Clear indicators | Loading spinners, skeletons |
+
+---
+
+### Maintainability Requirements
+
+| Requirement | Target | Implementation |
+|-------------|--------|----------------|
+| Code Coverage | 80%%+ | Vitest, Testing Library |
+| Documentation | Comprehensive | TSDoc, README per module |
+| Code Style | Consistent | ESLint, Prettier |
+| TypeScript Strict | Enforced | tsconfig strict mode |
+| Modular Architecture | High cohesion, low coupling | NestJS modules |
+| Git Workflow | Feature branches, PR reviews | GitHub flow |
+
+---
+
+### Compatibility Requirements
+
+| Component | Requirement |
+|-----------|-------------|
+| Node.js | 20 LTS |
+| PostgreSQL | 15+ |
+| Redis | 7+ (Memurai for Windows) |
+| Browsers | Chrome 90+, Firefox 90+, Safari 14+, Edge 90+ |
+| Mobile Browsers | iOS Safari 14+, Chrome Mobile 90+ |
+| Operating System (Dev) | Windows 11 |
+| Operating System (Prod) | Linux (Docker) |
+
+---
+
+

@@ -81,7 +81,7 @@ tenant_ptsp_kab_bandung
 - **Database**: PostgreSQL (Windows native atau WSL2)
 - **Redis**: Memurai (Windows) atau WSL2
 - **Node.js**: Via nvm-windows
-- **Package Manager**: pnpm
+- **Package Manager**: npm
 
 ### Production Deployment
 - Docker + Kubernetes (untuk scale nasional)

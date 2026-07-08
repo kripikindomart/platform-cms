@@ -140,8 +140,8 @@ Semua dokumentasi ada di folder `docs/`:
    nvm install 20
    nvm use 20
    
-   # Install pnpm
-   npm install -g pnpm
+   # npm sudah built-in dengan Node.js
+   npm -v
    
    # PostgreSQL 15+ (Windows atau WSL2)
    # Redis (Memurai atau WSL2)
@@ -157,15 +157,15 @@ Semua dokumentasi ada di folder `docs/`:
    ```bash
    # Backend (NestJS)
    cd backend
-   pnpm install
+   npm install
    
    # Frontend (Next.js)
    cd ../frontend
-   pnpm install
+   npm install
    
    # CLI Tool
    cd ../cli
-   pnpm install
+   npm install
    ```
 
 ## 🔄 Development Workflow

@@ -106,10 +106,11 @@ Setelah CORE selesai, gunakan untuk build aplikasi nyata:
 
 ### Development Environment
 - **OS**: Windows 11
-- **Docker**: Not used untuk development (production only)
-- **Database**: PostgreSQL 15+ (Windows native atau WSL2)
-- **Node.js**: Via nvm-windows
-- **Package Manager**: pnpm
+- **Node.js**: 20 LTS (via nvm-windows)
+- **Package Manager**: npm
+- **Database**: PostgreSQL 15+ (Windows native / WSL2)
+- **Redis**: Memurai (Windows) / WSL2
+- **Docker**: Production only (NOT for development)
 
 ---
 *Dokumen ini akan terus diperbarui seiring perkembangan proyek*

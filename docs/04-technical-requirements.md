@@ -34,7 +34,7 @@
 
 ### Development Environment (Windows)
 - **Runtime**: Node.js 20 LTS (via nvm-windows)
-- **Package Manager**: pnpm (faster than npm/yarn)
+- **Package Manager**: npm (built-in dengan Node.js)
 - **Database**: PostgreSQL 15+ (Windows native / WSL2)
 - **Redis**: Redis on Windows (Memurai) / WSL2
 - **Process Manager**: PM2 (development) / Windows Service (production)

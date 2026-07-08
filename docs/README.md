@@ -123,7 +123,7 @@ Discovery phase **SELESAI**. Klarifikasi **LENGKAP**. Siap mulai **Phase 1 devel
 ### Development Environment
 - **OS**: Windows 11
 - **Node.js**: 20 LTS (via nvm-windows)
-- **Package Manager**: pnpm
+- **Package Manager**: npm
 - **Database**: PostgreSQL 15+ (Windows native / WSL2)
 - **Redis**: Memurai (Windows) / WSL2
 - **Docker**: Production only (NOT for development)

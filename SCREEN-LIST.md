@@ -44,12 +44,13 @@ Setiap screen harus handle 4 states:
 | Halaman Master Data | 4 | P1 |
 | Halaman Audit Log | 2 | P1 |
 | Halaman Settings | 4 | P1 |
+| Halaman Module Management | 3 | P1 |
 | Halaman Profile | 2 | P0 |
 | Modal/Dialog | 10 | P0-P1 |
 | Component Reusable | 15 | P0 |
 
-**Total Screens**: 64 screens/components  
-**MVP (Phase 1)**: 59 screens  
+**Total Screens**: 67 screens/components  
+**MVP (Phase 1)**: 62 screens  
 **Phase 2+**: 5 screens
 
 ---
@@ -104,6 +105,8 @@ Setiap screen harus handle 4 states:
 | Tenant Edit | Super Admin | Edit tenant | Form: name, domain, subscription tier, config (JSONB) | Save, Cancel | P0 |
 | Tenant Detail | Super Admin | View tenant detail | Info: name, slug, domain, schema_name, statistics, users, subscription | Edit, Delete, View Users | P0 |
 | System Settings | Super Admin | System configuration | Form: site name, logo, default language, timezone, maintenance mode | Save | P1 |
+| Module List | Super Admin | Manage modules | Table: name, display_name, route_prefix, version, is_core, tenant_count, actions | View, Edit, Activate/Deactivate | P1 |
+| Module Detail | Super Admin | View module detail | Info: name, display_name, description, icon, route_prefix, permissions, tenant usage stats | Edit, View Tenants Using Module | P1 |
 
 ### 3.2 Halaman Tenant Admin
 
@@ -118,6 +121,7 @@ Setiap screen harus handle 4 states:
 | Role Edit | Tenant Admin, Super Admin | Edit role | Form: name, description, permissions | Save, Cancel | P0 |
 | Role Detail | Tenant Admin, Super Admin | View role detail | Info: name, description, assigned permissions, assigned users | Edit, Delete, Manage Permissions | P0 |
 | Tenant Settings | Tenant Admin | Tenant configuration | Form: branding (logo, colors), features toggles, limits | Save | P1 |
+| Tenant Module Settings | Tenant Admin | Enable/disable modules | List: available modules (based on subscription tier), toggle switches, module descriptions | Enable/Disable Module, Configure Module | P1 |
 
 ### 3.3 Halaman User (All Authenticated)
 

@@ -10,7 +10,7 @@
 
 | Week | Status | Tasks Complete | Tasks Total | Progress |
 |------|--------|----------------|-------------|----------|
-| Week 1-2 | 🔄 In Progress | 3 | 6 | 50% |
+| Week 1-2 | 🔄 In Progress | 4 | 6 | 67% |
 | Week 3-4 | ⏳ Pending | 0 | 6 | 0% |
 | Week 5-7 | ⏳ Pending | 0 | 4 | 0% |
 | Week 8-9 | ⏳ Pending | 0 | 2 | 0% |
@@ -19,7 +19,7 @@
 | Week 14-15 | ⏳ Pending | 0 | 5 | 0% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 3/40 tasks (7.5%)
+**Total Progress**: 4/40 tasks (10%)
 
 ---
 
@@ -156,11 +156,30 @@ Estimated 4 hours, actual 2 hours = 50% faster!
   - **Time**: 2 hours (33% faster than estimated)
   - **Note**: Code complete, perlu PostgreSQL setup untuk testing actual connection
 
+- **Task 1.4** - Redis Connection Setup (100% complete)
+  - Installed ioredis dan @types/ioredis
+  - Created redis provider dengan retry strategy
+  - Created RedisService dengan 20+ operations
+  - Created RedisModule (Global)
+  - Updated redis.config.ts dengan maxRetriesPerRequest
+  - Updated health check endpoint dengan Redis status
+  - Event handlers (connect, error, close, reconnecting)
+  - Comprehensive logging dengan emoji
+  - Basic operations (get, set, del, exists, ttl, expire)
+  - JSON operations (setJSON, getJSON)
+  - Hash, List, Set operations implemented
+  - Graceful shutdown implemented
+  - Redis PING successful
+  - Type-check, lint, build all PASS
+  - **GitHub Issue**: #4
+  - **Time**: 1.5 hours (25% faster than estimated)
+
 #### 🆕 Created
 - **AI-PROGRESS-LOG.md** - Progress tracking document
 - **Backend Project** - Complete NestJS setup dengan 15+ files
 - **Frontend Project** - Complete Next.js 15 setup dengan 20+ files
 - **Database Layer** - Drizzle ORM provider, DatabaseModule, HealthModule
+- **Redis Layer** - Redis provider, RedisService dengan 20+ operations, RedisModule
 
 ---
 
@@ -215,7 +234,8 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ✅ Task 1.1: Backend Project Setup (COMPLETE)  
 ✅ Task 1.2: Frontend Project Setup (COMPLETE)  
 ✅ Task 1.3: Database Connection Setup (COMPLETE)  
-🎯 Next: Task 1.4 - Redis Connection Setup
+✅ Task 1.4: Redis Connection Setup (COMPLETE)  
+🎯 Next: Task 1.5 - Environment Configuration
 
 ---
 

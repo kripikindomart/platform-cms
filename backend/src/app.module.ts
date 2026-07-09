@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
+import { DatabaseModule } from './database/database.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -11,6 +13,8 @@ import redisConfig from './config/redis.config';
       load: [appConfig, databaseConfig, redisConfig],
       envFilePath: '.env',
     }),
+    DatabaseModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [],

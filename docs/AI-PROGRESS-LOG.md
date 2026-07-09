@@ -10,7 +10,7 @@
 
 | Week | Status | Tasks Complete | Tasks Total | Progress |
 |------|--------|----------------|-------------|----------|
-| Week 1-2 | 🔄 In Progress | 4 | 6 | 67% |
+| Week 1-2 | 🔄 In Progress | 5 | 6 | 83% |
 | Week 3-4 | ⏳ Pending | 0 | 6 | 0% |
 | Week 5-7 | ⏳ Pending | 0 | 4 | 0% |
 | Week 8-9 | ⏳ Pending | 0 | 2 | 0% |
@@ -19,7 +19,7 @@
 | Week 14-15 | ⏳ Pending | 0 | 5 | 0% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 4/40 tasks (10%)
+**Total Progress**: 5/40 tasks (12.5%)
 
 ---
 
@@ -174,37 +174,37 @@ Estimated 4 hours, actual 2 hours = 50% faster!
   - **GitHub Issue**: #4
   - **Time**: 1.5 hours (25% faster than estimated)
 
+- **Task 1.5** - Environment Configuration Setup (100% complete)
+  - Installed zod untuk validation
+  - Created env.validation.ts dengan Zod schema (25 env vars)
+  - Created config/index.ts untuk export semua configs
+  - Updated app.config.ts dengan config lengkap
+  - Updated app.module.ts dengan validation
+  - Updated .env.example dengan semua variables documented
+  - Created .env.test untuk testing environment
+  - Created .env.production template
+  - Updated .gitignore untuk ignore env files
+  - Environment validation dengan clear error messages
+  - Type-safe environment variables
+  - Multiple environments support (dev, test, prod, staging)
+  - Security validation (min 32 chars untuk secrets)
+  - Auto-transform string ke number/boolean
+  - Type-check, lint, start:dev all PASS
+  - Health check endpoint verified
+  - **GitHub Issue**: #5
+  - **Time**: 1.5 hours (25% faster than estimated)
+
 #### 🆕 Created
 - **AI-PROGRESS-LOG.md** - Progress tracking document
 - **Backend Project** - Complete NestJS setup dengan 15+ files
 - **Frontend Project** - Complete Next.js 15 setup dengan 20+ files
 - **Database Layer** - Drizzle ORM provider, DatabaseModule, HealthModule
 - **Redis Layer** - Redis provider, RedisService dengan 20+ operations, RedisModule
+- **Environment Configuration** - Zod validation, multiple environments, type-safe configs
 
 ---
 
 ## 🎯 Next Tasks
-
-### Task 1.3: Database Connection Setup
-**Status**: ⏳ PENDING  
-**Estimated Time**: 3 hours  
-**Dependencies**: Task 1.1
-
-**Objective**: Setup PostgreSQL database connection dengan Drizzle ORM
-
-### Task 1.4: Redis Connection Setup
-**Status**: ⏳ PENDING  
-**Estimated Time**: 2 hours  
-**Dependencies**: Task 1.1
-
-**Objective**: Setup Redis connection untuk caching dan session management
-
-### Task 1.5: Environment Configuration
-**Status**: ⏳ PENDING  
-**Estimated Time**: 2 hours  
-**Dependencies**: Task 1.1, 1.3, 1.4
-
-**Objective**: Complete environment configuration untuk development, staging, production
 
 ### Task 1.6: Git & CI/CD Setup
 **Status**: ⏳ PENDING  
@@ -235,7 +235,8 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ✅ Task 1.2: Frontend Project Setup (COMPLETE)  
 ✅ Task 1.3: Database Connection Setup (COMPLETE)  
 ✅ Task 1.4: Redis Connection Setup (COMPLETE)  
-🎯 Next: Task 1.5 - Environment Configuration
+✅ Task 1.5: Environment Configuration (COMPLETE)  
+🎯 Next: Task 1.6 - Git & CI/CD Setup
 
 ---
 

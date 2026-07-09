@@ -1,120 +1,223 @@
-# Platform CMS - Core Framework
+# Platform CMS
 
-**Enterprise-grade starter template untuk aplikasi multi-tenancy dengan focus pada security, scalability, dan AI-friendly development.**
+![Backend CI](https://github.com/kripikindomart/platform-cms/actions/workflows/backend-ci.yml/badge.svg)
+![Frontend CI](https://github.com/kripikindomart/platform-cms/actions/workflows/frontend-ci.yml/badge.svg)
+
+Multi-tenant enterprise CMS platform built with Next.js 15 and NestJS 10.
 
 ---
 
 ## 🚀 Quick Start
 
-```bash
-# Clone repository
-git clone git@github.com:kripikindomart/platform-cms.git
-cd platform-cms
+### Prerequisites
 
-# Install dependencies
-npm install
+- Node.js 20+
+- PostgreSQL 15+
+- Redis 7+
+- npm or yarn
 
-# Setup environment
-cp .env.example .env
+### Backend Setup
 
-# Run database migrations
-npm run db:migrate
+1. Install dependencies:
+   ```bash
+   cd backend
+   npm install
+   ```
 
-# Start development server
-npm run dev
-```
+2. Setup environment:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database and Redis credentials
+   ```
+
+3. Start development server:
+   ```bash
+   npm run start:dev
+   ```
+
+Backend will run on http://localhost:3000
+
+### Frontend Setup
+
+1. Install dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. Setup environment:
+   ```bash
+   cp .env.local.example .env.local
+   # Edit .env.local with your API URL
+   ```
+
+3. Start development server:
+   ```bash
+   npm run dev
+   ```
+
+Frontend will run on http://localhost:3001
 
 ## 📚 Documentation
 
-Semua dokumentasi tersedia di folder **[`docs/`](./docs/)**.
+Complete documentation available in [`docs/`](./docs/) folder:
 
-**Quick Links**:
-- 📖 [Documentation Index](./docs/README.md) - Daftar lengkap semua dokumentasi
-- ⭐ [PROJECT-BRIEF.md](./docs/PROJECT-BRIEF.md) - **START HERE** - Foundation document
-- 🤖 [AI-RULES.md](./docs/AI-RULES.md) - AI coding guidelines (WAJIB untuk AI)
-- 🗄️ [ERD-DATABASE.md](./docs/ERD-DATABASE.md) - Database schema
-- 🔌 [API-CONTRACT.md](./docs/API-CONTRACT.md) - API specification
+- [PROJECT-BRIEF.md](./docs/PROJECT-BRIEF.md) - Project foundation
+- [TECHNICAL-ARCHITECTURE.md](./docs/TECHNICAL-ARCHITECTURE.md) - System architecture
+- [TASK-PLAN.md](./docs/TASK-PLAN.md) - Development roadmap
+- [AI-RULES.md](./docs/AI-RULES.md) - Coding standards and guidelines
+- [ERD-DATABASE.md](./docs/ERD-DATABASE.md) - Database schema
+- [API-CONTRACT.md](./docs/API-CONTRACT.md) - API specification
+
+## 📊 Development Progress
+
+**Current Phase**: Week 1-2 - Project Setup & Infrastructure (83% complete)
+
+Completed:
+- ✅ Task 1.1: Backend Project Setup
+- ✅ Task 1.2: Frontend Project Setup
+- ✅ Task 1.3: Database Connection
+- ✅ Task 1.4: Redis Connection
+- ✅ Task 1.5: Environment Configuration
+- 🔄 Task 1.6: Git & CI/CD Setup (in progress)
+
+See [AI-PROGRESS-LOG.md](./docs/AI-PROGRESS-LOG.md) for detailed progress tracking.
 
 ## 🏗️ Tech Stack
 
 ### Backend
-- **Framework**: NestJS 10+
-- **Language**: TypeScript (strict mode)
-- **Database**: PostgreSQL 15+
-- **ORM**: Drizzle ORM
-- **Cache**: Redis 7+
-- **Auth**: JWT + CASL (RBAC)
+- **Framework**: NestJS 10
+- **Language**: TypeScript 5.6 (strict mode)
+- **Database**: PostgreSQL 15 with Drizzle ORM
+- **Cache**: Redis 7
+- **Validation**: Zod
+- **Testing**: Vitest
 
 ### Frontend
 - **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript (strict mode)
-- **UI**: shadcn/ui + Tailwind CSS
-- **State**: Zustand + TanStack Query
-- **Forms**: React Hook Form + Zod
+- **Language**: TypeScript 5 (strict mode)
+- **Styling**: Tailwind CSS v3
+- **UI Components**: shadcn/ui
+- **Testing**: Jest + React Testing Library
 
-## ✨ Key Features
+## ✨ Features
 
 - ✅ **Multi-Tenancy** - Schema-based isolation (PostgreSQL)
-- ✅ **Soft Delete** - Mandatory untuk semua data krusial
-- ✅ **Audit Trail** - Complete audit logging
-- ✅ **RBAC** - Role-based access control dengan CASL
-- ✅ **Security First** - Input sanitization, XSS prevention, rate limiting
-- ✅ **AI-Friendly** - CLI builder untuk code generation
 - ✅ **Type-Safe** - TypeScript strict mode + Zod validation
-- ✅ **Responsive** - Mobile-first design
-- ✅ **Dark Mode** - Theme switching support
+- ✅ **Environment Configuration** - Multi-environment support with validation
+- ✅ **Caching** - Redis integration for performance
+- ✅ **Health Checks** - Monitor database and Redis connections
+- ✅ **CI/CD** - Automated testing and deployment
+- 🔜 **Soft Delete** - Audit trail for all operations
+- 🔜 **RBAC** - Role-based access control
+- 🔜 **Authentication** - JWT-based auth system
 
 ## 📁 Project Structure
 
 ```
 platform-cms/
-├── docs/                    # 📚 All documentation
-│   ├── PROJECT-BRIEF.md     # Foundation document
-│   ├── AI-RULES.md          # AI coding guidelines
-│   ├── ERD-DATABASE.md      # Database schema
-│   ├── API-CONTRACT.md      # API specification
-│   └── ...                  # Other docs
-├── src/                     # Source code (future)
-│   ├── backend/             # NestJS backend
-│   └── frontend/            # Next.js frontend
-└── README.md                # This file
+├── backend/                 # NestJS backend API
+│   ├── src/
+│   │   ├── config/         # Configuration files
+│   │   ├── core/           # Core services (cache, etc)
+│   │   ├── database/       # Database setup
+│   │   ├── health/         # Health check module
+│   │   └── modules/        # Feature modules
+│   ├── test/               # Tests
+│   └── package.json
+├── frontend/                # Next.js 15 frontend
+│   ├── app/                # App router pages
+│   ├── components/         # React components
+│   ├── lib/                # Utilities
+│   └── package.json
+├── docs/                    # Documentation
+│   ├── PROJECT-BRIEF.md    # Project overview
+│   ├── TECHNICAL-ARCHITECTURE.md
+│   ├── TASK-PLAN.md       # Development roadmap
+│   └── AI-RULES.md        # Coding standards
+└── .github/
+    └── workflows/          # CI/CD workflows
 ```
+
+## 🧪 Available Scripts
+
+### Backend
+- `npm run start:dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run start:prod` - Start production server
+- `npm run test` - Run tests
+- `npm run lint` - Lint code
+- `npm run format` - Format code with Prettier
+- `npm run type-check` - TypeScript type checking
+
+### Frontend
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Lint code
+- `npm run format` - Format code
+- `npm run type-check` - TypeScript type checking
+
+## 🏥 Health Check
+
+Backend health check endpoint:
+```bash
+curl http://localhost:3000/api/health
+```
+
+Expected response:
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "redis": "connected",
+  "timestamp": "2024-01-08T10:00:00.000Z"
+}
+```
+
+## 🤖 CI/CD
+
+GitHub Actions workflows run automatically on push and pull requests:
+
+- **Backend CI**: Runs lint, type-check, and tests with PostgreSQL and Redis services
+- **Frontend CI**: Runs lint, type-check, and build
+
+View workflow runs in the [Actions tab](https://github.com/kripikindomart/platform-cms/actions).
 
 ## 🎯 Development Phases
 
-### ✅ Phase 0: Documentation (Current)
-- [x] Project Brief
-- [x] Business Requirements (BRD)
-- [x] Product Requirements (PRD)
-- [x] Database Design (ERD)
-- [x] API Contract
-- [x] Business Rules
-- [x] AI Rules
+### ✅ Phase 1: Project Setup (In Progress - Week 1-2)
+- [x] Backend NestJS project
+- [x] Frontend Next.js project
+- [x] PostgreSQL database connection
+- [x] Redis cache connection
+- [x] Environment configuration
+- [ ] CI/CD with GitHub Actions
 
-### ⏳ Phase 1: MVP Development (16 weeks)
-- Week 1-2: Setup & Authentication
-- Week 3-5: Core Features (Multi-tenancy, Users, Roles)
-- Week 6-8: Extended Features
-- Week 9-11: Master Data & Settings
-- Week 12-14: CLI Builder
-- Week 15: Frontend Foundation
-- Week 16: Polish & Documentation
+### ⏳ Phase 2: Database & Multi-Tenancy (Week 3-4)
+- Global schema (tenants, modules, permissions)
+- Tenant schema template
+- Multi-tenancy middleware
+- Migration system
 
-### 🔜 Phase 2: Enhancement
-- Email notifications
-- Advanced caching
-- Background jobs
-- Real-time features
+### ⏳ Phase 3: Authentication & Authorization (Week 5-7)
+- User authentication
+- Role-based access control (RBAC)
+- JWT tokens
+- Session management
 
-### 🔜 Phase 3: Use Case Implementation
-- Kemendagri PTSP specific features
+### 🔜 Phase 4+: Feature Development
+- Content management
+- Media library
+- API endpoints
+- Admin dashboard
 
 ## 🤝 Contributing
 
-1. Read [AI-RULES.md](./docs/AI-RULES.md) untuk AI coding guidelines
-2. Read [PROJECT-BRIEF.md](./docs/PROJECT-BRIEF.md) untuk context
-3. Follow naming conventions dan patterns
-4. Write tests (min 80% coverage)
+1. Read [AI-RULES.md](./docs/AI-RULES.md) for coding guidelines
+2. Follow naming conventions (kebab-case files, PascalCase classes, camelCase variables)
+3. Use TypeScript strict mode (no `any` type)
+4. Write tests for new features
 5. Update documentation
 
 ## 📝 Commit Convention
@@ -126,28 +229,25 @@ docs: documentation update
 refactor: code refactoring
 test: add tests
 chore: maintenance
+ci: CI/CD changes
 ```
 
 ## 🔐 Security
 
-- All inputs are sanitized
+- Environment variable validation with Zod
 - SQL injection prevention (parameterized queries)
-- XSS prevention (output encoding)
-- Rate limiting per tenant/endpoint
-- JWT authentication with HTTP-only cookies
-- RBAC with CASL for authorization
-- Audit logging untuk compliance
-
-## 📊 Status
-
-**Current Phase**: Documentation Complete ✅  
-**Next Phase**: Week 1 - Critical Technical Docs  
-**Last Updated**: 2024-01-08
+- Input sanitization
+- Rate limiting (configured)
+- Secrets management (.env files not committed)
 
 ## 📧 Contact
 
 **Repository**: [github.com/kripikindomart/platform-cms](https://github.com/kripikindomart/platform-cms)  
-**Email**: asrulanwar16@gmail.com
+**Issues**: [GitHub Issues](https://github.com/kripikindomart/platform-cms/issues)
+
+## 📄 License
+
+Proprietary - All Rights Reserved
 
 ---
 

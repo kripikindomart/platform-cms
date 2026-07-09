@@ -38,6 +38,9 @@ lerna-debug.log*
 .env
 .env.local
 .env.*.local
+!.env.example
+!.env.test
+!.env.production
 
 # Temp
 *.swp

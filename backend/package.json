@@ -25,6 +25,7 @@
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-express": "^11.1.28",
     "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.11.1",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
@@ -34,6 +35,7 @@
     "@nestjs/testing": "^11.1.28",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.43",
+    "@types/ioredis": "^4.28.10",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^8.63.0",

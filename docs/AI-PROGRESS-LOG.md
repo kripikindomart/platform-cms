@@ -10,7 +10,7 @@
 
 | Week | Status | Tasks Complete | Tasks Total | Progress |
 |------|--------|----------------|-------------|----------|
-| Week 1-2 | 🔄 In Progress | 1 | 6 | 17% |
+| Week 1-2 | 🔄 In Progress | 2 | 6 | 33% |
 | Week 3-4 | ⏳ Pending | 0 | 6 | 0% |
 | Week 5-7 | ⏳ Pending | 0 | 4 | 0% |
 | Week 8-9 | ⏳ Pending | 0 | 2 | 0% |
@@ -19,7 +19,7 @@
 | Week 14-15 | ⏳ Pending | 0 | 5 | 0% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 1/40 tasks (2.5%)
+**Total Progress**: 2/40 tasks (5%)
 
 ---
 
@@ -124,37 +124,57 @@ Estimated 4 hours, actual 2 hours = 50% faster!
   - **GitHub Issue**: #1
   - **Time**: 2 hours (50% faster than estimated)
 
+- **Task 1.2** - Frontend Project Setup (100% complete)
+  - Created frontend directory structure (app router)
+  - Installed Next.js 15 dengan React 19
+  - Configured TypeScript with strict mode
+  - Configured Tailwind CSS v3.4.1
+  - Configured ESLint + Prettier
+  - Created pages: home, login, register, portal
+  - Created lib utilities (utils.ts, api.ts)
+  - Fixed CSS import types dengan global.d.ts
+  - Downgraded Tailwind CSS v4 → v3 untuk compatibility
+  - Production build successful
+  - All endpoints tested dengan curl
+  - **GitHub Issue**: #2
+  - **Time**: 2.5 hours (17% faster than estimated)
+
 #### 🆕 Created
 - **AI-PROGRESS-LOG.md** - Progress tracking document
-- **Backend Project** - Complete NestJS setup with 15+ files
+- **Backend Project** - Complete NestJS setup dengan 15+ files
+- **Frontend Project** - Complete Next.js 15 setup dengan 20+ files
 
 ---
 
-## 🎯 Next Tasks (After Task 1.1)
-
-### Task 1.2: Frontend Project Setup
-**Status**: ⏳ PENDING  
-**Estimated Time**: 3 hours  
+## 🎯 Next Tasks
 
 ### Task 1.3: Database Connection Setup
 **Status**: ⏳ PENDING  
 **Estimated Time**: 3 hours  
 **Dependencies**: Task 1.1
 
+**Objective**: Setup PostgreSQL database connection dengan Drizzle ORM
+
 ### Task 1.4: Redis Connection Setup
 **Status**: ⏳ PENDING  
 **Estimated Time**: 2 hours  
 **Dependencies**: Task 1.1
+
+**Objective**: Setup Redis connection untuk caching dan session management
 
 ### Task 1.5: Environment Configuration
 **Status**: ⏳ PENDING  
 **Estimated Time**: 2 hours  
 **Dependencies**: Task 1.1, 1.3, 1.4
 
+**Objective**: Complete environment configuration untuk development, staging, production
+
 ### Task 1.6: Git & CI/CD Setup
 **Status**: ⏳ PENDING  
 **Estimated Time**: 3 hours  
 **Dependencies**: Task 1.1, 1.2
+
+**Objective**: Setup GitHub Actions untuk automated testing dan deployment
 
 ---
 
@@ -174,7 +194,9 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 
 ### Current Focus
 🎯 Week 1-2: Project Setup & Infrastructure  
-🎯 Task 1.1: Backend Project Setup (IN PROGRESS)
+✅ Task 1.1: Backend Project Setup (COMPLETE)  
+✅ Task 1.2: Frontend Project Setup (COMPLETE)  
+🎯 Next: Task 1.3 - Database Connection Setup
 
 ---
 
@@ -184,11 +206,24 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ```bash
 cd backend
 npm install          # Install dependencies
-npm run start:dev    # Start dev server
+npm run start:dev    # Start dev server (port 3000)
 npm run build        # Build for production
 npm run test         # Run tests
 npm run lint         # Lint code
 npm run format       # Format code
+npm run type-check   # TypeScript type checking
+```
+
+### Frontend
+```bash
+cd frontend
+npm install          # Install dependencies
+npm run dev          # Start dev server (port 3001)
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Lint code
+npm run format       # Format code
+npm run type-check   # TypeScript type checking
 ```
 
 ### Documentation

@@ -50,6 +50,14 @@ function registerHelpers(): void {
     args.pop(); // Remove Handlebars options object
     return args.some(Boolean);
   });
+
+  // Math helpers
+  Handlebars.registerHelper('add', (a: number, b: number) => a + b);
+  Handlebars.registerHelper('subtract', (a: number, b: number) => a - b);
+  Handlebars.registerHelper('multiply', (a: number, b: number) => a * b);
+  Handlebars.registerHelper('divide', (a: number, b: number) => a / b);
+  Handlebars.registerHelper('pow', (base: number, exponent: number) => Math.pow(base, exponent));
+  Handlebars.registerHelper('mod', (a: number, b: number) => a % b);
 }
 
 // Register helpers on module load

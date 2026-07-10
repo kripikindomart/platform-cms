@@ -19,11 +19,15 @@ export const products = pgTable('products', {
 
   // Fields
   name: varchar('name', { length: 255 }).notNull(),
-  sku: varchar('sku', { length: 255 }).notNull().unique(),
+  sku: varchar('sku', { length: 100 }).notNull().unique(),
+  email: varchar('email', { length: 255 }).notNull(),
+  website: text('website'),
   description: text('description'),
-  price: numeric('price', { precision: 10, scale: 0 }).notNull(),
+  price: numeric('price', { precision: 10, scale: 2 }).notNull(),
   stock: integer('stock'),
   active: boolean('active').default(false),
+  published_at: timestamp('published_at'),
+  status: varchar('status', { length: 255 }),
 
   // Audit fields
   created_at: timestamp('created_at').defaultNow().notNull(),

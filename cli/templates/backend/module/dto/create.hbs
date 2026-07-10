@@ -1,5 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, IsEmail, IsUrl, IsUUID } from 'class-validator';
+import { 
+  IsString, 
+  IsNotEmpty, 
+  IsOptional, 
+  IsNumber, 
+  IsBoolean, 
+  IsEmail, 
+  IsUrl, 
+  IsUUID,
+  IsEnum,
+  IsDate,
+  Min,
+  Max,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * DTO for creating {{singularize (lowercase name)}}
@@ -7,30 +23,56 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, IsEmail, IsUrl, 
 export class Create{{PascalCase (singularize name)}}Dto {
 {{#if hasFields}}
 {{#each fields}}
-  @ApiProperty({ description: '{{capitalize this.name}}', required: {{#if this.required}}true{{else}}false{{/if}} })
+  @ApiProperty({ 
+    description: '{{capitalize this.name}}', 
+    required: {{#if this.required}}true{{else}}false{{/if}}{{#if this.enumValues}},
+    enum: [{{#each this.enumValues}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}]{{/if}}{{#if (and this.length (or (eq this.type 'string') (eq this.type 'text')))}},
+    maxLength: {{this.length}}{{/if}}{{#if (or (eq this.type 'date') (eq this.type 'datetime') (eq this.type 'timestamp'))}},
+    type: Date{{/if}}
+  })
 {{#if (eq this.type 'string')}}
   @IsString()
+{{#if this.length}}
+  @MaxLength({{this.length}})
+{{/if}}
 {{else if (eq this.type 'text')}}
   @IsString()
-{{else if (eq this.type 'number')}}
-  @IsNumber()
-{{else if (eq this.type 'boolean')}}
-  @IsBoolean()
+{{#if this.length}}
+  @MaxLength({{this.length}})
+{{/if}}
 {{else if (eq this.type 'email')}}
   @IsEmail()
+  @MaxLength(255)
 {{else if (eq this.type 'url')}}
   @IsUrl()
+  @MaxLength(500)
 {{else if (eq this.type 'uuid')}}
   @IsUUID()
+{{else if (eq this.type 'number')}}
+  @IsNumber()
+{{#if this.precision}}
+  @Min(0)
+  @Max({{subtract (pow 10 (subtract this.precision (or this.scale 0))) 1}})
+{{/if}}
+{{else if (eq this.type 'boolean')}}
+  @IsBoolean()
+{{else if (or (eq this.type 'date') (eq this.type 'datetime') (eq this.type 'timestamp'))}}
+  @Type(() => Date)
+  @IsDate()
+{{else if (eq this.type 'json')}}
+  @IsOptional()
 {{else}}
   @IsString()
+{{/if}}
+{{#if this.enumValues}}
+  @IsEnum([{{#each this.enumValues}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}])
 {{/if}}
 {{#if this.required}}
   @IsNotEmpty()
 {{else}}
   @IsOptional()
 {{/if}}
-  {{this.name}}{{#unless this.required}}?{{/unless}}: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (eq this.type 'date')}}Date{{else if (eq this.type 'datetime')}}Date{{else if (eq this.type 'json')}}any{{else}}string{{/if}};
+  {{this.name}}{{#unless this.required}}?{{/unless}}: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (or (eq this.type 'date') (eq this.type 'datetime') (eq this.type 'timestamp'))}}Date{{else if (eq this.type 'json')}}any{{else if this.enumValues}}{{#each this.enumValues}}'{{this}}'{{#unless @last}} | {{/unless}}{{/each}}{{else}}string{{/if}};
 
 {{/each}}
 {{else}}

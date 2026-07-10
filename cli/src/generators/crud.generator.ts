@@ -104,7 +104,7 @@ export class CrudGenerator extends ModuleGenerator {
 
   /**
    * Parse fields string into Field array with complete metadata
-   * Format: "name:string:255:10:2!@?"
+   * Format: "name:string:255!@?"
    * Syntax: name:type:length:precision:scale:modifiers
    * Modifiers: ! (required), @ (unique), ? (nullable)
    */
@@ -136,44 +136,45 @@ export class CrudGenerator extends ModuleGenerator {
       let unique = false;
       let nullable = false;
 
-      // Determine base type
-      const baseType = typeWithModifiers.replace(/[!@?]/g, '').trim().toLowerCase();
+      // Parse modifiers from last part FIRST (before numeric parsing)
+      const lastPart = parts[parts.length - 1];
+      if (lastPart.includes('!')) {
+        required = true;
+      }
+      if (lastPart.includes('@')) {
+        unique = true;
+      }
+      if (lastPart.includes('?')) {
+        nullable = true;
+      }
+
+      // Clean modifiers from all parts
+      const cleanParts = parts.map((p) => p.replace(/[!@?]/g, '').trim());
+      
+      // Determine base type (cleaned)
+      const baseType = cleanParts[1].toLowerCase();
+      typeWithModifiers = cleanParts[1];
 
       // Parse numeric parameters based on type
       if (baseType === 'decimal' || baseType === 'numeric' || baseType === 'float') {
         // For decimal types: parts[2] = precision, parts[3] = scale
-        if (parts[2] && /^\d+$/.test(parts[2])) {
-          precision = parseInt(parts[2], 10);
+        if (cleanParts[2] && /^\d+$/.test(cleanParts[2])) {
+          precision = parseInt(cleanParts[2], 10);
         }
-        if (parts[3] && /^\d+$/.test(parts[3])) {
-          scale = parseInt(parts[3], 10);
+        if (cleanParts[3] && /^\d+$/.test(cleanParts[3])) {
+          scale = parseInt(cleanParts[3], 10);
         }
       } else {
         // For other types: parts[2] = length, parts[3] = precision, parts[4] = scale
-        if (parts[2] && /^\d+$/.test(parts[2])) {
-          length = parseInt(parts[2], 10);
+        if (cleanParts[2] && /^\d+$/.test(cleanParts[2])) {
+          length = parseInt(cleanParts[2], 10);
         }
-        if (parts[3] && /^\d+$/.test(parts[3])) {
-          precision = parseInt(parts[3], 10);
+        if (cleanParts[3] && /^\d+$/.test(cleanParts[3])) {
+          precision = parseInt(cleanParts[3], 10);
         }
-        if (parts[4] && /^\d+$/.test(parts[4])) {
-          scale = parseInt(parts[4], 10);
+        if (cleanParts[4] && /^\d+$/.test(cleanParts[4])) {
+          scale = parseInt(cleanParts[4], 10);
         }
-      }
-
-      // Parse modifiers from last part or type
-      const lastPart = parts[parts.length - 1];
-      if (lastPart.includes('!')) {
-        required = true;
-        typeWithModifiers = typeWithModifiers.replace('!', '');
-      }
-      if (lastPart.includes('@')) {
-        unique = true;
-        typeWithModifiers = typeWithModifiers.replace('@', '');
-      }
-      if (lastPart.includes('?')) {
-        nullable = true;
-        typeWithModifiers = typeWithModifiers.replace('?', '');
       }
 
       const type = this.normalizeType(typeWithModifiers.trim());

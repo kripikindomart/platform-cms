@@ -60,15 +60,29 @@ export const inputTypeEnum = pgEnum('input_type', [
  */
 export const validationTypeEnum = pgEnum('validation_type', [
   'required',
-  'unique',
   'email',
   'url',
-  'min',
-  'max',
   'minLength',
   'maxLength',
   'pattern',
+  'min',
+  'max',
+  'integer',
+  'positive',
+  'negative',
+  'arrayMinLength',
+  'arrayMaxLength',
   'custom',
+]);
+
+/**
+ * Relation types enum
+ */
+export const relationTypeEnum = pgEnum('relation_type', [
+  'one-to-one',
+  'one-to-many',
+  'many-to-one',
+  'many-to-many',
 ]);
 
 /**
@@ -142,7 +156,7 @@ export const moduleFields = pgTable('module_fields', {
   
   // Relation info (if field_type = 'relation')
   relation_module: varchar('relation_module', { length: 255 }),
-  relation_type: varchar('relation_type', { length: 50 }), // 'one-to-one', 'one-to-many', 'many-to-many'
+  relation_type: relationTypeEnum('relation_type'), // Use enum instead of varchar
   
   // Frontend info
   input_type: inputTypeEnum('input_type').notNull(),

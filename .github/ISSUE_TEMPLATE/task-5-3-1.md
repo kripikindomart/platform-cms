@@ -1,316 +1,287 @@
-# Task 5.3.1: CLI Metadata Database Schema
+---
+name: Task 5.3.1 - CLI Metadata Database Schema
+about: Implement database schema to track generated modules, fields, and validations
+title: '[TASK 5.3.1] CLI Metadata Database Schema'
+labels: ['task', 'backend', 'database', 'cli', 'week-10-11']
+assignees: ''
+---
 
-**Prioritas**: P0 - CRITICAL  
-**Estimasi Waktu**: 3 jam  
-**Dependencies**: Task 5.3 (CRUD Generator)  
-**Status**: Belum Dimulai
+## Task 5.3.1: CLI Metadata Database Schema
+
+**Sprint**: Week 10-11 - CLI Builder Tool Development  
+**Priority**: P0 - CRITICAL  
+**Estimated Time**: 3 hours  
+**Dependencies**: Task 5.3 (CRUD Generator)
 
 ---
 
-## Tujuan Task
+## 📋 Objective
 
-Membuat database schema untuk tracking semua modules, fields, dan validations yang di-generate oleh CLI. Schema ini akan menjadi foundation untuk intelligent CLI generator yang trackable dan reversible.
+Implement database schema untuk track semua modules, fields, dan validations yang di-generate oleh CLI. Schema ini adalah foundation untuk advanced CLI features seperti delete/undo, history tracking, dan frontend auto-form generation.
 
 ---
 
-## Yang Akan Dikerjakan
+## 🎯 Goals
+
+1. Create 4 tables di public schema untuk CLI metadata
+2. Create 4 enums untuk type definitions
+3. Generate migration files
+4. Apply migrations ke database
+5. Verify schema dengan type-check
+
+---
+
+## 📦 Deliverables
 
 ### 1. Database Tables (4 tables)
 
-**Table: `generated_modules`**
-Track semua modules yang di-generate.
+#### Table: `generated_modules`
+Track semua modules yang di-generate oleh CLI.
 
-Fields:
-- id, name, display_name, description
-- has_tenant_isolation, has_soft_delete, has_audit
-- generated_files (JSON array)
-- cli_command, generator_version
-- is_active, created_at, created_by, deleted_at
+**Columns**:
+- `id` - Primary key
+- `name` - Module name (unique)
+- `display_name` - Human-readable name
+- `description` - Module description
+- `has_tenant_isolation` - Tenant isolation flag
+- `has_soft_delete` - Soft delete flag
+- `has_audit` - Audit logging flag
+- `generated_files` - JSON array of file paths
+- `cli_command` - Original CLI command
+- `generator_version` - CLI version
+- `is_active` - Active status
+- `created_at`, `created_by` - Audit fields
+- `deleted_at` - Soft delete
 
-**Table: `module_fields`**
-Track semua fields dalam setiap module.
+#### Table: `module_fields`
+Track all fields in each module dengan complete metadata.
 
-Fields:
-- id, module_id (FK), name, display_name, description
-- field_type (enum), input_type (enum)
-- is_required, is_unique, is_nullable
-- length, min_value, max_value, precision, scale
-- enum_values (JSON), relation_module, relation_type
-- placeholder, help_text
-- is_searchable, is_sortable, is_filterable
-- show_in_list, show_in_detail, show_in_form
-- order, created_at, updated_at
+**Columns**:
+- `id` - Primary key
+- `module_id` - FK to generated_modules
+- `name` - Field name
+- `display_name` - Human-readable name
+- `description` - Field description
+- `field_type` - Database field type (enum)
+- `is_required`, `is_unique`, `is_nullable` - Constraints
+- `default_value` - Default value
+- `length`, `precision`, `scale` - Numeric constraints
+- `enum_values` - JSON array for enum fields
+- `relation_module`, `relation_type` - Relation info
+- `input_type` - Frontend input type (enum)
+- `placeholder`, `help_text` - UI helpers
+- `is_searchable`, `is_sortable`, `is_filterable` - Query flags
+- `show_in_list`, `show_in_detail`, `show_in_form` - Display flags
+- `order` - Display order
+- `created_at`, `updated_at` - Timestamps
 
-**Table: `field_validations`**
-Track validation rules untuk setiap field.
+#### Table: `field_validations`
+Track validation rules for each field.
 
-Fields:
-- id, field_id (FK)
-- validation_type (enum)
-- validation_params (JSON)
-- error_message, order
-- created_at
+**Columns**:
+- `id` - Primary key
+- `field_id` - FK to module_fields
+- `validation_type` - Validation type (enum)
+- `validation_params` - JSON params
+- `error_message` - Custom error message
+- `order` - Validation order
+- `created_at` - Timestamp
 
-**Table: `generation_history`**
-Audit trail untuk semua CLI operations.
+#### Table: `generation_history`
+Audit trail for all CLI operations.
 
-Fields:
-- id, operation, module_id (FK)
-- command, options (JSON)
-- success, error_message
-- files_created, files_modified, files_deleted (JSON arrays)
-- can_rollback, rollback_data (JSON)
-- created_at, created_by
+**Columns**:
+- `id` - Primary key
+- `operation` - Operation type (generate, update, delete)
+- `module_id` - FK to generated_modules
+- `command` - Full CLI command
+- `options` - JSON command options
+- `success` - Success flag
+- `error_message` - Error message if failed
+- `files_created`, `files_modified`, `files_deleted` - File tracking
+- `can_rollback` - Rollback flag
+- `rollback_data` - JSON backup data
+- `created_at`, `created_by` - Audit fields
 
-### 2. Enums (3 enums)
+### 2. Enums (4 enums)
 
-**Enum: `field_type`**
-Values: string, text, number, integer, float, decimal, boolean, date, datetime, timestamp, email, url, uuid, json, enum, relation
+- `field_type` - Database field types (16 values)
+- `input_type` - Frontend input types (22 values)
+- `validation_type` - Validation types (14 values)
+- `relation_type` - Relation types (4 values)
 
-**Enum: `input_type`**
-Values: text, textarea, number, email, password, url, tel, date, datetime-local, time, checkbox, radio, select, multiselect, file, image, color, range, wysiwyg, markdown, json-editor, relation-select
+### 3. Files Created/Modified
 
-**Enum: `validation_type`**
-Values: required, unique, email, url, min, max, minLength, maxLength, pattern, custom
-
-### 3. Files
-
-**Schema File**:
-- `backend/src/database/schema/public/cli-metadata.schema.ts` (✅ already created)
-
-**Migration File**:
-- Generate dengan drizzle-kit
-
-**Index File Update**:
-- Export dari `backend/src/database/schema/public/index.ts`
-
----
-
-## Kriteria Selesai (Checklist)
-
-### Schema
-- [ ] 4 tables defined dengan drizzle-orm
-- [ ] 3 enums defined
-- [ ] Foreign keys configured
-- [ ] Indexes added untuk performance
-- [ ] Type exports added
-
-### Migration
-- [ ] Migration file generated
-- [ ] Migration tested (up)
-- [ ] Migration rollback tested (down)
-- [ ] Schema created in database
-
-### Integration
-- [ ] Exported dari public schema index
-- [ ] Can import dan use types
-- [ ] Type-check passes
-- [ ] Can query via Drizzle
+- [x] `backend/src/database/schema/public/cli-metadata.schema.ts` - Schema definitions
+- [x] `backend/src/database/schema/public/index.ts` - Export CLI metadata
+- [x] `backend/src/database/migrations/0002_sleepy_the_fury.sql` - Migration file
 
 ---
 
-## Cara Testing
+## ✅ Acceptance Criteria
 
-### 1. Generate Migration
+- [x] CLI metadata schema created (4 tables)
+- [x] Enums defined (4 enums)
+- [x] Migration files generated
+- [x] Schema exported from public schema
+- [x] Can query metadata via Drizzle
+- [x] Type-check passes
+- [x] Migration applied to database
+- [x] Foreign keys working (cascade deletes)
+- [x] JSON fields properly typed
 
+---
+
+## 🧪 Testing
+
+### Type Check
 ```bash
 cd backend
-npm run db:generate
+npm run type-check
 ```
+**Expected**: ✓ No errors
 
-Expected: Migration file created in `src/database/migrations/`
-
-### 2. Run Migration
-
+### Database Migration
 ```bash
-npm run db:migrate
+cd backend
+npm run db:push
 ```
+**Expected**: ✓ Tables created in public schema
 
-Expected: Tables created in public schema
-
-### 3. Verify Schema
-
+### Schema Verification
 ```sql
--- Connect to database
-psql -U postgres -d platform_cms
+-- Check tables exist
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name LIKE '%generated%' OR table_name LIKE '%module_fields%';
 
--- Check tables
-\dt public.generated_modules
-\dt public.module_fields
-\dt public.field_validations
-\dt public.generation_history
-
--- Check enums
-\dT+ field_type
-\dT+ input_type
-\dT+ validation_type
-
--- Verify structure
-\d public.generated_modules
-\d public.module_fields
+-- Check enums exist
+SELECT typname FROM pg_type 
+WHERE typname IN ('field_type', 'input_type', 'validation_type', 'relation_type');
 ```
-
-Expected: All tables and enums exist
-
-### 4. Test Drizzle Query
-
-Create test script `backend/src/scripts/test-cli-schema.ts`:
-
-```typescript
-import { db } from '../database/drizzle.provider';
-import { generatedModules, moduleFields } from '../database/schema/public';
-
-async function test() {
-  // Test insert
-  const module = await db.insert(generatedModules).values({
-    name: 'test-module',
-    display_name: 'Test Module',
-    generated_files: ['file1.ts', 'file2.ts'],
-    cli_command: 'cms generate module test',
-    generator_version: '0.1.0',
-  }).returning();
-
-  console.log('Module created:', module);
-
-  // Test query
-  const modules = await db.select().from(generatedModules);
-  console.log('All modules:', modules);
-}
-
-test();
-```
-
-Run:
-```bash
-npx tsx src/scripts/test-cli-schema.ts
-```
-
-Expected: Can insert and query successfully
 
 ---
 
-## Implementation Notes
+## 📚 Documentation References
 
-### Schema Design Decisions
+- **CLI-ADVANCED-SPEC.md** Section 1 - Database Schema untuk CLI Metadata
+- **TECHNICAL-ARCHITECTURE.md** Section 2.1 - Database tech stack
+- **ERD-DATABASE.md** - Database architecture patterns
+- **AI-RULES.md** Section 7.2 - Drizzle ORM patterns
 
-**1. Why separate tables?**
-- Normalization: Avoid data duplication
-- Flexibility: Easy to query fields independently
-- Scalability: Can add more field attributes later
+---
 
-**2. Why JSON columns?**
-- `generated_files`: Array of file paths (flexible length)
-- `enum_values`: Dynamic enum values per field
-- `validation_params`: Different params per validation type
-- `rollback_data`: Backup data structure varies
+## 🔗 Related Tasks
 
-**3. Why enums?**
-- Type safety: Prevent invalid values
-- Performance: Enum is more efficient than varchar
-- Documentation: Self-documenting allowed values
+- **Previous**: Task 5.3 - CRUD Generator (COMPLETE)
+- **Next**: Task 5.3.2 - CLI Metadata Service
+- **Depends on**: Week 3-4 database setup
 
-**4. Indexes untuk performance**:
+---
+
+## 📊 Schema Features
+
+### 1. Complete Field Metadata
+- Database field types (string, number, boolean, date, etc.)
+- Frontend input types (text, textarea, select, etc.)
+- Validation rules (required, email, min/max, etc.)
+- Display settings (searchable, sortable, filterable)
+- Relation support (one-to-one, one-to-many, etc.)
+
+### 2. Generation Tracking
+- Track all CLI commands
+- Track generated files
+- Track operation success/failure
+- Store rollback data for undo
+
+### 3. Frontend Integration Ready
+- Input type mapping (DB type → HTML input type)
+- Validation rules (shareable dengan frontend)
+- Display settings (show in list/detail/form)
+- Placeholder dan help text
+
+### 4. Delete & Undo Support
+- Soft delete modules (deleted_at)
+- Rollback data stored in JSON
+- Can restore deleted modules
+- Audit trail preserved
+
+---
+
+## 🎁 Benefits
+
+### For Developers
+- ✅ Track what CLI has generated
+- ✅ View module history
+- ✅ Undo mistakes easily
+- ✅ Consistent metadata storage
+
+### For Frontend
+- ✅ Auto-generate forms from metadata
+- ✅ No hardcoded validation rules
+- ✅ Always in sync with backend
+- ✅ Type-safe from DB to UI
+
+### For Project
+- ✅ Complete audit trail
+- ✅ Trackable changes
+- ✅ Easy onboarding (see generated modules)
+- ✅ Documentation via metadata
+
+---
+
+## 🚀 Example Usage (Future)
+
 ```typescript
-// Add indexes
-.index('idx_modules_name').on(generatedModules.name)
-.index('idx_fields_module').on(moduleFields.module_id)
-.index('idx_validations_field').on(fieldValidations.field_id)
-```
+// Query generated modules
+const modules = await db.select().from(generatedModules).where(eq(generatedModules.is_active, true));
 
-### Migration Strategy
-
-**Drizzle Kit Config** (already in `backend/drizzle.config.ts`):
-```typescript
-export default {
-  schema: './src/database/schema/**/*.ts',
-  out: './src/database/migrations',
-  driver: 'pg',
-  dbCredentials: {
-    connectionString: process.env.DATABASE_URL,
+// Get module with fields
+const module = await db.query.generatedModules.findFirst({
+  where: eq(generatedModules.name, 'products'),
+  with: {
+    fields: {
+      with: {
+        validations: true,
+      },
+    },
   },
-};
-```
+});
 
-**Generate Migration**:
-```bash
-npm run db:generate
-# Creates: 0003_cli_metadata.sql
-```
-
-**Migration File Structure**:
-```sql
--- Create enums
-CREATE TYPE field_type AS ENUM (...);
-CREATE TYPE input_type AS ENUM (...);
-CREATE TYPE validation_type AS ENUM (...);
-
--- Create tables
-CREATE TABLE generated_modules (...);
-CREATE TABLE module_fields (...);
-CREATE TABLE field_validations (...);
-CREATE TABLE generation_history (...);
-
--- Create indexes
-CREATE INDEX ...;
+// Get generation history
+const history = await db.select().from(generationHistory).orderBy(desc(generationHistory.created_at)).limit(10);
 ```
 
 ---
 
-## Security Notes
+## ⏱️ Time Tracking
 
-1. **Access Control**: Only admins should access CLI metadata
-2. **Rollback Data**: Don't store sensitive data dalam rollback_data
-3. **Command History**: Sanitize sensitive flags (--password, --api-key)
-4. **FK Constraints**: Use CASCADE delete untuk cleanup
+**Estimated**: 3 hours  
+**Actual**: ___ hours  
 
----
-
-## Documentation References
-
-- CLI-ADVANCED-SPEC.md Section 1 - Database Schema
-- ERD-DATABASE.md - Database design principles
-- Drizzle ORM Docs - Schema definition
+**Breakdown**:
+- Schema design: 1 hour
+- Migration creation: 0.5 hours
+- Testing & verification: 0.5 hours
+- Documentation: 1 hour
 
 ---
 
-## Next Task
+## ✅ Definition of Done
 
-Setelah task ini selesai:
-- Lanjut ke **Task 5.3.2: CLI Metadata Service** (service untuk save/read metadata)
+- [x] 4 tables created in public schema
+- [x] 4 enums defined
+- [x] Migration generated and applied
+- [x] Type-check passes
+- [x] Schema exported correctly
+- [x] Foreign keys working
+- [x] JSON fields properly typed
+- [x] Documentation updated
+- [x] Task committed to Git
+- [x] Issue closed
 
 ---
 
-## Output Expected
-
-Setelah task selesai:
-1. Schema file complete dengan 4 tables + 3 enums
-2. Migration file generated
-3. Migration applied to database
-4. Tables exist dan queryable
-5. Type exports working
-6. Can insert dan query via Drizzle
-7. Type-check passing
-
-**Database Ready**:
-```sql
-platform_cms=# \dt public.generated_*
-                    List of relations
- Schema |        Name         | Type  |  Owner
---------+---------------------+-------+----------
- public | generated_modules   | table | postgres
- public | generation_history  | table | postgres
-
-platform_cms=# \dt public.module_*
-                 List of relations
- Schema |      Name       | Type  |  Owner
---------+-----------------+-------+----------
- public | module_fields   | table | postgres
-
-platform_cms=# \dT
-              List of data types
- Schema |      Name        | Description
---------+------------------+-------------
- public | field_type       | 
- public | input_type       | 
- public | validation_type  | 
-```
+**Created**: 2024-01-08  
+**Sprint**: Week 10-11  
+**Phase**: CLI Builder Tool Development

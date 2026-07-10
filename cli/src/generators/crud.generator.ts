@@ -73,11 +73,30 @@ export class CrudGenerator extends ModuleGenerator {
         inputTypeMaps,
       );
 
+      // Extract unique relation modules for imports
+      const relationModules = fields
+        .filter((f) => f.relationModule)
+        .map((f) => f.relationModule)
+        .filter((v, i, a) => a.indexOf(v) === i); // unique only
+
+      // Track which types are actually used
+      const usedTypes = {
+        varchar: fields.some((f) => ['string', 'email'].includes(f.type)),
+        text: fields.some((f) => ['text', 'url'].includes(f.type)),
+        boolean: fields.some((f) => f.type === 'boolean'),
+        numeric: fields.some((f) => f.precision !== undefined),
+        uuid: fields.some((f) => f.type === 'uuid'),
+        json: fields.some((f) => f.type === 'json'),
+      };
+
       // Prepare template data with fields
       const data = {
         ...this.prepareTemplateData(name, options),
         fields,
         hasFields: fields.length > 0,
+        hasRelations: relationModules.length > 0,
+        relationModules,
+        usedTypes,
       };
 
       // Generate all files using parent method

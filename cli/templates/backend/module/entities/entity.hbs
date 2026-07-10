@@ -1,4 +1,11 @@
-import { pgTable, serial, varchar, text, timestamp, integer, boolean, numeric, uuid, json } from 'drizzle-orm/pg-core';
+import { pgTable, serial{{#if usedTypes.varchar}}, varchar{{/if}}{{#if usedTypes.text}}, text{{/if}}, timestamp, integer{{#if usedTypes.boolean}}, boolean{{/if}}{{#if usedTypes.numeric}}, numeric{{/if}}{{#if usedTypes.uuid}}, uuid{{/if}}{{#if usedTypes.json}}, json{{/if}} } from 'drizzle-orm/pg-core';
+{{#if hasRelations}}
+
+// Relation imports
+{{#each relationModules}}
+import { {{camelCase (pluralize this)}} } from '../../../database/schema/tenant/{{this}}.schema';
+{{/each}}
+{{/if}}
 
 /**
  * {{PascalCase (singularize name)}} entity
@@ -9,6 +16,10 @@ export const {{camelCase (pluralize name)}} = pgTable('{{snake_case (pluralize n
 
   // Fields
 {{#each fields}}
+{{#if this.relationModule}}
+  // Foreign key to {{this.relationModule}}
+  {{this.name}}: integer('{{this.name}}'){{#if this.required}}.notNull(){{/if}}.references(() => {{camelCase (pluralize this.relationModule)}}.id{{#if (or (eq this.relationType 'many-to-one') (eq this.relationType 'one-to-one'))}}, { onDelete: 'cascade' }{{/if}}),
+{{else}}
 {{#if (eq this.type 'string')}}
   {{this.name}}: varchar('{{this.name}}', { length: {{#if this.length}}{{this.length}}{{else}}255{{/if}} }){{#if this.required}}.notNull(){{/if}}{{#if this.unique}}.unique(){{/if}},
 {{else if (eq this.type 'text')}}
@@ -35,6 +46,7 @@ export const {{camelCase (pluralize name)}} = pgTable('{{snake_case (pluralize n
   {{this.name}}: json('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
 {{else}}
   {{this.name}}: varchar('{{this.name}}', { length: 255 }){{#if this.required}}.notNull(){{/if}},
+{{/if}}
 {{/if}}
 {{/each}}
 {{else}}

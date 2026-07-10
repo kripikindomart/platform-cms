@@ -1801,6 +1801,127 @@ npm install -D @types/node typescript
 
 **Documentation References**:
 - CLI-BUILDER-SPEC.md Section 2.3
+- CLI-ADVANCED-SPEC.md (NEW)
+
+---
+
+### Task 5.3.1: CLI Metadata Database Schema (NEW)
+**Priority**: P0 - CRITICAL  
+**Estimated Time**: 3 hours  
+**Dependencies**: Task 5.3
+
+**What to build**:
+- Database schema untuk track generated modules
+- Tables: generated_modules, module_fields, field_validations, generation_history
+- Enums: field_type, input_type, validation_type
+- Migration files
+
+**Acceptance Criteria**:
+- [ ] CLI metadata schema created (4 tables)
+- [ ] Enums defined (3 enums)
+- [ ] Migration files generated
+- [ ] Schema exported from public schema
+- [ ] Can query metadata via Drizzle
+
+**Documentation References**:
+- CLI-ADVANCED-SPEC.md Section 1
+
+---
+
+### Task 5.3.2: CLI Metadata Service (NEW)
+**Priority**: P0 - CRITICAL  
+**Estimated Time**: 4 hours  
+**Dependencies**: Task 5.3.1
+
+**What to build**:
+- MetadataService untuk save/read metadata
+- Track generated modules ke database
+- Track fields dengan validations
+- Track generation history
+
+**Acceptance Criteria**:
+- [ ] MetadataService implemented
+- [ ] Save module metadata on generate
+- [ ] Save field metadata dengan validations
+- [ ] Track files created
+- [ ] Can query modules/fields
+
+**Documentation References**:
+- CLI-ADVANCED-SPEC.md Section 2, 3
+
+---
+
+### Task 5.3.3: Enhanced Field Parser (NEW)
+**Priority**: P1 - HIGH  
+**Estimated Time**: 4 hours  
+**Dependencies**: Task 5.3.2
+
+**What to build**:
+- Advanced field syntax parser
+- Support modifiers (!, @, ?)
+- Support enums dengan values
+- Support relations
+- Input type mapping
+
+**Acceptance Criteria**:
+- [ ] Parse complex field syntax
+- [ ] Support all field types (15+ types)
+- [ ] Parse enum values
+- [ ] Parse relation definitions
+- [ ] Auto-map to input types
+- [ ] Generate validation rules
+
+**Documentation References**:
+- CLI-ADVANCED-SPEC.md Section 2, 3.1
+
+---
+
+### Task 5.3.4: Delete & Undo Commands (NEW)
+**Priority**: P1 - HIGH  
+**Estimated Time**: 5 hours  
+**Dependencies**: Task 5.3.2
+
+**What to build**:
+- `cms delete module` command
+- `cms undo` command
+- `cms history` command
+- `cms list modules` command
+- File backup system
+
+**Acceptance Criteria**:
+- [ ] Delete module command working
+- [ ] Backs up files before delete
+- [ ] Marks module as deleted in DB
+- [ ] Undo command restores files
+- [ ] History shows all operations
+- [ ] List shows active modules
+
+**Documentation References**:
+- CLI-ADVANCED-SPEC.md Section 3.2, 3.3, 3.4, 3.5
+
+---
+
+### Task 5.3.5: Metadata API Endpoints (NEW)
+**Priority**: P1 - HIGH  
+**Estimated Time**: 3 hours  
+**Dependencies**: Task 5.3.2
+
+**What to build**:
+- API endpoints untuk expose metadata
+- GET /api/cli/modules
+- GET /api/cli/modules/:name
+- GET /api/cli/modules/:name/fields
+
+**Acceptance Criteria**:
+- [ ] MetadataController created
+- [ ] 3+ API endpoints working
+- [ ] Returns module with fields
+- [ ] Returns validations
+- [ ] Returns input types
+- [ ] Properly formatted JSON
+
+**Documentation References**:
+- CLI-ADVANCED-SPEC.md Section 4
 
 ---
 

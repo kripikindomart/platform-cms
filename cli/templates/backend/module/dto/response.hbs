@@ -6,9 +6,18 @@ import { ApiProperty } from '@nestjs/swagger';
 export class {{PascalCase (singularize name)}}ResponseDto {
   @ApiProperty({ description: '{{PascalCase (singularize name)}} ID' })
   id?: number;
+{{#if hasFields}}
+
+{{#each fields}}
+  @ApiProperty({ description: '{{capitalize this.name}}'{{#unless this.required}}, required: false{{/unless}} })
+  {{this.name}}?: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (eq this.type 'date')}}Date{{else if (eq this.type 'datetime')}}Date{{else if (eq this.type 'json')}}any{{else}}string{{/if}};
+
+{{/each}}
+{{else}}
 
   // TODO: Add your response fields here
   // Match with entity fields
+{{/if}}
 
   @ApiProperty({ description: 'Creation timestamp' })
   created_at?: Date;

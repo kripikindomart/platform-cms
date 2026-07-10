@@ -136,7 +136,13 @@ export class {{PascalCase name}}Service {
   private toResponseDto(item: any): {{PascalCase (singularize name)}}ResponseDto {
     return {
       id: item.id,
+{{#if hasFields}}
+{{#each fields}}
+      {{this.name}}: item.{{this.name}},
+{{/each}}
+{{else}}
       // TODO: Add other fields
+{{/if}}
       created_at: item.created_at,
       updated_at: item.updated_at,
       {{#if softDelete}}

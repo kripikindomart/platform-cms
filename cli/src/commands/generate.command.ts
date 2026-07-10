@@ -51,17 +51,31 @@ export function generateCommand(): Command {
     .option('--fields <fields>', 'Field definitions (name:type,email:email)')
     .option('--tenant', 'Enable tenant isolation')
     .option('--soft-delete', 'Enable soft delete')
-    .option('--auth', 'Add authentication guards')
+    .option('--audit', 'Add authentication guards')
+    .option('--dir <directory>', 'Output directory', 'backend/src/modules')
+    .option('--dry-run', 'Show what would be generated without creating files')
+    .option('--force', 'Overwrite existing files without prompting')
     .action(async (name: string, options) => {
-      logger.title(`Generating CRUD: ${name}`);
+      try {
+        const { CrudGenerator } = await import('../generators/crud.generator');
+        
+        const generator = new CrudGenerator({
+          dryRun: options.dryRun,
+          force: options.force,
+          outputPath: process.cwd(),
+        });
 
-      // TODO: Implement in Task 5.3
-      logger.info('This command will be implemented in Task 5.3');
-      logger.info(`Resource name: ${name}`);
-      logger.info(`Fields: ${options.fields || 'none specified'}`);
-      logger.info(`Tenant isolation: ${options.tenant ? 'Yes' : 'No'}`);
-      logger.info(`Soft delete: ${options.softDelete ? 'Yes' : 'No'}`);
-      logger.info(`Auth guards: ${options.auth ? 'Yes' : 'No'}`);
+        await generator.generate(name, {
+          fields: options.fields,
+          tenant: options.tenant,
+          softDelete: options.softDelete,
+          audit: options.audit,
+          dir: options.dir,
+        });
+      } catch (error) {
+        logger.error(`Failed to generate CRUD: ${(error as Error).message}`);
+        process.exit(1);
+      }
     });
 
   // Component subcommand

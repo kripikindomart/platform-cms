@@ -1,16 +1,46 @@
-import { pgTable, serial, varchar, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, integer, boolean, numeric, uuid, json } from 'drizzle-orm/pg-core';
 
 /**
  * {{PascalCase (singularize name)}} entity
  */
 export const {{camelCase (pluralize name)}} = pgTable('{{snake_case (pluralize name)}}', {
   id: serial('id').primaryKey(),
+{{#if hasFields}}
+
+  // Fields
+{{#each fields}}
+{{#if (eq this.type 'string')}}
+  {{this.name}}: varchar('{{this.name}}', { length: {{#if this.length}}{{this.length}}{{else}}255{{/if}} }){{#if this.required}}.notNull(){{/if}}{{#if this.unique}}.unique(){{/if}},
+{{else if (eq this.type 'text')}}
+  {{this.name}}: text('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
+{{else if (eq this.type 'number')}}
+  {{this.name}}: integer('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
+{{else if (eq this.type 'boolean')}}
+  {{this.name}}: boolean('{{this.name}}'){{#if this.required}}.notNull(){{/if}}.default(false),
+{{else if (eq this.type 'date')}}
+  {{this.name}}: timestamp('{{this.name}}', { mode: 'date' }){{#if this.required}}.notNull(){{/if}},
+{{else if (eq this.type 'datetime')}}
+  {{this.name}}: timestamp('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
+{{else if (eq this.type 'email')}}
+  {{this.name}}: varchar('{{this.name}}', { length: 255 }){{#if this.required}}.notNull(){{/if}}{{#if this.unique}}.unique(){{/if}},
+{{else if (eq this.type 'url')}}
+  {{this.name}}: text('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
+{{else if (eq this.type 'uuid')}}
+  {{this.name}}: uuid('{{this.name}}'){{#if this.required}}.notNull(){{/if}}{{#if this.unique}}.unique(){{/if}},
+{{else if (eq this.type 'json')}}
+  {{this.name}}: json('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
+{{else}}
+  {{this.name}}: varchar('{{this.name}}', { length: 255 }){{#if this.required}}.notNull(){{/if}},
+{{/if}}
+{{/each}}
+{{else}}
 
   // TODO: Add your fields here
   // Example:
   // name: varchar('name', { length: 255 }).notNull(),
   // description: text('description'),
   // is_active: boolean('is_active').default(true).notNull(),
+{{/if}}
 
   // Audit fields
   created_at: timestamp('created_at').defaultNow().notNull(),

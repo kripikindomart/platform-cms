@@ -43,7 +43,7 @@ export class ModuleGenerator extends BaseGenerator {
   /**
    * Prepare template data with all variables
    */
-  private prepareTemplateData(
+  protected prepareTemplateData(
     name: string,
     options: ModuleGeneratorOptions,
   ): Record<string, unknown> {
@@ -58,7 +58,7 @@ export class ModuleGenerator extends BaseGenerator {
   /**
    * Generate all module files
    */
-  private async generateFiles(
+  protected async generateFiles(
     name: string,
     data: Record<string, unknown>,
     options: ModuleGeneratorOptions,

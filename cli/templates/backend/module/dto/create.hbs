@@ -1,9 +1,39 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, IsEmail, IsUrl, IsUUID } from 'class-validator';
 
 /**
  * DTO for creating {{singularize (lowercase name)}}
  */
 export class Create{{PascalCase (singularize name)}}Dto {
+{{#if hasFields}}
+{{#each fields}}
+  @ApiProperty({ description: '{{capitalize this.name}}', required: {{#if this.required}}true{{else}}false{{/if}} })
+{{#if (eq this.type 'string')}}
+  @IsString()
+{{else if (eq this.type 'text')}}
+  @IsString()
+{{else if (eq this.type 'number')}}
+  @IsNumber()
+{{else if (eq this.type 'boolean')}}
+  @IsBoolean()
+{{else if (eq this.type 'email')}}
+  @IsEmail()
+{{else if (eq this.type 'url')}}
+  @IsUrl()
+{{else if (eq this.type 'uuid')}}
+  @IsUUID()
+{{else}}
+  @IsString()
+{{/if}}
+{{#if this.required}}
+  @IsNotEmpty()
+{{else}}
+  @IsOptional()
+{{/if}}
+  {{this.name}}{{#unless this.required}}?{{/unless}}: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (eq this.type 'date')}}Date{{else if (eq this.type 'datetime')}}Date{{else if (eq this.type 'json')}}any{{else}}string{{/if}};
+
+{{/each}}
+{{else}}
   // TODO: Add your fields here with validation decorators
   
   // Example:
@@ -16,4 +46,5 @@ export class Create{{PascalCase (singularize name)}}Dto {
   // @IsString()
   // @IsOptional()
   // description?: string;
+{{/if}}
 }

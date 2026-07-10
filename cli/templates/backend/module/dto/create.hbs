@@ -69,10 +69,11 @@ export class Create{{PascalCase (singularize name)}}Dto {
 {{/if}}
 {{#if this.required}}
   @IsNotEmpty()
+  {{this.name}}!: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (or (eq this.type 'date') (eq this.type 'datetime') (eq this.type 'timestamp'))}}Date{{else if (eq this.type 'json')}}any{{else if this.enumValues}}{{#each this.enumValues}}'{{this}}'{{#unless @last}} | {{/unless}}{{/each}}{{else}}string{{/if}};
 {{else}}
   @IsOptional()
+  {{this.name}}?: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (or (eq this.type 'date') (eq this.type 'datetime') (eq this.type 'timestamp'))}}Date{{else if (eq this.type 'json')}}any{{else if this.enumValues}}{{#each this.enumValues}}'{{this}}'{{#unless @last}} | {{/unless}}{{/each}}{{else}}string{{/if}};
 {{/if}}
-  {{this.name}}{{#unless this.required}}?{{/unless}}: {{#if (eq this.type 'number')}}number{{else if (eq this.type 'boolean')}}boolean{{else if (or (eq this.type 'date') (eq this.type 'datetime') (eq this.type 'timestamp'))}}Date{{else if (eq this.type 'json')}}any{{else if this.enumValues}}{{#each this.enumValues}}'{{this}}'{{#unless @last}} | {{/unless}}{{/each}}{{else}}string{{/if}};
 
 {{/each}}
 {{else}}

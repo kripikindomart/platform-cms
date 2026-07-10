@@ -29,7 +29,7 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(255)
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'Sku',
@@ -39,7 +39,7 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(100)
   @IsNotEmpty()
-  sku: string;
+  sku!: string;
 
   @ApiProperty({
     description: 'Email',
@@ -48,26 +48,7 @@ export class CreateProductDto {
   @IsEmail()
   @MaxLength(255)
   @IsNotEmpty()
-  email: string;
-
-  @ApiProperty({
-    description: 'Website',
-    required: false,
-  })
-  @IsUrl()
-  @MaxLength(500)
-  @IsOptional()
-  website?: string;
-
-  @ApiProperty({
-    description: 'Description',
-    required: false,
-    maxLength: 1000,
-  })
-  @IsString()
-  @MaxLength(1000)
-  @IsOptional()
-  description?: string;
+  email!: string;
 
   @ApiProperty({
     description: 'Price',
@@ -77,41 +58,5 @@ export class CreateProductDto {
   @Min(0)
   @Max(999999999)
   @IsNotEmpty()
-  price: number;
-
-  @ApiProperty({
-    description: 'Stock',
-    required: false,
-  })
-  @IsNumber()
-  @IsOptional()
-  stock?: number;
-
-  @ApiProperty({
-    description: 'Active',
-    required: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  active?: boolean;
-
-  @ApiProperty({
-    description: 'Published_at',
-    required: false,
-    type: Date,
-  })
-  @Type(() => Date)
-  @IsDate()
-  @IsOptional()
-  published_at?: Date;
-
-  @ApiProperty({
-    description: 'Status',
-    required: false,
-    enum: ['draft', 'published', 'archived'],
-  })
-  @IsString()
-  @IsEnum(['draft', 'published', 'archived'])
-  @IsOptional()
-  status?: 'draft' | 'published' | 'archived';
+  price!: number;
 }

@@ -16,26 +16,8 @@ export class ProductResponseDto {
   @ApiProperty({ description: 'Email' })
   email?: string;
 
-  @ApiProperty({ description: 'Website', required: false })
-  website?: string;
-
-  @ApiProperty({ description: 'Description', required: false })
-  description?: string;
-
   @ApiProperty({ description: 'Price' })
   price?: number;
-
-  @ApiProperty({ description: 'Stock', required: false })
-  stock?: number;
-
-  @ApiProperty({ description: 'Active', required: false })
-  active?: boolean;
-
-  @ApiProperty({ description: 'Published_at', required: false })
-  published_at?: Date;
-
-  @ApiProperty({ description: 'Status', required: false })
-  status?: string;
 
   @ApiProperty({ description: 'Creation timestamp' })
   created_at?: Date;

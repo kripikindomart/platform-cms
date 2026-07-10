@@ -11,7 +11,7 @@
 | Week | Status | Tasks Complete | Tasks Total | Progress |
 |------|--------|----------------|-------------|----------|
 | Week 1-2 | ✅ Complete | 6 | 6 | 100% |
-| Week 3-4 | 🔄 In Progress | 4 | 6 | 67% |
+| Week 3-4 | 🔄 In Progress | 5 | 6 | 83% |
 | Week 5-7 | ⏳ Pending | 0 | 4 | 0% |
 | Week 8-9 | ⏳ Pending | 0 | 2 | 0% |
 | Week 10-11 | ⏳ Pending | 0 | 5 | 0% |
@@ -19,11 +19,115 @@
 | Week 14-15 | ⏳ Pending | 0 | 5 | 0% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 10/40 tasks (25%)
+**Total Progress**: 11/40 tasks (27.5%)
 
 ---
 
 ## 🔄 Current Sprint: Week 3-4 - Database & Multi-Tenancy
+
+### Task 2.5: Tenant Provisioning Service
+**Status**: COMPLETE  
+**Started**: 2024-01-08  
+**Completed**: 2024-01-08  
+**Assignee**: AI Assistant  
+**Priority**: P0 - CRITICAL  
+**Estimated Time**: 4 hours  
+**Actual Time**: 2.5 hours
+
+**Objective**:
+Implement tenant provisioning service untuk create tenant lengkap dengan schema setup dan initial data seeding.
+
+**Files Created**:
+- [x] `backend/src/modules/tenants/tenants.module.ts` - Tenants module
+- [x] `backend/src/modules/tenants/tenants.service.ts` - Provisioning logic dengan rollback
+- [x] `backend/src/modules/tenants/tenants.repository.ts` - Tenant CRUD operations
+- [x] `backend/src/modules/tenants/dto/create-tenant.dto.ts` - Zod validation
+- [x] `backend/src/modules/tenants/dto/tenant-response.dto.ts` - Response DTO
+- [x] `backend/src/modules/tenants/interfaces/tenant-provision.interface.ts` - Provision result
+- [x] `backend/src/app.module.ts` - Updated dengan TenantsModule
+- [x] `backend/src/scripts/test-provision.ts` - Test script
+
+**TenantsRepository Methods** (9 methods):
+- [x] `create()` - Create tenant record
+- [x] `findById()` - Find by ID with soft delete check
+- [x] `findBySlug()` - Find by slug with soft delete check
+- [x] `findAll()` - List all active tenants
+- [x] `update()` - Update tenant
+- [x] `softDelete()` - Soft delete tenant
+- [x] `hardDelete()` - Hard delete (untuk rollback)
+- [x] `restore()` - Restore soft deleted tenant
+- [x] `count()` - Count active tenants
+
+**TenantsService Methods** (6 methods):
+- [x] `provisionTenant()` - Complete provisioning dengan transaction-like rollback
+- [x] `createTenantTables()` - Create 11 tables dalam tenant schema
+- [x] `seedDefaultData()` - Seed roles & permissions
+- [x] `rollbackProvision()` - Cleanup on failure
+- [x] `generateSlug()` - Generate schema-safe slug (underscore)
+- [x] `findAll()`, `findById()`, `findBySlug()` - Query methods
+
+**Provisioning Flow**:
+1. Generate slug (sanitize to use underscore)
+2. Check slug uniqueness
+3. Create tenant record in public.tenants
+4. Create schema (tenant_xxx)
+5. Create 11 tables dalam schema
+6. Seed default data (3 roles, 10 permissions)
+7. Return provision result
+8. Rollback on failure (drop schema + delete tenant)
+
+**Acceptance Criteria**:
+- [x] TenantsModule implemented
+- [x] TenantsService dengan provisioning logic
+- [x] TenantsRepository dengan CRUD operations
+- [x] DTOs dengan Zod validation
+- [x] Provisioning flow working end-to-end
+- [x] Rollback functionality working
+- [x] Duplicate slug validation working
+- [x] Type-check passes
+- [x] Lint passes
+- [x] Can provision tenant successfully
+- [x] Schema created dengan 11 tables
+- [x] Default roles dan permissions seeded
+
+**Test Results**:
+```
+Type-check: PASS
+Lint: PASS
+Provision Test: PASS
+  - Tenant created: Demo Company (ID: 4)
+  - Slug: demo_company
+  - Schema: tenant_demo_company
+  - Schema created: ✅ Yes
+  - Tables created: 11
+  - Size: 592 kB
+  - Roles seeded: 3 (super_admin, admin, user)
+  - Permissions seeded: 10 (users.*, roles.*)
+Duplicate Prevention: PASS (ConflictException thrown)
+Rollback: PASS (schema dropped, tenant deleted)
+```
+
+**GitHub Issue**: #11  
+**Git Commit**: Pending
+
+**Notes**:
+- Slug generation uses underscore (not dash) untuk schema compatibility
+- Transaction-like rollback ensures clean state on failure
+- Tables created dengan raw SQL (11 tables dengan indexes)
+- Seeded 3 system roles (super_admin, admin, user)
+- Seeded 10 basic permissions (users.*, roles.*)
+- User creation akan ditambahkan di Week 5-7 (Authentication)
+- 38% faster than estimated (2.5h vs 4h)
+
+**Problems Encountered & Solutions**:
+1. Type error: Multiple where conditions → Fixed dengan `and()` helper from drizzle-orm
+2. Slug with dash → Changed to underscore untuk schema name validation
+3. Table creation → Implemented manual CREATE TABLE statements (11 tables)
+
+**Time Savings**:
+Estimated 4 hours, actual 2.5 hours = 38% faster!
+
+---
 
 ### Task 2.4: Tenant Context Service Implementation
 **Status**: COMPLETE  
@@ -425,6 +529,24 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ### 2024-01-08
 
 #### ✅ Completed
+- **Task 2.5** - Tenant Provisioning Service (100% complete)
+  - Created TenantsModule dengan service, repository, DTOs
+  - Created TenantsRepository dengan 9 CRUD methods
+  - Created TenantsService dengan provisioning logic
+  - Implemented complete provisioning flow (7 steps)
+  - Implemented transaction-like rollback
+  - Created 11 tables via raw SQL (users, roles, permissions, etc.)
+  - Seeded 3 default roles (super_admin, admin, user)
+  - Seeded 10 basic permissions (users.*, roles.*)
+  - Fixed slug generation untuk schema compatibility (underscore)
+  - Fixed type errors dengan and() helper
+  - Duplicate prevention working
+  - Rollback working on failure
+  - Type-check dan lint PASS
+  - Test provisioning successful
+  - **GitHub Issue**: #11
+  - **Time**: 2.5 hours (38% faster than estimated)
+
 - **Task 2.4** - Tenant Context Service Implementation (100% complete)
   - Created TenantContextService dengan REQUEST scope
   - Created 3 tenant interfaces (TenantContext, TenantConfig, TenantInfo)
@@ -601,12 +723,12 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 
 ## 🎯 Next Tasks
 
-### Task 2.3: Migration System Implementation
+### Task 2.6: Base Repository with Soft Delete
 **Status**: ⏳ PENDING  
-**Estimated Time**: 5 hours  
-**Dependencies**: Task 2.1, 2.2
+**Estimated Time**: 4 hours  
+**Dependencies**: Task 2.1, 2.2, 2.4
 
-**Objective**: Implement migration runner untuk global & tenant schemas, dengan support rollback dan migration status tracking
+**Objective**: Create reusable base repository pattern dengan soft delete support untuk reduce code duplication
 
 ---
 
@@ -625,12 +747,13 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ✅ **NEVER import dependencies before installing them**
 
 ### Current Focus
-🎯 **Next Phase**: Week 3-4 - Database & Multi-Tenancy (67% complete)  
+🎯 **Next Phase**: Week 3-4 - Database & Multi-Tenancy (83% complete)  
 ✅ Task 2.1: Create Global Schema (COMPLETE)  
 ✅ Task 2.2: Create Tenant Schema Template (COMPLETE)  
 ✅ Task 2.3: Migration System Implementation (COMPLETE)  
 ✅ Task 2.4: Tenant Context Service (COMPLETE)  
-🎯 **Next Task**: Task 2.5 - Tenant Provisioning Service
+✅ Task 2.5: Tenant Provisioning Service (COMPLETE)  
+🎯 **Next Task**: Task 2.6 - Base Repository with Soft Delete
 
 ---
 

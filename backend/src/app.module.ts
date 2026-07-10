@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './core/cache/redis.module';
 import { HealthModule } from './health/health.module';
 import { CommonModule } from './common/common.module';
+import { TenantsModule } from './modules/tenants/tenants.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CommonModule } from './common/common.module';
     DatabaseModule,
     RedisModule,
     HealthModule,
+    TenantsModule,
   ],
   controllers: [],
   providers: [],

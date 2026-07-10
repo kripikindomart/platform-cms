@@ -231,13 +231,19 @@ Skill ini memastikan AI assistant (Kiro) mengikuti aturan development yang konsi
 
 ### Rule 1.3: Issue Title Format
 
-**Format**: `[TASK X.Y.Z] Short Description - What It Does`
+**Format**: `[TASK X.Y.Z] Judul Singkat - Apa yang Dikerjakan`
+
+**Pattern**:
+- ALWAYS use "TASK" not "Phase" or "Feature"
+- Follow existing numbering (check last issue number)
+- Use Indonesian title
+- Keep under 80 characters
 
 **Examples**:
 - [GOOD] `[TASK 5.3.1] CLI Metadata Database Schema`
-- [GOOD] `[Phase 2.1] Foreign Key Column Generation`
-- [BAD] `Fix bug` (too vague)
-- [BAD] `Update code` (not specific)
+- [GOOD] `[TASK 5.4.3] Generasi Foreign Key - Auto-generate Referensi FK`
+- [BAD] `[Phase 2.1] Foreign Key` (use TASK not Phase)
+- [BAD] `Fix bug` (too vague, no task number)
 
 ### Rule 1.4: Issue Labels (if labels exist)
 

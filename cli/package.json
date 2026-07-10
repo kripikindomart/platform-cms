@@ -1,0 +1,44 @@
+{
+  "name": "@platform-cms/cli",
+  "version": "0.1.0",
+  "description": "Platform CMS CLI - Generate modules, CRUD, components",
+  "main": "dist/cli.js",
+  "bin": {
+    "cms": "./bin/cms.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest"
+  },
+  "keywords": [
+    "cms",
+    "cli",
+    "generator",
+    "nestjs",
+    "nextjs"
+  ],
+  "author": "Platform CMS Team",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0",
+    "handlebars": "^4.7.8",
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.12",
+    "ora": "^8.0.1",
+    "prettier": "^3.1.1",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0"
+  }
+}

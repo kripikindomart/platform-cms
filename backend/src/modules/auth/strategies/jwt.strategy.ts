@@ -65,8 +65,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       schemaName: `tenant_${payload.tenantId}`,
     });
 
-    // Load user from database
-    const user = await this.usersService.findById(payload.sub);
+    // Load user from database WITH roles and permissions for CASL
+    const user = await this.usersService.findByIdWithRoles(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException({

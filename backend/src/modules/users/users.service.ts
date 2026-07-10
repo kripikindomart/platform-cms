@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
+import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from '../../database/schema/tenant/users.schema';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly rolesRepository: RolesRepository,
+  ) {}
 
   /**
    * Create new user
@@ -19,6 +23,26 @@ export class UsersService {
    */
   async findById(id: number): Promise<User | null> {
     return this.usersRepository.findById(id);
+  }
+
+  /**
+   * Find user by ID with roles and permissions (for CASL)
+   */
+  async findByIdWithRoles(id: number): Promise<User | null> {
+    const user = await this.usersRepository.findById(id);
+    
+    if (!user) {
+      return null;
+    }
+
+    // Load user roles with permissions
+    const roles = await this.rolesRepository.getUserRolesWithPermissions(id);
+    
+    // Attach roles to user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (user as any).roles = roles;
+
+    return user;
   }
 
   /**

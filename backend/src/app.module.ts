@@ -14,6 +14,7 @@ import { UsersModule } from './modules/users/users.module';
 import { CaslModule } from './core/casl/casl.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RolesModule } from './modules/roles/roles.module';
     CaslModule,
     PermissionsModule,
     RolesModule,
+    CliMetadataModule,
   ],
   controllers: [],
   providers: [

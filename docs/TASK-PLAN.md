@@ -1808,23 +1808,29 @@ npm install -D @types/node typescript
 ### Task 5.3.1: CLI Metadata Database Schema (NEW)
 **Priority**: P0 - CRITICAL  
 **Estimated Time**: 3 hours  
-**Dependencies**: Task 5.3
+**Actual Time**: 1.5 hours  
+**Status**: ✅ COMPLETE
 
 **What to build**:
 - Database schema untuk track generated modules
 - Tables: generated_modules, module_fields, field_validations, generation_history
-- Enums: field_type, input_type, validation_type
+- Enums: field_type, input_type, validation_type, relation_type
 - Migration files
 
 **Acceptance Criteria**:
-- [ ] CLI metadata schema created (4 tables)
-- [ ] Enums defined (3 enums)
-- [ ] Migration files generated
-- [ ] Schema exported from public schema
-- [ ] Can query metadata via Drizzle
+- [x] CLI metadata schema created (4 tables)
+- [x] Enums defined (4 enums)
+- [x] Migration files generated
+- [x] Schema exported from public schema
+- [x] Can query metadata via Drizzle
+- [x] Type-check passes
+- [x] Migration applied successfully
 
 **Documentation References**:
 - CLI-ADVANCED-SPEC.md Section 1
+
+**Git Commit**: 6b9e1a7  
+**GitHub Issue**: #21
 
 ---
 

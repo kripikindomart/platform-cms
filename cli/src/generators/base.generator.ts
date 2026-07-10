@@ -78,6 +78,12 @@ export abstract class BaseGenerator {
    * Resolve file path (relative to output path or cwd)
    */
   protected resolvePath(filePath: string): string {
+    // If path is already absolute, return as-is
+    if (path.isAbsolute(filePath)) {
+      return filePath;
+    }
+    
+    // Otherwise, resolve relative to outputPath or cwd
     if (this.options.outputPath) {
       return path.join(this.options.outputPath, filePath);
     }

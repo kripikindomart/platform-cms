@@ -21,7 +21,7 @@ export function generateCommand(): Command {
     .option('--tenant', 'Enable tenant isolation')
     .option('--soft-delete', 'Enable soft delete')
     .option('--audit', 'Enable audit logging')
-    .option('--dir <directory>', 'Output directory', 'backend/src/modules')
+    .option('--dir <directory>', 'Custom output directory (absolute or relative to workspace root)')
     .option('--dry-run', 'Show what would be generated without creating files')
     .option('--force', 'Overwrite existing files without prompting')
     .action(async (name: string, options) => {
@@ -59,7 +59,7 @@ export function generateCommand(): Command {
     .option('--tenant', 'Enable tenant isolation')
     .option('--soft-delete', 'Enable soft delete')
     .option('--audit', 'Add authentication guards')
-    .option('--dir <directory>', 'Output directory', 'backend/src/modules')
+    .option('--dir <directory>', 'Custom output directory (absolute or relative to workspace root)')
     .option('--dry-run', 'Show what would be generated without creating files')
     .option('--force', 'Overwrite existing files without prompting')
     .action(async (name: string, options) => {

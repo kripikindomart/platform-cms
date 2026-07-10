@@ -1,11 +1,24 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { CliMetadataService } from './cli-metadata.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { SaveModuleMetadataDto } from './dto/save-module-metadata.dto';
+import { Public } from '@/common/decorators/public.decorator';
 
 @Controller('cli/metadata')
 @UseGuards(JwtAuthGuard)
 export class CliMetadataController {
   constructor(private metadataService: CliMetadataService) {}
+
+  /**
+   * Save module metadata (called by CLI)
+   * POST /api/cli/metadata/save
+   */
+  @Post('save')
+  @Public() // Allow CLI to call without auth
+  async saveMetadata(@Body() dto: SaveModuleMetadataDto): Promise<{ success: boolean; moduleId: number }> {
+    const module = await this.metadataService.saveModuleMetadata(dto);
+    return { success: true, moduleId: module.id };
+  }
 
   /**
    * Get all modules

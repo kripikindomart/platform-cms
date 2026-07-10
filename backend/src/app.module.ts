@@ -15,10 +15,10 @@ import { CaslModule } from './core/casl/casl.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
+  imports: [ConfigModule.forRoot({
       isGlobal: true,
       load: configs,
       envFilePath: '.env',
@@ -41,6 +41,7 @@ import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
     PermissionsModule,
     RolesModule,
     CliMetadataModule,
+    ProductsModule
   ],
   controllers: [],
   providers: [

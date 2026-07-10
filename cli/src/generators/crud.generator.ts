@@ -90,6 +90,7 @@ export class CrudGenerator extends ModuleGenerator {
       if (!options.dryRun) {
         await this.autoImportModule(name, options);
         await this.autoExportEntity(name, options);
+        await this.saveMetadataToDatabase(name, fields, files, options);
       }
 
       // Log success
@@ -508,6 +509,155 @@ export class CrudGenerator extends ModuleGenerator {
       console.log(`  Please manually add to backend/src/database/schema/tenant/index.ts:`);
       console.log(`  export * from '../../../modules/${this.toKebabCase(this.pluralize(name))}/entities/${entityFileName}.entity';`);
     }
+  }
+
+  /**
+   * Save module metadata to database via API
+   */
+  private async saveMetadataToDatabase(
+    name: string,
+    fields: Field[],
+    files: any[],
+    options: CrudGeneratorOptions,
+  ): Promise<void> {
+    try {
+      const fetch = (await import('node-fetch')).default;
+      const apiUrl = 'http://localhost:3000/api/cli/metadata/save';
+      
+      const payload = {
+        name: this.toKebabCase(this.pluralize(name)),
+        displayName: this.toPascalCase(this.pluralize(name)),
+        description: `Auto-generated CRUD module for ${this.pluralize(name)}`,
+        hasTenantIsolation: options.tenant || false,
+        hasSoftDelete: options.softDelete || false,
+        hasAudit: options.audit || false,
+        generatedFiles: files.map((f: any) => f.path),
+        cliCommand: process.argv.slice(2).join(' '),
+        generatorVersion: '0.1.0',
+        fields: fields.map((f, index) => ({
+          name: f.name,
+          displayName: this.toTitleCase(f.name),
+          fieldType: f.type,
+          isRequired: f.required || false,
+          isUnique: f.unique || false,
+          isNullable: f.nullable || false,
+          length: f.length,
+          precision: f.precision,
+          scale: f.scale,
+          enumValues: f.enumValues,
+          relationModule: f.relationModule,
+          relationType: f.relationType,
+          inputType: f.inputType,
+          isSearchable: f.isSearchable || false,
+          isSortable: f.isSortable || false,
+          isFilterable: f.isFilterable || false,
+          showInList: f.showInList !== false,
+          showInDetail: f.showInDetail !== false,
+          showInForm: f.showInForm !== false,
+          order: index,
+          validations: this.generateValidations(f).map((v, vIndex) => ({
+            ...v,
+            order: vIndex,
+          })),
+        })),
+      };
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (response.ok) {
+        console.log('✓ Metadata saved to database');
+      } else {
+        const error = await response.text();
+        console.log(`⚠ Could not save metadata: ${response.status} ${error}`);
+      }
+    } catch (error) {
+      console.log(`⚠ Could not save metadata: ${(error as Error).message}`);
+      console.log(`  Make sure backend server is running on http://localhost:3000`);
+    }
+  }
+
+  /**
+   * Generate validation rules for a field
+   */
+  private generateValidations(field: Field): any[] {
+    const validations: any[] = [];
+    
+    // Required validation
+    if (field.required) {
+      validations.push({
+        validationType: 'required',
+        errorMessage: `${this.toTitleCase(field.name)} is required`,
+      });
+    }
+    
+    // String length validation
+    if (field.type === 'string' && field.length) {
+      validations.push({
+        validationType: 'maxLength',
+        validationParams: { value: field.length },
+        errorMessage: `${this.toTitleCase(field.name)} must not exceed ${field.length} characters`,
+      });
+    }
+    
+    // Email validation
+    if (field.type === 'email') {
+      validations.push({
+        validationType: 'email',
+        errorMessage: `${this.toTitleCase(field.name)} must be a valid email address`,
+      });
+    }
+    
+    // URL validation
+    if (field.type === 'url') {
+      validations.push({
+        validationType: 'url',
+        errorMessage: `${this.toTitleCase(field.name)} must be a valid URL`,
+      });
+    }
+    
+    // Enum validation
+    if (field.enumValues && field.enumValues.length > 0) {
+      validations.push({
+        validationType: 'custom',
+        validationParams: { values: field.enumValues },
+        errorMessage: `${this.toTitleCase(field.name)} must be one of: ${field.enumValues.join(', ')}`,
+      });
+    }
+    
+    // Number min validation (for decimal with precision)
+    if ((field.type === 'number' || field.type === 'decimal') && field.precision) {
+      validations.push({
+        validationType: 'min',
+        validationParams: { value: 0 },
+        errorMessage: `${this.toTitleCase(field.name)} must be greater than or equal to 0`,
+      });
+      
+      const maxValue = Math.pow(10, field.precision! - (field.scale || 0)) - 1;
+      validations.push({
+        validationType: 'max',
+        validationParams: { value: maxValue },
+        errorMessage: `${this.toTitleCase(field.name)} must be less than ${maxValue}`,
+      });
+    }
+    
+    // Note: unique and UUID are database constraints, not validation rules
+    // unique -> handled by database unique constraint
+    // UUID -> handled by database column type
+    
+    return validations;
+  }
+
+  /**
+   * Convert field name to Title Case
+   */
+  private toTitleCase(str: string): string {
+    return str
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
   /**

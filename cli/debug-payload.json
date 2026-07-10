@@ -1,0 +1,159 @@
+{
+  "name": "products",
+  "displayName": "Products",
+  "description": "Auto-generated CRUD module for products",
+  "hasTenantIsolation": true,
+  "hasSoftDelete": true,
+  "hasAudit": true,
+  "generatedFiles": [
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\products.module.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\products.controller.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\products.service.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\products.repository.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\entities\\product.entity.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\dto\\create-product.dto.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\dto\\update-product.dto.ts",
+    "D:\\dev\\platform-cms\\backend\\src\\modules\\products\\dto\\product-response.dto.ts"
+  ],
+  "cliCommand": "generate crud products --fields name:string:255!,sku:string:100!@,description:text,price:decimal:10:2!,stock:integer,active:boolean --searchable name,sku --sortable name,price --tenant --soft-delete --audit",
+  "generatorVersion": "0.1.0",
+  "fields": [
+    {
+      "name": "name",
+      "displayName": "Name",
+      "fieldType": "string",
+      "isRequired": true,
+      "isUnique": false,
+      "isNullable": false,
+      "inputType": "text",
+      "isSearchable": true,
+      "isSortable": true,
+      "isFilterable": false,
+      "showInList": true,
+      "showInDetail": true,
+      "showInForm": true,
+      "order": 0,
+      "validations": [
+        {
+          "validationType": "required",
+          "errorMessage": "Name is required",
+          "order": 0
+        }
+      ]
+    },
+    {
+      "name": "sku",
+      "displayName": "Sku",
+      "fieldType": "string",
+      "isRequired": true,
+      "isUnique": true,
+      "isNullable": false,
+      "inputType": "text",
+      "isSearchable": true,
+      "isSortable": false,
+      "isFilterable": false,
+      "showInList": true,
+      "showInDetail": true,
+      "showInForm": true,
+      "order": 1,
+      "validations": [
+        {
+          "validationType": "required",
+          "errorMessage": "Sku is required",
+          "order": 0
+        }
+      ]
+    },
+    {
+      "name": "description",
+      "displayName": "Description",
+      "fieldType": "text",
+      "isRequired": false,
+      "isUnique": false,
+      "isNullable": false,
+      "inputType": "textarea",
+      "isSearchable": false,
+      "isSortable": false,
+      "isFilterable": false,
+      "showInList": true,
+      "showInDetail": true,
+      "showInForm": true,
+      "order": 2,
+      "validations": []
+    },
+    {
+      "name": "price",
+      "displayName": "Price",
+      "fieldType": "number",
+      "isRequired": true,
+      "isUnique": false,
+      "isNullable": false,
+      "precision": 10,
+      "inputType": "number",
+      "isSearchable": false,
+      "isSortable": true,
+      "isFilterable": false,
+      "showInList": true,
+      "showInDetail": true,
+      "showInForm": true,
+      "order": 3,
+      "validations": [
+        {
+          "validationType": "required",
+          "errorMessage": "Price is required",
+          "order": 0
+        },
+        {
+          "validationType": "min",
+          "validationParams": {
+            "value": 0
+          },
+          "errorMessage": "Price must be greater than or equal to 0",
+          "order": 1
+        },
+        {
+          "validationType": "max",
+          "validationParams": {
+            "value": 9999999999
+          },
+          "errorMessage": "Price must be less than 9999999999",
+          "order": 2
+        }
+      ]
+    },
+    {
+      "name": "stock",
+      "displayName": "Stock",
+      "fieldType": "number",
+      "isRequired": false,
+      "isUnique": false,
+      "isNullable": false,
+      "inputType": "number",
+      "isSearchable": false,
+      "isSortable": false,
+      "isFilterable": false,
+      "showInList": true,
+      "showInDetail": true,
+      "showInForm": true,
+      "order": 4,
+      "validations": []
+    },
+    {
+      "name": "active",
+      "displayName": "Active",
+      "fieldType": "boolean",
+      "isRequired": false,
+      "isUnique": false,
+      "isNullable": false,
+      "inputType": "checkbox",
+      "isSearchable": false,
+      "isSortable": false,
+      "isFilterable": false,
+      "showInList": true,
+      "showInDetail": true,
+      "showInForm": true,
+      "order": 5,
+      "validations": []
+    }
+  ]
+}

@@ -64,7 +64,64 @@ export class ModuleGenerator extends BaseGenerator {
     options: ModuleGeneratorOptions,
   ): Promise<GeneratedFile[]> {
     const files: GeneratedFile[] = [];
-    const baseDir = options.dir || 'backend/src/modules';
+    
+    // Detect workspace root - handles multiple scenarios:
+    // 1. Running from cli/ directory (development)
+    // 2. Running from workspace root (production/docker)
+    // 3. Global CLI installation
+    let workspaceRoot = this.options.outputPath || process.cwd();
+    
+    const fs = await import('fs/promises');
+    
+    // Strategy 1: Check if current directory is CLI package
+    try {
+      const packageJsonPath = path.join(workspaceRoot, 'package.json');
+      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+      
+      if (packageJson.name === '@platform-cms/cli') {
+        // We're in cli/ directory, go up to workspace root
+        workspaceRoot = path.dirname(workspaceRoot);
+      }
+    } catch {
+      // Not in CLI package or package.json doesn't exist
+    }
+    
+    // Strategy 2: Verify backend/src/modules exists at detected workspace root
+    // If not, try to find it by going up directories
+    let backendPath = path.join(workspaceRoot, 'backend', 'src', 'modules');
+    let maxAttempts = 3; // Don't go up more than 3 levels
+    
+    while (maxAttempts > 0) {
+      try {
+        await fs.access(path.join(workspaceRoot, 'backend', 'src'));
+        // Found backend/src, this is the correct workspace root
+        break;
+      } catch {
+        // backend/src doesn't exist, try parent directory
+        const parentDir = path.dirname(workspaceRoot);
+        if (parentDir === workspaceRoot) {
+          // Can't go up anymore, we're at root
+          break;
+        }
+        workspaceRoot = parentDir;
+        backendPath = path.join(workspaceRoot, 'backend', 'src', 'modules');
+        maxAttempts--;
+      }
+    }
+    
+    // Strategy 3: If still not found, create directory structure
+    // This handles global CLI usage where user might be in any directory
+    try {
+      await fs.access(path.join(workspaceRoot, 'backend', 'src'));
+    } catch {
+      // backend/src doesn't exist - warn user
+      console.log('\n⚠ Warning: backend/src directory not found at workspace root.');
+      console.log(`  Detected workspace root: ${workspaceRoot}`);
+      console.log('  Files will be generated at this location.');
+      console.log('  If this is incorrect, use --dir option to specify the correct path.\n');
+    }
+    
+    const baseDir = options.dir || path.join(workspaceRoot, 'backend', 'src', 'modules');
     const moduleName = toKebabCase(pluralize(name));
 
     // 1. Module file

@@ -12,17 +12,18 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /**
- * Post entity
+ * Product entity
  */
-export const posts = pgTable('posts', {
+export const products = pgTable('products', {
   id: serial('id').primaryKey(),
 
   // Fields
-  title: varchar('title', { length: 255 }),
-  slug: varchar('slug', { length: 255 }),
-  content: text('content'),
-  status: varchar('status', { length: 255 }),
-  published_at: timestamp('published_at'),
+  name: varchar('name', { length: 255 }).notNull(),
+  sku: varchar('sku', { length: 255 }).notNull().unique(),
+  description: text('description'),
+  price: numeric('price', { precision: 10, scale: 0 }).notNull(),
+  stock: integer('stock'),
+  active: boolean('active').default(false),
 
   // Audit fields
   created_at: timestamp('created_at').defaultNow().notNull(),
@@ -36,5 +37,5 @@ export const posts = pgTable('posts', {
 });
 
 // Infer types
-export type Post = typeof posts.$inferSelect;
-export type NewPost = typeof posts.$inferInsert;
+export type Product = typeof products.$inferSelect;
+export type NewProduct = typeof products.$inferInsert;

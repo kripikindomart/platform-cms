@@ -1,0 +1,66 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsInt, Min, Max, IsString, IsEnum{{#if (hasFilterable fields)}}, IsBoolean{{/if}} } from 'class-validator';
+import { Type } from 'class-transformer';
+
+/**
+ * Query DTO for {{pluralize (lowercase name)}}
+ */
+export class Query{{PascalCase (singularize name)}}Dto {
+  @ApiPropertyOptional({ description: 'Page number', minimum: 1, default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ description: 'Items per page', minimum: 1, maximum: 100, default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+
+{{#if (hasFilterable fields)}}
+  // Filterable fields
+{{#each fields}}
+{{#if this.isFilterable}}
+  @ApiPropertyOptional({ description: 'Filter by {{this.name}}' })
+  @IsOptional()
+{{#if (eq this.type 'string')}}
+  @IsString()
+  {{this.name}}?: string;
+{{else if (eq this.type 'number')}}
+  @Type(() => Number)
+  @IsInt()
+  {{this.name}}?: number;
+{{else if (eq this.type 'boolean')}}
+  @Type(() => Boolean)
+  {{this.name}}?: boolean;
+{{else}}
+  @IsString()
+  {{this.name}}?: string;
+{{/if}}
+
+{{/if}}
+{{/each}}
+{{/if}}
+{{#if (hasSortable fields)}}
+  @ApiPropertyOptional({ description: 'Sort by field', enum: [{{#each fields}}{{#if this.isSortable}}'{{this.name}}'{{#unless @last}}, {{/unless}}{{/if}}{{/each}}] })
+  @IsOptional()
+  @IsString()
+  sort?: {{#each fields}}{{#if this.isSortable}}'{{this.name}}'{{#unless @last}} | {{/unless}}{{/if}}{{/each}};
+
+  @ApiPropertyOptional({ description: 'Sort order', enum: ['asc', 'desc'], default: 'asc' })
+  @IsOptional()
+  @IsEnum(['asc', 'desc'])
+  order?: 'asc' | 'desc' = 'asc';
+{{/if}}
+
+{{#if (hasSearchable fields)}}
+  @ApiPropertyOptional({ description: 'Search query' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+{{/if}}
+}

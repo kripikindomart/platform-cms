@@ -58,6 +58,17 @@ function registerHelpers(): void {
   Handlebars.registerHelper('divide', (a: number, b: number) => a / b);
   Handlebars.registerHelper('pow', (base: number, exponent: number) => Math.pow(base, exponent));
   Handlebars.registerHelper('mod', (a: number, b: number) => a % b);
+
+  // Query helpers
+  Handlebars.registerHelper('hasFilterable', (fields: any[]) => {
+    return Array.isArray(fields) && fields.some((f: any) => f.isFilterable);
+  });
+  Handlebars.registerHelper('hasSortable', (fields: any[]) => {
+    return Array.isArray(fields) && fields.some((f: any) => f.isSortable);
+  });
+  Handlebars.registerHelper('hasSearchable', (fields: any[]) => {
+    return Array.isArray(fields) && fields.some((f: any) => f.isSearchable);
+  });
 }
 
 // Register helpers on module load

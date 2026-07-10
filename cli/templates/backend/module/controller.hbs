@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { {{PascalCase name}}Service } from './{{kebab-case name}}.service';
 import { Create{{PascalCase (singularize name)}}Dto } from './dto/create-{{kebab-case (singularize name)}}.dto';
 import { Update{{PascalCase (singularize name)}}Dto } from './dto/update-{{kebab-case (singularize name)}}.dto';
+import { Query{{PascalCase (singularize name)}}Dto } from './dto/query-{{kebab-case (singularize name)}}.dto';
 import { {{PascalCase (singularize name)}}ResponseDto } from './dto/{{kebab-case (singularize name)}}-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -24,9 +25,9 @@ export class {{PascalCase name}}Controller {
   constructor(private readonly {{camelCase name}}Service: {{PascalCase name}}Service) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all {{pluralize (lowercase name)}}' })
-  @ApiResponse({ status: 200, description: 'List of {{pluralize (lowercase name)}}', type: [{{PascalCase (singularize name)}}ResponseDto] })
-  async findAll(@Query() query: any): Promise<{{PascalCase (singularize name)}}ResponseDto[]> {
+  @ApiOperation({ summary: 'Get all {{pluralize (lowercase name)}} with pagination, filtering, sorting' })
+  @ApiResponse({ status: 200, description: 'Paginated list of {{pluralize (lowercase name)}}' })
+  async findAll(@Query() query: Query{{PascalCase (singularize name)}}Dto) {
     return this.{{camelCase name}}Service.findAll(query);
   }
 

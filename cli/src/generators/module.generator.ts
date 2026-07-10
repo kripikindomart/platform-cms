@@ -167,7 +167,13 @@ export class ModuleGenerator extends BaseGenerator {
       content: await this.renderTemplate('backend/module/dto/update.hbs', data),
     });
 
-    // 8. Response DTO
+    // 8. Query DTO
+    files.push({
+      path: path.join(baseDir, moduleName, 'dto', `query-${entityName}.dto.ts`),
+      content: await this.renderTemplate('backend/module/dto/query.hbs', data),
+    });
+
+    // 9. Response DTO
     files.push({
       path: path.join(baseDir, moduleName, 'dto', `${entityName}-response.dto.ts`),
       content: await this.renderTemplate('backend/module/dto/response.hbs', data),

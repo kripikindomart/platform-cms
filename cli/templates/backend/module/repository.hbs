@@ -140,6 +140,107 @@ export class {{PascalCase name}}Repository {
     {{/if}}
   }
 
+  /**
+   * Find all with pagination, filtering, sorting
+   */
+  async findAllWithQuery(query: any): Promise<{
+    data: (typeof {{camelCase (pluralize name)}}.$inferSelect)[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const { page = 1, limit = 10, sort, order = 'asc', search } = query;
+    const offset = (page - 1) * limit;
+    
+    {{#if tenant}}
+    return this.withTenantSchema(async () => {
+    {{/if}}
+      const { and, or, eq, ilike, isNull, sql, asc, desc } = await import('drizzle-orm');
+      
+      // Build WHERE conditions
+      const conditions: any[] = [
+        {{#if softDelete}}
+        isNull({{camelCase (pluralize name)}}.deleted_at),
+        {{/if}}
+      ];
+      
+      {{#if (hasFilterable fields)}}
+      // Apply filters
+      {{#each fields}}
+      {{#if this.isFilterable}}
+      if (query.{{this.name}} !== undefined) {
+        conditions.push(eq({{camelCase (pluralize @root.name)}}.{{this.name}}, query.{{this.name}}));
+      }
+      {{/if}}
+      {{/each}}
+      {{/if}}
+
+      {{#if (hasSearchable fields)}}
+      // Apply search
+      if (search) {
+        const searchConditions = [
+          {{#each fields}}
+          {{#if this.isSearchable}}
+          ilike({{camelCase (pluralize @root.name)}}.{{this.name}}, `%${search}%`),
+          {{/if}}
+          {{/each}}
+        ];
+        if (searchConditions.length > 0) {
+          conditions.push(or(...searchConditions));
+        }
+      }
+      {{/if}}
+
+      // Count total
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const [countResult] = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from({{camelCase (pluralize name)}})
+        {{#if softDelete}}
+        .where(whereClause)
+        {{/if}};
+      
+      const total = Number(countResult.count);
+
+      // Fetch data
+      let dbQuery = this.db
+        .select()
+        .from({{camelCase (pluralize name)}})
+        {{#if softDelete}}
+        .where(whereClause)
+        {{/if}}
+        .limit(limit)
+        .offset(offset);
+
+      {{#if (hasSortable fields)}}
+      // Apply sorting
+      if (sort) {
+        const sortColumn = {{camelCase (pluralize name)}}[sort as keyof typeof {{camelCase (pluralize name)}}] as any;
+        if (sortColumn) {
+          if (order === 'desc') {
+            dbQuery = dbQuery.orderBy(desc(sortColumn)) as any;
+          } else {
+            dbQuery = dbQuery.orderBy(asc(sortColumn)) as any;
+          }
+        }
+      }
+      {{/if}}
+
+      const data = await dbQuery;
+
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    {{#if tenant}}
+    });
+    {{/if}}
+  }
+
   // Add custom query methods here
 }
 {{/if}}

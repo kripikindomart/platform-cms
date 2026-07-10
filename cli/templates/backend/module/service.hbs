@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { {{PascalCase name}}Repository } from './{{kebab-case name}}.repository';
 import { Create{{PascalCase (singularize name)}}Dto } from './dto/create-{{kebab-case (singularize name)}}.dto';
 import { Update{{PascalCase (singularize name)}}Dto } from './dto/update-{{kebab-case (singularize name)}}.dto';
+import { Query{{PascalCase (singularize name)}}Dto } from './dto/query-{{kebab-case (singularize name)}}.dto';
 import { {{PascalCase (singularize name)}}ResponseDto } from './dto/{{kebab-case (singularize name)}}-response.dto';
 {{#if audit}}
 import { AuditService } from '../../core/audit/audit.service';
@@ -17,11 +18,20 @@ export class {{PascalCase name}}Service {
   ) {}
 
   /**
-   * Find all {{pluralize (lowercase name)}}
+   * Find all {{pluralize (lowercase name)}} with pagination, filtering, sorting
    */
-  async findAll(query?: any): Promise<{{PascalCase (singularize name)}}ResponseDto[]> {
-    const items = await this.{{camelCase name}}Repository.findAll();
-    return items.map((item) => this.toResponseDto(item));
+  async findAll(query: Query{{PascalCase (singularize name)}}Dto): Promise<{
+    data: {{PascalCase (singularize name)}}ResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const result = await this.{{camelCase name}}Repository.findAllWithQuery(query);
+    return {
+      ...result,
+      data: result.data.map((item) => this.toResponseDto(item)),
+    };
   }
 
   /**

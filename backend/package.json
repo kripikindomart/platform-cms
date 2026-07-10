@@ -21,7 +21,11 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "tenant:create": "ts-node src/scripts/tenant-cli.ts create",
+    "tenant:drop": "ts-node src/scripts/tenant-cli.ts drop",
+    "tenant:list": "ts-node src/scripts/tenant-cli.ts list",
+    "tenant:info": "ts-node src/scripts/tenant-cli.ts info"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",

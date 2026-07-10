@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 import { TenantContextService } from '../../../common/context/tenant-context.service';
+import { RedisService } from '../../../core/cache/redis.service';
 import { User } from '../../../database/schema/tenant/users.schema';
 
 /**
@@ -23,6 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly tenantContext: TenantContextService,
+    private readonly redisService: RedisService,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
     
@@ -34,10 +36,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
+      passReqToCallback: true, // Pass request to validate method
     });
   }
 
-  async validate(payload: JwtPayload): Promise<User> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async validate(req: any, payload: JwtPayload): Promise<User> {
+    // Extract token from request
+    const authHeader = req.headers?.authorization;
+    const token = authHeader ? authHeader.replace('Bearer ', '') : '';
+
+    // Check if token is blacklisted
+    if (token) {
+      const blacklisted = await this.redisService.get(`blacklist:${token}`);
+      if (blacklisted) {
+        throw new UnauthorizedException({
+          code: 'TOKEN_BLACKLISTED',
+          message: 'Token tidak valid',
+        });
+      }
+    }
+
     // Set tenant context from JWT payload
     this.tenantContext.setTenant({
       id: payload.tenantId,

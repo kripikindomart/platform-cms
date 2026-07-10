@@ -25,7 +25,8 @@
     "tenant:create": "ts-node src/scripts/tenant-cli.ts create",
     "tenant:drop": "ts-node src/scripts/tenant-cli.ts drop",
     "tenant:list": "ts-node src/scripts/tenant-cli.ts list",
-    "tenant:info": "ts-node src/scripts/tenant-cli.ts info"
+    "tenant:info": "ts-node src/scripts/tenant-cli.ts info",
+    "auth:setup": "ts-node src/scripts/setup-test-auth.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",

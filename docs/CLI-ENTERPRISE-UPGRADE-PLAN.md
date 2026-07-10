@@ -45,20 +45,40 @@ Upgrade CLI CRUD generator dari basic ke **ENTERPRISE-GRADE** dengan features:
 - ✅ Cross-platform compatibility verified
 - ✅ Tested: Generate from cli/ directory works correctly
 
-**Git Commit**: bb46966 - feat(cli): Phase 1.1 - CLI Metadata Database Integration
+**Git Commit**: bb46966
+
+---
+
+## ✅ COMPLETED (Phase 1.2 - 2026-07-10)
+
+**Enhanced DTO Validators**
+- ✅ Comprehensive validation decorators auto-generated
+- ✅ String length validation (`@MaxLength()`)
+- ✅ Email/URL validation with default lengths
+- ✅ Number Min/Max based on precision/scale
+- ✅ Enum validation with TypeScript union types
+- ✅ Date/DateTime with Transform decorator
+- ✅ Math Handlebars helpers (pow, subtract, add, etc)
+- ✅ Fixed field parser to extract length with modifiers
+- ✅ Enhanced imports and conditional validation
+
+**Git Commit**: f740b93
 
 ---
 
 ## 🔧 ENTERPRISE FEATURES TO IMPLEMENT
 
-### **PHASE 1: DATABASE & VALIDATION (HIGH PRIORITY)**
+### **PHASE 1: DATABASE & VALIDATION (HIGH PRIORITY)** - 100% Complete ✅
 
 #### ~~1.1 CLI Metadata Database Integration~~ ✅ COMPLETE
 Status: **DONE** (2026-07-10)
 
-#### 1.2 Enhanced DTO Validators
-**Status**: NEXT PRIORITY  
-**File**: `cli/templates/backend/module/dto/create-dto.hbs`
+#### ~~1.2 Enhanced DTO Validators~~ ✅ COMPLETE
+Status: **DONE** (2026-07-10)
+
+---
+
+### **PHASE 2: RELATIONS & ADVANCED FEATURES (MEDIUM PRIORITY)**
 
 **Goal**: Auto-generate proper validation based on field type
 

@@ -11,32 +11,6 @@ import {
 
 /**
  * Abstract base repository with soft delete support
- *
- * Provides common CRUD operations with:
- * - Automatic soft delete filtering
- * - Tenant-aware queries (automatic schema switching)
- * - Audit fields auto-population
- * - Type-safe generic implementation
- *
- * @example
- * ```typescript
- * @Injectable()
- * export class UsersRepository extends BaseRepository<User> {
- *   constructor(
- *     @Inject('DRIZZLE') db: NodePgDatabase<typeof tenantSchema>,
- *     tenantContext: TenantContextService,
- *   ) {
- *     super(db, users, tenantContext);
- *   }
- *
- *   // Add custom methods
- *   async findByEmail(email: string): Promise<User | null> {
- *     return this.withTenantSchema(() =>
- *       this.db.select().from(this.table).where(eq(this.table.email, email))
- *     );
- *   }
- * }
- * ```
  */
 @Injectable()
 export abstract class BaseRepository<T extends RepositoryEntity>
@@ -45,8 +19,10 @@ export abstract class BaseRepository<T extends RepositoryEntity>
   protected readonly logger: Logger;
 
   constructor(
-    @Inject('DRIZZLE') protected readonly db: NodePgDatabase<Record<string, never>>,
-    protected readonly table: Record<string, unknown>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Inject('DRIZZLE') protected readonly db: NodePgDatabase<any>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected readonly table: any,
     protected readonly tenantContext: TenantContextService,
   ) {
     this.logger = new Logger(this.constructor.name);

@@ -1,0 +1,88 @@
+import {
+  Controller,
+  Post,
+  Patch,
+  Body,
+  UseGuards,
+  Req,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { AuthService } from './auth.service';
+import { RegisterDto, registerSchema } from './dto/register.dto';
+import { LoginDto, loginSchema } from './dto/login.dto';
+import {
+  ChangePasswordDto,
+  changePasswordSchema,
+} from './dto/change-password.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { User } from '../../database/schema/tenant/users.schema';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+
+@Controller('auth')
+@UseGuards(JwtAuthGuard)
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  /**
+   * Register new user
+   * POST /api/auth/register
+   */
+  @Post('register')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  async register(
+    @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
+  ) {
+    return this.authService.register(dto);
+  }
+
+  /**
+   * Login user
+   * POST /api/auth/login
+   */
+  @Post('login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body(new ZodValidationPipe(loginSchema)) dto: LoginDto,
+    @Req() req: Request,
+  ) {
+    const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.get('user-agent') || 'unknown';
+    
+    // TODO: Get tenantId from request (from subdomain or header)
+    // For now, use a hardcoded value
+    const tenantId = 1;
+
+    return this.authService.login(dto, ipAddress, userAgent, tenantId);
+  }
+
+  /**
+   * Logout user
+   * POST /api/auth/logout
+   */
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@CurrentUser() user: User, @Req() req: Request) {
+    const token = req.get('authorization')?.replace('Bearer ', '') || '';
+    return this.authService.logout(user.id, token);
+  }
+
+  /**
+   * Change password
+   * PATCH /api/auth/change-password
+   */
+  @Patch('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(changePasswordSchema))
+    dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.id, dto);
+  }
+}

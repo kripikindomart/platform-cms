@@ -1,0 +1,69 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../../users/users.service';
+import { TenantContextService } from '../../../common/context/tenant-context.service';
+import { User } from '../../../database/schema/tenant/users.schema';
+
+/**
+ * JWT payload structure
+ */
+export interface JwtPayload {
+  sub: number; // User ID
+  email: string;
+  tenantId: number;
+  iat?: number;
+  exp?: number;
+}
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
+    private readonly tenantContext: TenantContextService,
+  ) {
+    const jwtSecret = configService.get<string>('JWT_SECRET');
+    
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
+
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: jwtSecret,
+    });
+  }
+
+  async validate(payload: JwtPayload): Promise<User> {
+    // Set tenant context from JWT payload
+    this.tenantContext.setTenant({
+      id: payload.tenantId,
+      slug: `tenant_${payload.tenantId}`,
+      name: '', // Will be loaded if needed
+      schemaName: `tenant_${payload.tenantId}`,
+    });
+
+    // Load user from database
+    const user = await this.usersService.findById(payload.sub);
+
+    if (!user) {
+      throw new UnauthorizedException({
+        code: 'USER_NOT_FOUND',
+        message: 'User tidak ditemukan',
+      });
+    }
+
+    if (!user.is_active) {
+      throw new UnauthorizedException({
+        code: 'USER_INACTIVE',
+        message: 'Akun tidak aktif',
+      });
+    }
+
+    // Return user (will be attached to request.user)
+    return user;
+  }
+}

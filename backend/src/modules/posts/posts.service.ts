@@ -1,43 +1,43 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ProductsRepository } from './products.repository';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { ProductResponseDto } from './dto/product-response.dto';
+import { PostsRepository } from './posts.repository';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { PostResponseDto } from './dto/post-response.dto';
 import { AuditService } from '../../core/audit/audit.service';
 
 @Injectable()
-export class ProductsService {
+export class PostsService {
   constructor(
-    private readonly productsRepository: ProductsRepository,
+    private readonly postsRepository: PostsRepository,
     private readonly auditService: AuditService,
   ) {}
 
   /**
-   * Find all products
+   * Find all posts
    */
-  async findAll(query?: any): Promise<ProductResponseDto[]> {
-    const items = await this.productsRepository.findAll();
+  async findAll(query?: any): Promise<PostResponseDto[]> {
+    const items = await this.postsRepository.findAll();
     return items.map((item) => this.toResponseDto(item));
   }
 
   /**
-   * Find product by ID
+   * Find post by ID
    */
-  async findById(id: number): Promise<ProductResponseDto> {
-    const item = await this.productsRepository.findById(id);
+  async findById(id: number): Promise<PostResponseDto> {
+    const item = await this.postsRepository.findById(id);
 
     if (!item) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+      throw new NotFoundException(`Post with ID ${id} not found`);
     }
 
     return this.toResponseDto(item);
   }
 
   /**
-   * Create new product
+   * Create new post
    */
-  async create(dto: CreateProductDto): Promise<ProductResponseDto> {
-    const item = await this.productsRepository.create({
+  async create(dto: CreatePostDto): Promise<PostResponseDto> {
+    const item = await this.postsRepository.create({
       ...dto,
       created_by: 1, // TODO: Get from current user
       updated_by: 1, // TODO: Get from current user
@@ -45,7 +45,7 @@ export class ProductsService {
 
     await this.auditService.logCrud({
       action: 'create',
-      resource: 'products',
+      resource: 'posts',
       resourceId: item.id,
       newValues: dto as unknown as Record<string, unknown>,
     });
@@ -54,20 +54,20 @@ export class ProductsService {
   }
 
   /**
-   * Update product
+   * Update post
    */
-  async update(id: number, dto: UpdateProductDto): Promise<ProductResponseDto> {
+  async update(id: number, dto: UpdatePostDto): Promise<PostResponseDto> {
     // Check if exists
     await this.findById(id);
 
-    const item = await this.productsRepository.update(id, {
+    const item = await this.postsRepository.update(id, {
       ...dto,
       updated_by: 1, // TODO: Get from current user
     });
 
     await this.auditService.logCrud({
       action: 'update',
-      resource: 'products',
+      resource: 'posts',
       resourceId: id,
       newValues: dto as unknown as Record<string, unknown>,
     });
@@ -76,30 +76,30 @@ export class ProductsService {
   }
 
   /**
-   * Soft delete product
+   * Soft delete post
    */
   async softDelete(id: number): Promise<void> {
     // Check if exists
     await this.findById(id);
 
-    await this.productsRepository.softDelete(id, 1); // TODO: Get from current user
+    await this.postsRepository.softDelete(id, 1); // TODO: Get from current user
 
     await this.auditService.logCrud({
       action: 'delete',
-      resource: 'products',
+      resource: 'posts',
       resourceId: id,
     });
   }
 
   /**
-   * Restore soft deleted product
+   * Restore soft deleted post
    */
-  async restore(id: number): Promise<ProductResponseDto> {
-    const item = await this.productsRepository.restore(id);
+  async restore(id: number): Promise<PostResponseDto> {
+    const item = await this.postsRepository.restore(id);
 
     await this.auditService.logCrud({
       action: 'restore',
-      resource: 'products',
+      resource: 'posts',
       resourceId: id,
     });
 
@@ -109,10 +109,14 @@ export class ProductsService {
   /**
    * Convert entity to response DTO
    */
-  private toResponseDto(item: any): ProductResponseDto {
+  private toResponseDto(item: any): PostResponseDto {
     return {
       id: item.id,
-      // TODO: Add other fields
+      title: item.title,
+      slug: item.slug,
+      content: item.content,
+      status: item.status,
+      published_at: item.published_at,
       created_at: item.created_at,
       updated_at: item.updated_at,
       deleted_at: item.deleted_at,

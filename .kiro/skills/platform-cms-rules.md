@@ -3,7 +3,9 @@
 
 ---
 
-## CRITICAL RULE: NO EMOJI ANYWHERE
+## CRITICAL RULES
+
+### Rule 1: NO EMOJI ANYWHERE
 
 **ABSOLUTE PROHIBITION**:
 - NO EMOJI in application code (comments, strings, variables)
@@ -23,6 +25,25 @@
 - [FAIL], [ERROR], [WARNING] instead of X marks
 - [INFO], [NOTE], [TIP] instead of info icons
 - Plain text bullets: -, *, +
+
+### Rule 2: BAHASA INDONESIA FOR ISSUES & DOCS
+
+**MANDATORY INDONESIAN**:
+- GitHub issue titles (Indonesian)
+- GitHub issue body (Indonesian) - code examples can be English
+- GitHub issue comments (Indonesian)
+- Documentation files in docs/ (Indonesian)
+- Error messages in application (Indonesian)
+- API response messages (Indonesian)
+- User-facing text (Indonesian)
+
+**EXCEPTION - English allowed**:
+- Code (variables, functions, classes)
+- Code comments explaining technical details
+- Commit messages (English is OK)
+- Technical terms that have no Indonesian equivalent
+
+**REASON**: Project is for Indonesian team and users. Documentation and communication must be in Indonesian for clarity.
 
 ---
 

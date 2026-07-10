@@ -12,14 +12,14 @@
 |------|--------|----------------|-------------|----------|
 | Week 1-2 | ✅ Complete | 6 | 6 | 100% |
 | Week 3-4 | ✅ Complete | 6 | 6 | 100% |
-| Week 5-7 | 🔄 In Progress | 2 | 4 | 50% |
+| Week 5-7 | ✅ Complete | 2 | 2 | 100% |
 | Week 8-9 | ⏳ Pending | 0 | 2 | 0% |
 | Week 10-11 | ⏳ Pending | 0 | 5 | 0% |
 | Week 12-13 | ⏳ Pending | 0 | 4 | 0% |
 | Week 14-15 | ⏳ Pending | 0 | 5 | 0% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 14/40 tasks (35%)
+**Total Progress**: 14/35 tasks (40%)
 
 ---
 

@@ -1,0 +1,144 @@
+import { Injectable, Inject } from '@nestjs/common';
+{{#if softDelete}}
+import { BaseRepository } from '../../common/database/base.repository';
+{{/if}}
+{{#if tenant}}
+import { TenantContextService } from '../../common/context/tenant-context.service';
+{{/if}}
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as tenantSchema from '../../database/schema/tenant';
+import { {{camelCase (pluralize name)}} } from './entities/{{kebab-case (singularize name)}}.entity';
+
+{{#if softDelete}}
+@Injectable()
+export class {{PascalCase name}}Repository extends BaseRepository<typeof {{camelCase (pluralize name)}}.$inferSelect> {
+  constructor(
+    @Inject('DRIZZLE') db: NodePgDatabase<typeof tenantSchema>,
+    {{#if tenant}}
+    tenantContext: TenantContextService,
+    {{/if}}
+  ) {
+    super(
+      db,
+      {{camelCase (pluralize name)}},
+      {{#if tenant}}tenantContext{{else}}null{{/if}},
+    );
+  }
+
+  // Add custom query methods here
+}
+{{else}}
+@Injectable()
+export class {{PascalCase name}}Repository {
+  constructor(
+    @Inject('DRIZZLE') private readonly db: NodePgDatabase<typeof tenantSchema>,
+    {{#if tenant}}
+    private readonly tenantContext: TenantContextService,
+    {{/if}}
+  ) {}
+
+  {{#if tenant}}
+  /**
+   * Execute query within tenant schema
+   */
+  private async withTenantSchema<T>(callback: () => Promise<T>): Promise<T> {
+    const schemaName = this.tenantContext.getSchemaName();
+    await this.db.execute(`SET search_path TO ${schemaName}, public`);
+    try {
+      return await callback();
+    } finally {
+      await this.db.execute('SET search_path TO public');
+    }
+  }
+  {{/if}}
+
+  /**
+   * Find all {{pluralize (lowercase name)}}
+   */
+  async findAll(): Promise<(typeof {{camelCase (pluralize name)}}.$inferSelect)[]> {
+    {{#if tenant}}
+    return this.withTenantSchema(async () => {
+      return this.db.select().from({{camelCase (pluralize name)}});
+    });
+    {{else}}
+    return this.db.select().from({{camelCase (pluralize name)}});
+    {{/if}}
+  }
+
+  /**
+   * Find {{singularize (lowercase name)}} by ID
+   */
+  async findById(id: number): Promise<typeof {{camelCase (pluralize name)}}.$inferSelect | null> {
+    {{#if tenant}}
+    return this.withTenantSchema(async () => {
+      const result = await this.db
+        .select()
+        .from({{camelCase (pluralize name)}})
+        .where(eq({{camelCase (pluralize name)}}.id, id))
+        .limit(1);
+      return result[0] || null;
+    });
+    {{else}}
+    const result = await this.db
+      .select()
+      .from({{camelCase (pluralize name)}})
+      .where(eq({{camelCase (pluralize name)}}.id, id))
+      .limit(1);
+    return result[0] || null;
+    {{/if}}
+  }
+
+  /**
+   * Create {{singularize (lowercase name)}}
+   */
+  async create(data: typeof {{camelCase (pluralize name)}}.$inferInsert): Promise<typeof {{camelCase (pluralize name)}}.$inferSelect> {
+    {{#if tenant}}
+    return this.withTenantSchema(async () => {
+      const result = await this.db.insert({{camelCase (pluralize name)}}).values(data).returning();
+      return result[0];
+    });
+    {{else}}
+    const result = await this.db.insert({{camelCase (pluralize name)}}).values(data).returning();
+    return result[0];
+    {{/if}}
+  }
+
+  /**
+   * Update {{singularize (lowercase name)}}
+   */
+  async update(id: number, data: Partial<typeof {{camelCase (pluralize name)}}.$inferInsert>): Promise<typeof {{camelCase (pluralize name)}}.$inferSelect> {
+    {{#if tenant}}
+    return this.withTenantSchema(async () => {
+      const result = await this.db
+        .update({{camelCase (pluralize name)}})
+        .set({ ...data, updated_at: new Date() })
+        .where(eq({{camelCase (pluralize name)}}.id, id))
+        .returning();
+      return result[0];
+    });
+    {{else}}
+    const result = await this.db
+      .update({{camelCase (pluralize name)}})
+      .set({ ...data, updated_at: new Date() })
+      .where(eq({{camelCase (pluralize name)}}.id, id))
+      .returning();
+    return result[0];
+    {{/if}}
+  }
+
+  /**
+   * Hard delete {{singularize (lowercase name)}}
+   */
+  async hardDelete(id: number): Promise<void> {
+    {{#if tenant}}
+    await this.withTenantSchema(async () => {
+      await this.db.delete({{camelCase (pluralize name)}}).where(eq({{camelCase (pluralize name)}}.id, id));
+    });
+    {{else}}
+    await this.db.delete({{camelCase (pluralize name)}}).where(eq({{camelCase (pluralize name)}}.id, id));
+    {{/if}}
+  }
+
+  // Add custom query methods here
+}
+{{/if}}

@@ -1,0 +1,147 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { {{PascalCase name}}Repository } from './{{kebab-case name}}.repository';
+import { Create{{PascalCase (singularize name)}}Dto } from './dto/create-{{kebab-case (singularize name)}}.dto';
+import { Update{{PascalCase (singularize name)}}Dto } from './dto/update-{{kebab-case (singularize name)}}.dto';
+import { {{PascalCase (singularize name)}}ResponseDto } from './dto/{{kebab-case (singularize name)}}-response.dto';
+{{#if audit}}
+import { AuditService } from '../../core/audit/audit.service';
+{{/if}}
+
+@Injectable()
+export class {{PascalCase name}}Service {
+  constructor(
+    private readonly {{camelCase name}}Repository: {{PascalCase name}}Repository,
+    {{#if audit}}
+    private readonly auditService: AuditService,
+    {{/if}}
+  ) {}
+
+  /**
+   * Find all {{pluralize (lowercase name)}}
+   */
+  async findAll(query?: any): Promise<{{PascalCase (singularize name)}}ResponseDto[]> {
+    const items = await this.{{camelCase name}}Repository.findAll();
+    return items.map((item) => this.toResponseDto(item));
+  }
+
+  /**
+   * Find {{singularize (lowercase name)}} by ID
+   */
+  async findById(id: number): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    const item = await this.{{camelCase name}}Repository.findById(id);
+    
+    if (!item) {
+      throw new NotFoundException(`{{PascalCase (singularize name)}} with ID ${id} not found`);
+    }
+
+    return this.toResponseDto(item);
+  }
+
+  /**
+   * Create new {{singularize (lowercase name)}}
+   */
+  async create(dto: Create{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    const item = await this.{{camelCase name}}Repository.create({
+      ...dto,
+      created_by: 1, // TODO: Get from current user
+      updated_by: 1, // TODO: Get from current user
+    });
+
+    {{#if audit}}
+    await this.auditService.logCrud({
+      action: 'create',
+      resource: '{{pluralize (kebab-case name)}}',
+      resourceId: item.id,
+      newValues: dto as unknown as Record<string, unknown>,
+    });
+    {{/if}}
+
+    return this.toResponseDto(item);
+  }
+
+  /**
+   * Update {{singularize (lowercase name)}}
+   */
+  async update(id: number, dto: Update{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    // Check if exists
+    await this.findById(id);
+
+    const item = await this.{{camelCase name}}Repository.update(id, {
+      ...dto,
+      updated_by: 1, // TODO: Get from current user
+    });
+
+    {{#if audit}}
+    await this.auditService.logCrud({
+      action: 'update',
+      resource: '{{pluralize (kebab-case name)}}',
+      resourceId: id,
+      newValues: dto as unknown as Record<string, unknown>,
+    });
+    {{/if}}
+
+    return this.toResponseDto(item);
+  }
+
+  {{#if softDelete}}
+  /**
+   * Soft delete {{singularize (lowercase name)}}
+   */
+  async softDelete(id: number): Promise<void> {
+    // Check if exists
+    await this.findById(id);
+
+    await this.{{camelCase name}}Repository.softDelete(id, 1); // TODO: Get from current user
+
+    {{#if audit}}
+    await this.auditService.logCrud({
+      action: 'delete',
+      resource: '{{pluralize (kebab-case name)}}',
+      resourceId: id,
+    });
+    {{/if}}
+  }
+
+  /**
+   * Restore soft deleted {{singularize (lowercase name)}}
+   */
+  async restore(id: number): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    const item = await this.{{camelCase name}}Repository.restore(id);
+
+    {{#if audit}}
+    await this.auditService.logCrud({
+      action: 'restore',
+      resource: '{{pluralize (kebab-case name)}}',
+      resourceId: id,
+    });
+    {{/if}}
+
+    return this.toResponseDto(item);
+  }
+  {{else}}
+  /**
+   * Delete {{singularize (lowercase name)}}
+   */
+  async delete(id: number): Promise<void> {
+    // Check if exists
+    await this.findById(id);
+
+    await this.{{camelCase name}}Repository.hardDelete(id);
+  }
+  {{/if}}
+
+  /**
+   * Convert entity to response DTO
+   */
+  private toResponseDto(item: any): {{PascalCase (singularize name)}}ResponseDto {
+    return {
+      id: item.id,
+      // TODO: Add other fields
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      {{#if softDelete}}
+      deleted_at: item.deleted_at,
+      {{/if}}
+    };
+  }
+}

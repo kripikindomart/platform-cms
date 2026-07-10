@@ -1,0 +1,23 @@
+import { Module } from '@nestjs/common';
+import { {{PascalCase name}}Controller } from './{{kebab-case name}}.controller';
+import { {{PascalCase name}}Service } from './{{kebab-case name}}.service';
+import { {{PascalCase name}}Repository } from './{{kebab-case name}}.repository';
+{{#if tenant}}
+import { CommonModule } from '../../common/common.module';
+{{/if}}
+{{#if audit}}
+import { AuditModule } from '../../core/audit/audit.module';
+{{/if}}
+import { DatabaseModule } from '../../database/database.module';
+
+@Module({
+  imports: [
+    DatabaseModule,
+    {{#if tenant}}CommonModule,{{/if}}
+    {{#if audit}}AuditModule,{{/if}}
+  ],
+  controllers: [{{PascalCase name}}Controller],
+  providers: [{{PascalCase name}}Service, {{PascalCase name}}Repository],
+  exports: [{{PascalCase name}}Service],
+})
+export class {{PascalCase name}}Module {}

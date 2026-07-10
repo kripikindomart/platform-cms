@@ -1,0 +1,71 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { {{PascalCase name}}Service } from './{{kebab-case name}}.service';
+import { Create{{PascalCase (singularize name)}}Dto } from './dto/create-{{kebab-case (singularize name)}}.dto';
+import { Update{{PascalCase (singularize name)}}Dto } from './dto/update-{{kebab-case (singularize name)}}.dto';
+import { {{PascalCase (singularize name)}}ResponseDto } from './dto/{{kebab-case (singularize name)}}-response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@ApiTags('{{pluralize (kebab-case name)}}')
+@Controller('{{pluralize (kebab-case name)}}')
+@UseGuards(JwtAuthGuard)
+export class {{PascalCase name}}Controller {
+  constructor(private readonly {{camelCase name}}Service: {{PascalCase name}}Service) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all {{pluralize (lowercase name)}}' })
+  @ApiResponse({ status: 200, description: 'List of {{pluralize (lowercase name)}}', type: [{{PascalCase (singularize name)}}ResponseDto] })
+  async findAll(@Query() query: any): Promise<{{PascalCase (singularize name)}}ResponseDto[]> {
+    return this.{{camelCase name}}Service.findAll(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get {{singularize (lowercase name)}} by ID' })
+  @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} found', type: {{PascalCase (singularize name)}}ResponseDto })
+  @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })
+  async findById(@Param('id', ParseIntPipe) id: number): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    return this.{{camelCase name}}Service.findById(id);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create new {{singularize (lowercase name)}}' })
+  @ApiResponse({ status: 201, description: '{{PascalCase (singularize name)}} created', type: {{PascalCase (singularize name)}}ResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async create(@Body() dto: Create{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    return this.{{camelCase name}}Service.create(dto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update {{singularize (lowercase name)}}' })
+  @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} updated', type: {{PascalCase (singularize name)}}ResponseDto })
+  @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Update{{PascalCase (singularize name)}}Dto,
+  ): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    return this.{{camelCase name}}Service.update(id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete {{singularize (lowercase name)}}' })
+  @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} deleted' })
+  @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    {{#if softDelete}}
+    await this.{{camelCase name}}Service.softDelete(id);
+    {{else}}
+    await this.{{camelCase name}}Service.delete(id);
+    {{/if}}
+  }
+}

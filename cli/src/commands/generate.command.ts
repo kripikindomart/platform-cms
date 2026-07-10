@@ -5,6 +5,7 @@
 
 import { Command } from 'commander';
 import { logger } from '../utils/logger.utils';
+import { ModuleGenerator } from '../generators/module.generator';
 
 export function generateCommand(): Command {
   const cmd = new Command('generate');
@@ -19,14 +20,28 @@ export function generateCommand(): Command {
     .description('Generate a NestJS module')
     .option('--tenant', 'Enable tenant isolation')
     .option('--soft-delete', 'Enable soft delete')
+    .option('--audit', 'Enable audit logging')
+    .option('--dir <directory>', 'Output directory', 'backend/src/modules')
+    .option('--dry-run', 'Show what would be generated without creating files')
+    .option('--force', 'Overwrite existing files without prompting')
     .action(async (name: string, options) => {
-      logger.title(`Generating module: ${name}`);
+      try {
+        const generator = new ModuleGenerator({
+          dryRun: options.dryRun,
+          force: options.force,
+          outputPath: process.cwd(),
+        });
 
-      // TODO: Implement in Task 5.2
-      logger.info('This command will be implemented in Task 5.2');
-      logger.info(`Module name: ${name}`);
-      logger.info(`Tenant isolation: ${options.tenant ? 'Yes' : 'No'}`);
-      logger.info(`Soft delete: ${options.softDelete ? 'Yes' : 'No'}`);
+        await generator.generate(name, {
+          tenant: options.tenant,
+          softDelete: options.softDelete,
+          audit: options.audit,
+          dir: options.dir,
+        });
+      } catch (error) {
+        logger.error(`Failed to generate module: ${(error as Error).message}`);
+        process.exit(1);
+      }
     });
 
   // CRUD subcommand

@@ -62,6 +62,11 @@ export function toSnakeCase(str: string): string {
  * - status -> statuses
  */
 export function pluralize(word: string): string {
+  // Check if already plural
+  if (word.endsWith('s') && !word.endsWith('ss') && !word.endsWith('us')) {
+    return word; // Already plural
+  }
+  
   if (word.endsWith('y') && !['ay', 'ey', 'iy', 'oy', 'uy'].some(v => word.endsWith(v))) {
     return word.slice(0, -1) + 'ies';
   }

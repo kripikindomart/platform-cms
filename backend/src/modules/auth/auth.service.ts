@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { hash, compare } from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { RedisService } from '../../core/cache/redis.service';
+import { AuditService } from '../../core/audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -29,6 +30,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {
     this.bcryptRounds = 12;
   }
@@ -63,6 +65,14 @@ export class AuthService {
 
     this.logger.log(`User registered: ${user.email} (ID: ${user.id})`);
 
+    // Audit log
+    await this.auditService.logAuth({
+      userId: user.id,
+      action: 'register',
+      email: user.email,
+      description: `User ${user.email} registered successfully`,
+    });
+
     return new RegisterResponseDto(user);
   }
 
@@ -80,6 +90,15 @@ export class AuthService {
 
     if (!user) {
       this.logger.warn(`Failed login attempt for email: ${dto.email}`);
+      
+      // Audit failed login
+      await this.auditService.logAuth({
+        action: 'login_failed',
+        email: dto.email,
+        ipAddress,
+        userAgent,
+        description: `Failed login attempt for ${dto.email}`,
+      });
       
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
@@ -100,6 +119,16 @@ export class AuthService {
 
     if (!isPasswordValid) {
       this.logger.warn(`Failed login attempt for user: ${user.id}`);
+      
+      // Audit failed login
+      await this.auditService.logAuth({
+        userId: user.id,
+        action: 'login_failed',
+        email: user.email,
+        ipAddress,
+        userAgent,
+        description: `Failed login attempt - invalid password for ${user.email}`,
+      });
       
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
@@ -124,6 +153,16 @@ export class AuthService {
 
     this.logger.log(`User logged in: ${user.email} (ID: ${user.id})`);
 
+    // Audit successful login
+    await this.auditService.logAuth({
+      userId: user.id,
+      action: 'login',
+      email: user.email,
+      ipAddress,
+      userAgent,
+      description: `User ${user.email} logged in successfully`,
+    });
+
     return new LoginResponseDto(token, user);
   }
 
@@ -138,6 +177,13 @@ export class AuthService {
     await this.deleteSession(userId, token);
 
     this.logger.log(`User logged out: ${userId}`);
+
+    // Audit logout
+    await this.auditService.logAuth({
+      userId,
+      action: 'logout',
+      description: `User logged out`,
+    });
 
     return new MessageResponseDto('Logout berhasil');
   }
@@ -179,6 +225,13 @@ export class AuthService {
     await this.usersService.updatePassword(userId, newPasswordHash, userId);
 
     this.logger.log(`Password changed for user: ${userId}`);
+
+    // Audit password change
+    await this.auditService.logAuth({
+      userId,
+      action: 'password_change',
+      description: `User changed password`,
+    });
 
     return new MessageResponseDto('Password berhasil diubah');
   }

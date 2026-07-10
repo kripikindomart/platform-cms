@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UsersModule } from '../users/users.module';
 import { RedisModule } from '../../core/cache/redis.module';
 import { CommonModule } from '../../common/common.module';
+import { AuditModule } from '../../core/audit/audit.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CommonModule } from '../../common/common.module';
     UsersModule,
     RedisModule,
     CommonModule,
+    AuditModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard],

@@ -11,7 +11,7 @@
 | Week | Status | Tasks Complete | Tasks Total | Progress |
 |------|--------|----------------|-------------|----------|
 | Week 1-2 | ✅ Complete | 6 | 6 | 100% |
-| Week 3-4 | 🔄 In Progress | 5 | 6 | 83% |
+| Week 3-4 | ✅ Complete | 6 | 6 | 100% |
 | Week 5-7 | ⏳ Pending | 0 | 4 | 0% |
 | Week 8-9 | ⏳ Pending | 0 | 2 | 0% |
 | Week 10-11 | ⏳ Pending | 0 | 5 | 0% |
@@ -19,11 +19,129 @@
 | Week 14-15 | ⏳ Pending | 0 | 5 | 0% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 11/40 tasks (27.5%)
+**Total Progress**: 12/40 tasks (30%)
 
 ---
 
-## 🔄 Current Sprint: Week 3-4 - Database & Multi-Tenancy
+## ✅ COMPLETED SPRINT: Week 3-4 - Database & Multi-Tenancy
+
+### Task 2.6: Base Repository with Soft Delete
+**Status**: COMPLETE  
+**Started**: 2024-01-08  
+**Completed**: 2024-01-08  
+**Assignee**: AI Assistant  
+**Priority**: P1 - HIGH  
+**Estimated Time**: 4 hours  
+**Actual Time**: 1.5 hours
+
+**Objective**:
+Implement reusable base repository pattern dengan soft delete support untuk reduce code duplication.
+
+**Files Created**:
+- [x] `backend/src/common/database/repository.interface.ts` - Repository interfaces
+- [x] `backend/src/common/database/base.repository.ts` - Abstract base repository
+- [x] `backend/src/common/database/base.repository.spec.ts` - Unit tests
+- [x] `backend/src/common/index.ts` - Common module exports
+
+**Interfaces Defined**:
+- [x] `RepositoryEntity` - Base entity type (ID + audit + soft delete)
+- [x] `SoftDeletable` - Soft delete fields interface
+- [x] `Auditable` - Audit fields interface
+- [x] `IRepository<T>` - Standard repository interface
+- [x] `PaginationOptions` - Pagination options interface
+- [x] `PaginatedResult<T>` - Paginated result interface
+
+**BaseRepository Methods** (10 methods):
+- [x] `findAll()` - Find all active records
+- [x] `findById()` - Find by ID (exclude deleted)
+- [x] `create()` - Create with audit fields
+- [x] `update()` - Update with audit fields
+- [x] `softDelete()` - Soft delete record
+- [x] `restore()` - Restore deleted record
+- [x] `hardDelete()` - Hard delete (use with caution)
+- [x] `findDeleted()` - Find only deleted records
+- [x] `count()` - Count active records
+- [x] `findAllPaginated()` - Paginated results
+
+**Helper Methods**:
+- [x] `withTenantSchema()` - Execute query in tenant schema context
+
+**Acceptance Criteria**:
+- [x] BaseRepository abstract class implemented
+- [x] IRepository interface defined
+- [x] 10 core methods working
+- [x] Soft delete automatic
+- [x] Queries auto-filter deleted records
+- [x] Restore functionality working
+- [x] Tenant-aware queries (automatic schema switching)
+- [x] Audit fields auto-populated
+- [x] Type-safe generic implementation
+- [x] Type-check passes
+- [x] Lint passes
+- [x] Unit tests (18 tests) all passing
+
+**Test Results**:
+```
+Type-check: PASS
+Lint: PASS
+Unit Tests: PASS (18/18 tests passing)
+  - should be defined
+  - withTenantSchema: 3 tests (set/reset search_path, error handling, tenant context)
+  - findAll: 1 test
+  - findById: 2 tests (found, not found)
+  - create: 2 tests (with userId, without userId)
+  - update: 1 test
+  - softDelete: 1 test
+  - restore: 1 test
+  - hardDelete: 1 test
+  - findDeleted: 1 test
+  - count: 2 tests (with count, zero count)
+  - findAllPaginated: 2 tests (with pagination, default options)
+```
+
+**GitHub Issue**: #12  
+**Git Commit**: Pending
+
+**Notes**:
+- Transaction wrapper (`withTenantSchema`) ensures automatic search_path management
+- Type-safe generic implementation dengan proper constraints
+- Filters parameter reserved untuk future filtering implementation
+- Ready to use in all tenant repositories
+- Significantly reduces code duplication
+- 62% faster than estimated (1.5h vs 4h)
+
+**Example Usage**:
+```typescript
+@Injectable()
+export class UsersRepository extends BaseRepository<User> {
+  constructor(
+    @Inject('DRIZZLE') db: NodePgDatabase<typeof tenantSchema>,
+    tenantContext: TenantContextService,
+  ) {
+    super(db, users, tenantContext);
+  }
+
+  // Add custom methods
+  async findByEmail(email: string): Promise<User | null> {
+    return this.withTenantSchema(() =>
+      this.db.select().from(this.table).where(eq(this.table.email, email))
+    );
+  }
+}
+```
+
+**Benefits**:
+- DRY principle (reduce code duplication)
+- Consistent soft delete behavior
+- Automatic audit trail
+- Tenant isolation guaranteed
+- Type-safe operations
+- Easy to extend dengan custom methods
+
+**Time Savings**:
+Estimated 4 hours, actual 1.5 hours = 62% faster!
+
+---
 
 ### Task 2.5: Tenant Provisioning Service
 **Status**: COMPLETE  
@@ -529,6 +647,19 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ### 2024-01-08
 
 #### ✅ Completed
+- **Task 2.6** - Base Repository with Soft Delete (100% complete)
+  - Created repository.interface.ts dengan 6 interfaces
+  - Created BaseRepository abstract class
+  - Implemented 10 core methods (findAll, findById, create, update, softDelete, restore, hardDelete, findDeleted, count, findAllPaginated)
+  - Implemented withTenantSchema helper untuk automatic search_path management
+  - Created 18 unit tests all passing
+  - Type-safe generic implementation
+  - Tenant-aware queries
+  - Audit fields auto-populated
+  - Type-check dan lint PASS
+  - **GitHub Issue**: #12
+  - **Time**: 1.5 hours (62% faster than estimated)
+
 - **Task 2.5** - Tenant Provisioning Service (100% complete)
   - Created TenantsModule dengan service, repository, DTOs
   - Created TenantsRepository dengan 9 CRUD methods
@@ -747,13 +878,14 @@ Estimated 4 hours, actual 2 hours = 50% faster!
 ✅ **NEVER import dependencies before installing them**
 
 ### Current Focus
-🎯 **Next Phase**: Week 3-4 - Database & Multi-Tenancy (83% complete)  
+🎉 **WEEK 3-4 COMPLETE!** All 6 tasks done (100%)  
 ✅ Task 2.1: Create Global Schema (COMPLETE)  
 ✅ Task 2.2: Create Tenant Schema Template (COMPLETE)  
 ✅ Task 2.3: Migration System Implementation (COMPLETE)  
 ✅ Task 2.4: Tenant Context Service (COMPLETE)  
 ✅ Task 2.5: Tenant Provisioning Service (COMPLETE)  
-🎯 **Next Task**: Task 2.6 - Base Repository with Soft Delete
+✅ Task 2.6: Base Repository with Soft Delete (COMPLETE)  
+🎯 **Next Phase**: Week 5-7 - Authentication & Authorization
 
 ---
 

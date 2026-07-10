@@ -5,6 +5,7 @@ import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './core/cache/redis.module';
 import { HealthModule } from './health/health.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { HealthModule } from './health/health.module';
       envFilePath: '.env',
       validate: validateEnv,
     }),
+    CommonModule,
     DatabaseModule,
     RedisModule,
     HealthModule,

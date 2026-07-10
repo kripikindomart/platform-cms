@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, registerSchema } from './dto/register.dto';
@@ -30,9 +31,11 @@ export class AuthController {
   /**
    * Register new user
    * POST /api/auth/register
+   * Rate limit: 5 requests per hour
    */
   @Post('register')
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
@@ -43,9 +46,11 @@ export class AuthController {
   /**
    * Login user
    * POST /api/auth/login
+   * Rate limit: 10 requests per minute
    */
   @Post('login')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @HttpCode(HttpStatus.OK)
   async login(
     @Body(new ZodValidationPipe(loginSchema)) dto: LoginDto,
@@ -53,7 +58,7 @@ export class AuthController {
   ) {
     const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.get('user-agent') || 'unknown';
-    
+
     // TODO: Get tenantId from request (from subdomain or header)
     // For now, use a hardcoded value
     const tenantId = 1;

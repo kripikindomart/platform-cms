@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { configs } from './config';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
@@ -21,6 +23,12 @@ import { RolesModule } from './modules/roles/roles.module';
       envFilePath: '.env',
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 900000, // 15 minutes in milliseconds
+        limit: 100, // 100 requests per 15 minutes
+      },
+    ]),
     CommonModule,
     DatabaseModule,
     RedisModule,
@@ -33,6 +41,12 @@ import { RolesModule } from './modules/roles/roles.module';
     RolesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    // Global Throttler Guard
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

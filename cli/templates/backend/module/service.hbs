@@ -42,10 +42,10 @@ export class {{PascalCase name}}Service {
    */
   async create(dto: Create{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
     const item = await this.{{camelCase name}}Repository.create({
-      ...dto,
+      ...this.prepareDataForDb(dto),
       created_by: 1, // TODO: Get from current user
       updated_by: 1, // TODO: Get from current user
-    });
+    } as any);
 
     {{#if audit}}
     await this.auditService.logCrud({
@@ -67,9 +67,9 @@ export class {{PascalCase name}}Service {
     await this.findById(id);
 
     const item = await this.{{camelCase name}}Repository.update(id, {
-      ...dto,
+      ...this.prepareDataForDb(dto),
       updated_by: 1, // TODO: Get from current user
-    });
+    } as any);
 
     {{#if audit}}
     await this.auditService.logCrud({
@@ -149,5 +149,26 @@ export class {{PascalCase name}}Service {
       deleted_at: item.deleted_at,
       {{/if}}
     };
+  }
+
+  /**
+   * Prepare DTO data for database
+   * Converts number fields to string for decimal/numeric types
+   */
+  private prepareDataForDb(dto: any): any {
+    const data = { ...dto };
+    {{#if hasFields}}
+    
+    // Convert decimal/numeric fields from number to string for Drizzle ORM
+    {{#each fields}}
+    {{#if this.precision}}
+    if (data.{{this.name}} !== undefined && data.{{this.name}} !== null) {
+      data.{{this.name}} = String(data.{{this.name}});
+    }
+    {{/if}}
+    {{/each}}
+    {{/if}}
+    
+    return data;
   }
 }

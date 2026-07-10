@@ -6,6 +6,7 @@ import { BaseRepository } from '../../common/database/base.repository';
 import { TenantContextService } from '../../common/context/tenant-context.service';
 {{/if}}
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { eq } from 'drizzle-orm';
 import * as tenantSchema from '../../database/schema/tenant';
 import { {{camelCase (pluralize name)}} } from './entities/{{kebab-case (singularize name)}}.entity';
 

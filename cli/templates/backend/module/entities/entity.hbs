@@ -14,7 +14,11 @@ export const {{camelCase (pluralize name)}} = pgTable('{{snake_case (pluralize n
 {{else if (eq this.type 'text')}}
   {{this.name}}: text('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
 {{else if (eq this.type 'number')}}
+{{#if this.precision}}
+  {{this.name}}: numeric('{{this.name}}', { precision: {{this.precision}}, scale: {{#if this.scale}}{{this.scale}}{{else}}0{{/if}} }){{#if this.required}}.notNull(){{/if}},
+{{else}}
   {{this.name}}: integer('{{this.name}}'){{#if this.required}}.notNull(){{/if}},
+{{/if}}
 {{else if (eq this.type 'boolean')}}
   {{this.name}}: boolean('{{this.name}}'){{#if this.required}}.notNull(){{/if}}.default(false),
 {{else if (eq this.type 'date')}}

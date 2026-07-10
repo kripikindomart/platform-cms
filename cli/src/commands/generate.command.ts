@@ -48,7 +48,14 @@ export function generateCommand(): Command {
   cmd
     .command('crud <name>')
     .description('Generate full CRUD (module, controller, service, repository, DTOs)')
-    .option('--fields <fields>', 'Field definitions (name:type,email:email)')
+    .option('--fields <fields>', 'Field definitions (name:type:length:precision:scale:modifiers)')
+    .option('--enum <enum>', 'Enum definitions (field:value1,value2;field2:val1,val2)')
+    .option('--relation <relation>', 'Relation definitions (field:module:type)')
+    .option('--display <display>', 'Display settings (field:list:detail:form)')
+    .option('--searchable <searchable>', 'Searchable fields (field1,field2)')
+    .option('--sortable <sortable>', 'Sortable fields (field1,field2)')
+    .option('--filterable <filterable>', 'Filterable fields (field1,field2)')
+    .option('--input <input>', 'Input type overrides (field:type;field2:type2)')
     .option('--tenant', 'Enable tenant isolation')
     .option('--soft-delete', 'Enable soft delete')
     .option('--audit', 'Add authentication guards')
@@ -67,6 +74,13 @@ export function generateCommand(): Command {
 
         await generator.generate(name, {
           fields: options.fields,
+          enum: options.enum,
+          relation: options.relation,
+          display: options.display,
+          searchable: options.searchable,
+          sortable: options.sortable,
+          filterable: options.filterable,
+          input: options.input,
           tenant: options.tenant,
           softDelete: options.softDelete,
           audit: options.audit,

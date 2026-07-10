@@ -11,6 +11,7 @@ import { newCommand } from './commands/new.command';
 import { generateCommand } from './commands/generate.command';
 import { migrateCommand } from './commands/migrate.command';
 import { validateCommand } from './commands/validate.command';
+import { deleteCommand } from './commands/delete.command';
 
 // Create CLI program
 const program = new Command();
@@ -32,6 +33,7 @@ program.addHelpText(
 // Register commands
 program.addCommand(newCommand());
 program.addCommand(generateCommand());
+program.addCommand(deleteCommand());
 program.addCommand(migrateCommand());
 program.addCommand(validateCommand());
 
@@ -43,6 +45,8 @@ ${chalk.bold('Examples:')}
   ${chalk.gray('$')} cms new my-project
   ${chalk.gray('$')} cms generate module users
   ${chalk.gray('$')} cms generate crud posts --fields="title:string,content:text"
+  ${chalk.gray('$')} cms delete module posts
+  ${chalk.gray('$')} cms delete test-modules
   ${chalk.gray('$')} cms generate component UserCard --type=card
   ${chalk.gray('$')} cms migrate run
   ${chalk.gray('$')} cms validate

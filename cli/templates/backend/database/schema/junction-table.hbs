@@ -1,0 +1,27 @@
+import { pgTable, integer, primaryKey } from 'drizzle-orm/pg-core';
+import { {{camelCase (pluralize table1)}} } from '../../../modules/{{table1}}/entities/{{singularize table1}}.entity';
+import { {{camelCase (pluralize table2)}} } from '../../../modules/{{table2}}/entities/{{singularize table2}}.entity';
+
+/**
+ * Junction table: {{table1}} <-> {{table2}}
+ * Many-to-many relationship
+ */
+export const {{camelCase junctionName}} = pgTable(
+  '{{snake_case junctionName}}',
+  {
+    {{singularize table1}}_id: integer('{{singularize table1}}_id')
+      .notNull()
+      .references(() => {{camelCase (pluralize table1)}}.id, { onDelete: 'cascade' }),
+    
+    {{singularize table2}}_id: integer('{{singularize table2}}_id')
+      .notNull()
+      .references(() => {{camelCase (pluralize table2)}}.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.{{singularize table1}}_id, table.{{singularize table2}}_id] }),
+  })
+);
+
+// Infer types
+export type {{PascalCase (singularize junctionName)}} = typeof {{camelCase junctionName}}.$inferSelect;
+export type New{{PascalCase (singularize junctionName)}} = typeof {{camelCase junctionName}}.$inferInsert;

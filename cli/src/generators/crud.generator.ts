@@ -89,6 +89,14 @@ export class CrudGenerator extends ModuleGenerator {
         json: fields.some((f) => f.type === 'json'),
       };
 
+      // Extract many-to-many relations for junction table generation
+      const manyToManyRelations = fields
+        .filter((f) => f.relationType === 'many-to-many')
+        .map((f) => ({
+          entity: name,
+          relatedEntity: f.relationModule!,
+        }));
+
       // Prepare template data with fields
       const data = {
         ...this.prepareTemplateData(name, options),
@@ -104,6 +112,13 @@ export class CrudGenerator extends ModuleGenerator {
 
       // Write files
       await this.writeFiles(files);
+
+      // Generate junction tables for many-to-many relations
+      if (!options.dryRun && manyToManyRelations.length > 0) {
+        for (const rel of manyToManyRelations) {
+          await this.generateJunctionTable(rel.entity, rel.relatedEntity, options);
+        }
+      }
 
       // Auto-import to app.module.ts
       if (!options.dryRun) {
@@ -707,6 +722,157 @@ export class CrudGenerator extends ModuleGenerator {
     if (options.tenant) {
       console.log(`  5. Ensure TenantContextService is set in requests`);
     }
+  }
+
+  /**
+   * Generate junction table for many-to-many relationship
+   */
+  private async generateJunctionTable(
+    entity1: string,
+    entity2: string,
+    _options: CrudGeneratorOptions,
+  ): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const Handlebars = await import('handlebars');
+    
+    // Register helpers (same as in template.utils.ts)
+    this.registerHandlebarsHelpers(Handlebars);
+    
+    // Naming: alphabetical order for consistency
+    const tables = [entity1, entity2].sort();
+    const junctionName = `${tables[0]}_${tables[1]}`;
+    
+    // Calculate workspace root
+    let workspaceRoot = this.options.outputPath || process.cwd();
+    workspaceRoot = path.normalize(workspaceRoot);
+    
+    // Try current directory first, then parent
+    let tenantSchemaDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'schema', 'tenant');
+    try {
+      await fs.access(tenantSchemaDir);
+    } catch {
+      workspaceRoot = path.join(workspaceRoot, '..');
+      tenantSchemaDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'schema', 'tenant');
+    }
+    
+    // Read junction table template
+    const templatePath = path.join(
+      workspaceRoot,
+      'cli',
+      'templates',
+      'backend',
+      'database',
+      'schema',
+      'junction-table.hbs'
+    );
+    
+    try {
+      const templateContent = await fs.readFile(templatePath, 'utf-8');
+      const template = Handlebars.compile(templateContent);
+      
+      // Render template
+      const content = template({
+        table1: tables[0],
+        table2: tables[1],
+        junctionName,
+      });
+      
+      // Write junction table file
+      const junctionPath = path.join(tenantSchemaDir, `${junctionName}.schema.ts`);
+      await fs.writeFile(junctionPath, content, 'utf-8');
+      
+      console.log(`\n✓ Generated junction table: ${junctionName}`);
+      
+      // Auto-export to tenant schema index
+      await this.autoExportJunctionTable(junctionName);
+    } catch (error) {
+      console.log(`\n⚠ Could not generate junction table: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Auto-export junction table to tenant schema index
+   */
+  private async autoExportJunctionTable(junctionName: string): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    
+    // Calculate correct path
+    let workspaceRoot = this.options.outputPath || process.cwd();
+    workspaceRoot = path.normalize(workspaceRoot);
+    
+    let tenantSchemaPath = path.join(
+      workspaceRoot,
+      'backend',
+      'src',
+      'database',
+      'schema',
+      'tenant',
+      'index.ts'
+    );
+    
+    // If not found, try going up one level
+    try {
+      await fs.access(tenantSchemaPath);
+    } catch {
+      workspaceRoot = path.join(workspaceRoot, '..');
+      tenantSchemaPath = path.join(
+        workspaceRoot,
+        'backend',
+        'src',
+        'database',
+        'schema',
+        'tenant',
+        'index.ts'
+      );
+    }
+    
+    try {
+      // Read tenant schema index
+      const content = await fs.readFile(tenantSchemaPath, 'utf-8');
+      
+      // Check if already exported
+      if (content.includes(junctionName)) {
+        console.log(`⚠ Junction table already exported in tenant schema index`);
+        return;
+      }
+      
+      // Add export statement at the end
+      const exportStatement = `export * from './${junctionName}.schema';`;
+      const updatedContent = content.trim() + `\n${exportStatement}\n`;
+      
+      await fs.writeFile(tenantSchemaPath, updatedContent, 'utf-8');
+      console.log(`✓ Auto-exported junction table to tenant schema index`);
+    } catch (error) {
+      console.log(`\n⚠ Could not auto-export junction table: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Register Handlebars helpers
+   */
+  private registerHandlebarsHelpers(Handlebars: any): void {
+    // PascalCase
+    Handlebars.registerHelper('PascalCase', (str: string) => this.toPascalCase(str));
+    
+    // camelCase
+    Handlebars.registerHelper('camelCase', (str: string) => {
+      const pascal = this.toPascalCase(str);
+      return pascal.charAt(0).toLowerCase() + pascal.slice(1);
+    });
+    
+    // snake_case
+    Handlebars.registerHelper('snake_case', (str: string) => {
+      return str.replace(/([a-z])([A-Z])/g, '$1_$2').replace(/[\s-]+/g, '_').toLowerCase();
+    });
+    
+    // pluralize
+    Handlebars.registerHelper('pluralize', (str: string) => this.pluralize(str));
+    
+    // singularize
+    Handlebars.registerHelper('singularize', (str: string) => this.singularize(str));
   }
 
   // Helper methods (imported from string utils)

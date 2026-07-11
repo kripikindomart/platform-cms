@@ -2,7 +2,9 @@
 
 ## 📋 Module Generation Workflow (RECOMMENDED)
 
-**Complete end-to-end workflow**:
+### Development Workflow (Quick Sync)
+
+**For rapid development - automatically sync schema to database**:
 
 ```bash
 # Step 1: Generate module dengan CLI
@@ -12,18 +14,44 @@ node bin/cms.js generate crud products \
   --filterable="price" \
   --tenant --soft-delete --audit
 
-# Step 2: Generate & push database migration
+# Step 2: Sync schema to database (NO PROMPTS)
 cd ../backend
-npm run db:generate
-npm run db:push  # Interactive - select "create table"
+npm run db:push  # ✅ Automatically syncs schema - no interactive prompts
 
-# Step 3: Apply permissions automatically ✅ NEW!
+# Step 3: Apply permissions automatically
 npm run permissions:apply products
 
 # Step 4: Start server & test
 npm run start:dev
 # Test: http://localhost:3000/api/products
 ```
+
+### Production Workflow (Migration Files)
+
+**For production - create migration files with review**:
+
+```bash
+# Step 1: Generate module
+cd cli
+node bin/cms.js generate crud products --fields="name:string,price:decimal"
+
+# Step 2: Generate migration file (INTERACTIVE)
+cd ../backend
+npm run db:generate  # Creates SQL file with prompts
+
+# Step 3: Review migration file
+# Check: src/database/migrations/XXXX_*.sql
+
+# Step 4: Apply migration
+npm run db:migrate
+
+# Step 5: Apply permissions
+npm run permissions:apply products
+```
+
+**Key Differences**:
+- **`db:push`**: Direct schema sync, no migration files, instant (DEVELOPMENT)
+- **`db:generate`**: Creates migration files, requires prompts, reviewable (PRODUCTION)
 
 **Available Scripts**:
 - `npm run permissions:apply <module>` - Apply permissions & assign to admin role

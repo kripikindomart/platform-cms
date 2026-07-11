@@ -13,6 +13,7 @@ import { migrateCommand } from './commands/migrate.command';
 import { validateCommand } from './commands/validate.command';
 import { deleteCommand } from './commands/delete.command';
 import { dbCommand } from './commands/db.command';
+import { registerListCommand } from './commands/list.command';
 
 // Create CLI program
 const program = new Command();
@@ -35,6 +36,7 @@ program.addHelpText(
 program.addCommand(newCommand());
 program.addCommand(generateCommand());
 program.addCommand(deleteCommand());
+registerListCommand(program);
 program.addCommand(dbCommand());
 program.addCommand(migrateCommand());
 program.addCommand(validateCommand());
@@ -47,6 +49,8 @@ ${chalk.bold('Examples:')}
   ${chalk.gray('$')} cms new my-project
   ${chalk.gray('$')} cms generate module users
   ${chalk.gray('$')} cms generate crud posts --fields="title:string,content:text"
+  ${chalk.gray('$')} cms list ${chalk.dim('# List all generated modules')}
+  ${chalk.gray('$')} cms list --detail ${chalk.dim('# Show detailed module information')}
   ${chalk.gray('$')} cms db migrate posts ${chalk.dim('# Generate & apply migration for posts module')}
   ${chalk.gray('$')} cms db rollback posts ${chalk.dim('# Rollback posts module migration')}
   ${chalk.gray('$')} cms db list ${chalk.dim('# List all migrations')}

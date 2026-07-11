@@ -8,6 +8,10 @@ import { logger } from '../utils/logger.utils';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import inquirer from 'inquirer';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export function deleteCommand(): Command {
   const cmd = new Command('delete');
@@ -100,15 +104,33 @@ export function deleteCommand(): Command {
           const tenantSchemaPath = path.join(workspaceRoot, 'backend/src/database/schema/tenant/index.ts');
           const content = await fs.readFile(tenantSchemaPath, 'utf-8');
 
-          // Remove export statement
-          const exportRegex = new RegExp(
+          // Remove export statement for entity
+          let exportRegex = new RegExp(
             `export\\s*\\*\\s*from\\s*['"].*${entityFileName}\\.entity['"];?\\n?`,
             'g',
           );
-          const updatedContent = content.replace(exportRegex, '');
+          let updatedContent = content.replace(exportRegex, '');
+
+          // Also remove export statement for schema file (if exists)
+          const schemaFileName = toKebabCase(pluralize(name));
+          exportRegex = new RegExp(
+            `export\\s*\\*\\s*from\\s*['\"]\\.\/${schemaFileName}\\.schema['"];?\\n?`,
+            'g',
+          );
+          updatedContent = updatedContent.replace(exportRegex, '');
 
           await fs.writeFile(tenantSchemaPath, updatedContent, 'utf-8');
-          logger.success(`✓ Removed entity from tenant schema`);
+          
+          // Delete schema file if exists
+          const schemaFilePath = path.join(workspaceRoot, 'backend/src/database/schema/tenant', `${schemaFileName}.schema.ts`);
+          try {
+            await fs.access(schemaFilePath);
+            await fs.unlink(schemaFilePath);
+            logger.success(`✓ Deleted schema file: ${schemaFileName}.schema.ts`);
+          } catch (e) {
+            // Schema file doesn't exist (module uses entity pattern)
+            logger.success(`✓ Removed entity from tenant schema`);
+          }
         } catch (error) {
           logger.warn(`⚠ Could not remove entity from tenant schema: ${(error as Error).message}`);
         }
@@ -116,7 +138,6 @@ export function deleteCommand(): Command {
         // 4. Delete junction tables (many-to-many)
         logger.info(`\n4. Deleting junction tables...`);
         try {
-          const migrationsPath = path.join(workspaceRoot, 'backend/src/database/migrations');
           const tenantSchemaPath = path.join(workspaceRoot, 'backend/src/database/schema/tenant');
           const tenantSchemaIndexPath = path.join(tenantSchemaPath, 'index.ts');
           
@@ -163,7 +184,6 @@ export function deleteCommand(): Command {
           
           // Read migration files
           const migrationFiles = await fs.readdir(migrationsPath);
-          const metaFiles = await fs.readdir(metaPath);
           
           let migrationsDeleted = 0;
           
@@ -243,18 +263,26 @@ export function deleteCommand(): Command {
           logger.warn(`⚠ Could not delete permission migration: ${(error as Error).message}`);
         }
 
-        // 6. Delete database metadata
+        // 6. Delete database table (DROP TABLE)
         if (!options.keepDb) {
-          logger.info(`\n4. Deleting database metadata...`);
+          logger.info(`\n6. Dropping database table...`);
           try {
-            // TODO: Call CLI metadata service to soft delete module
-            // For now, just show what would be done
-            logger.info(`  Would delete metadata for module: ${name}`);
-            logger.warn(`  ⚠ Database cleanup not yet implemented`);
-            logger.info(`  You can manually delete from generated_modules table`);
+            await dropDatabaseTable(name, workspaceRoot);
           } catch (error) {
-            logger.error(`✗ Failed to delete metadata: ${(error as Error).message}`);
-            errors++;
+            logger.warn(`⚠ Could not drop table: ${(error as Error).message}`);
+            logger.info(`  You can manually drop: DROP TABLE IF EXISTS tenant_1.${toSnakeCase(pluralize(name))} CASCADE;`);
+          }
+        }
+
+        // 7. Delete database metadata (soft delete)
+        if (!options.keepDb) {
+          logger.info(`\n7. Soft-deleting database metadata...`);
+          try {
+            const moduleName = pluralize(name);
+            await softDeleteModuleMetadata(moduleName, workspaceRoot);
+          } catch (error) {
+            logger.warn(`⚠ Could not delete metadata: ${(error as Error).message}`);
+            logger.info(`  You can manually run: UPDATE generated_modules SET deleted_at = NOW() WHERE name = '${pluralize(name)}';`);
           }
         }
 
@@ -420,4 +448,103 @@ function singularize(word: string): string {
   if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
   if (word.endsWith('s')) return word.slice(0, -1);
   return word;
+}
+
+/**
+ * Drop database table
+ */
+async function dropDatabaseTable(moduleName: string, workspaceRoot: string): Promise<void> {
+  const tableName = toSnakeCase(pluralize(moduleName));
+  
+  // Read database config from .env
+  const envPath = path.join(workspaceRoot, 'backend', '.env');
+  const envContent = await fs.readFile(envPath, 'utf-8');
+  
+  const getEnvValue = (key: string): string => {
+    const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'));
+    return match ? match[1].trim() : '';
+  };
+  
+  const dbHost = getEnvValue('DB_HOST') || 'localhost';
+  const dbPort = getEnvValue('DB_PORT') || '5432';
+  const dbName = getEnvValue('DB_NAME') || 'platform_cms';
+  const dbUser = getEnvValue('DB_USER') || 'postgres';
+  const dbPassword = getEnvValue('DB_PASSWORD') || 'postgres';
+  
+  // Get default tenant from ENV
+  const defaultTenant = getEnvValue('DEFAULT_TENANT_SLUG') || 'tenant_1';
+  
+  // Set password via environment
+  const env = { ...process.env, PGPASSWORD: dbPassword };
+  
+  // Drop from tenant schema
+  const dropTenantSQL = `DROP TABLE IF EXISTS ${defaultTenant}.${tableName} CASCADE;`;
+  const psqlTenantCommand = `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -c "${dropTenantSQL}"`;
+  
+  try {
+    await execAsync(psqlTenantCommand, { env });
+    logger.success(`✓ Dropped table: ${defaultTenant}.${tableName}`);
+  } catch (error: any) {
+    if (error.message.includes('does not exist')) {
+      logger.info(`  Table ${defaultTenant}.${tableName} does not exist`);
+    } else {
+      logger.warn(`  ⚠ Failed to drop ${defaultTenant}.${tableName}: ${error.message}`);
+    }
+  }
+  
+  // Also drop from public schema (for cleanup)
+  const dropPublicSQL = `DROP TABLE IF EXISTS public.${tableName} CASCADE;`;
+  const psqlPublicCommand = `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -c "${dropPublicSQL}"`;
+  
+  try {
+    const { stdout } = await execAsync(psqlPublicCommand, { env });
+    if (stdout.includes('DROP TABLE')) {
+      logger.success(`✓ Dropped table: public.${tableName}`);
+    }
+  } catch (error: any) {
+    // Ignore errors for public schema (might not exist)
+  }
+}
+
+/**
+ * Soft delete module metadata from generated_modules table
+ */
+async function softDeleteModuleMetadata(moduleName: string, workspaceRoot: string): Promise<void> {
+  // Read database config from .env
+  const envPath = path.join(workspaceRoot, 'backend', '.env');
+  const envContent = await fs.readFile(envPath, 'utf-8');
+  
+  const getEnvValue = (key: string): string => {
+    const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'));
+    return match ? match[1].trim() : '';
+  };
+  
+  const dbHost = getEnvValue('DB_HOST') || 'localhost';
+  const dbPort = getEnvValue('DB_PORT') || '5432';
+  const dbName = getEnvValue('DB_NAME') || 'platform_cms';
+  const dbUser = getEnvValue('DB_USER') || 'postgres';
+  const dbPassword = getEnvValue('DB_PASSWORD') || 'postgres';
+  
+  // Soft delete using UPDATE
+  const updateSQL = `UPDATE public.generated_modules SET deleted_at = NOW() WHERE name = '${moduleName}' AND deleted_at IS NULL;`;
+  
+  const psqlCommand = `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -c "${updateSQL}"`;
+  
+  // Set password via environment
+  const env = { ...process.env, PGPASSWORD: dbPassword };
+  
+  try {
+    const { stdout } = await execAsync(psqlCommand, { env });
+    
+    // Check if any row was updated
+    if (stdout.includes('UPDATE 1')) {
+      logger.success(`✓ Soft-deleted metadata: ${moduleName}`);
+    } else if (stdout.includes('UPDATE 0')) {
+      logger.info(`  Metadata for ${moduleName} not found (might be already deleted)`);
+    } else {
+      logger.success(`✓ Updated metadata for: ${moduleName}`);
+    }
+  } catch (error: any) {
+    throw error;
+  }
 }

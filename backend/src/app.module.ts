@@ -20,10 +20,9 @@ import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { TenantGuard } from './common/guards/tenant.guard';
-import { CategoriesModule } from './modules/categories/categories.module';
-import { TagsModule } from './modules/tags/tags.module';
-import { ProductsModule } from './modules/products/products.module';
-import { OrdersModule } from './modules/orders/orders.module';
+
+
+
 
 
 @Module({
@@ -51,11 +50,7 @@ import { OrdersModule } from './modules/orders/orders.module';
     CaslModule,
     PermissionsModule,
     RolesModule,
-    CliMetadataModule,
-    CategoriesModule,
-    TagsModule,
-    ProductsModule,
-    OrdersModule],
+    CliMetadataModule],
   controllers: [],
   providers: [
     // Global Throttler Guard

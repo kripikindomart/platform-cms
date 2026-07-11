@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -20,6 +20,7 @@ import { TagsModule } from './modules/tags/tags.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { ProductsModule } from './modules/products/products.module';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -65,4 +66,18 @@ import { ProductsModule } from './modules/products/products.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(TenantMiddleware)
+      .exclude(
+        // Public routes yang tidak butuh tenant
+        { path: 'api/auth/login', method: RequestMethod.POST },
+        { path: 'api/auth/register', method: RequestMethod.POST },
+        { path: 'api/health', method: RequestMethod.GET },
+        { path: 'api-docs', method: RequestMethod.ALL },
+        { path: 'api-docs/(.*)', method: RequestMethod.ALL },
+      )
+      .forRoutes('*'); // Apply to all other routes
+  }
+}

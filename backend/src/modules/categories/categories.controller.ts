@@ -16,7 +16,6 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { QueryCategoryDto } from './dto/query-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
-import { TenantContextService } from '../../common/context/tenant-context.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
@@ -25,19 +24,7 @@ import { CheckPolicies } from '../../common/decorators/check-policies.decorator'
 @Controller('categories')
 @UseGuards(JwtAuthGuard, CaslGuard)
 export class CategoriesController {
-  constructor(
-    private readonly categoriesService: CategoriesService,
-    private readonly tenantContext: TenantContextService,
-  ) {
-    // Set default tenant context for testing
-    // TODO: Replace with proper tenant middleware
-    this.tenantContext.setTenant({
-      id: 1,
-      slug: 'tenant_1',
-      name: 'Default Tenant',
-      schemaName: 'tenant_1',
-    });
-  }
+  constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
   @CheckPolicies((ability) => ability.can('read', 'categories'))

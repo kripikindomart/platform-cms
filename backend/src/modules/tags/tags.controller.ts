@@ -16,7 +16,6 @@ import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { QueryTagDto } from './dto/query-tag.dto';
 import { TagResponseDto } from './dto/tag-response.dto';
-import { TenantContextService } from '../../common/context/tenant-context.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
@@ -25,19 +24,7 @@ import { CheckPolicies } from '../../common/decorators/check-policies.decorator'
 @Controller('tags')
 @UseGuards(JwtAuthGuard, CaslGuard)
 export class TagsController {
-  constructor(
-    private readonly tagsService: TagsService,
-    private readonly tenantContext: TenantContextService,
-  ) {
-    // Set default tenant context for testing
-    // TODO: Replace with proper tenant middleware
-    this.tenantContext.setTenant({
-      id: 1,
-      slug: 'tenant_1',
-      name: 'Default Tenant',
-      schemaName: 'tenant_1',
-    });
-  }
+  constructor(private readonly tagsService: TagsService) {}
 
   @Get()
   @CheckPolicies((ability) => ability.can('read', 'tags'))

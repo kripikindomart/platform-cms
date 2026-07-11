@@ -198,38 +198,52 @@ export class RolesRepository extends BaseRepository<Role> {
    */
   async getUserRolesWithPermissions(userId: number): Promise<Role[]> {
     return this.withTenantSchema(async () => {
-      // Get user roles
-      const userRoleResults = await this.db
-        .select({
-          role: tenantSchema.roles,
-        })
-        .from(tenantSchema.userRoles)
-        .innerJoin(tenantSchema.roles, eq(tenantSchema.userRoles.role_id, tenantSchema.roles.id))
-        .where(and(eq(tenantSchema.userRoles.user_id, userId), sql`${tenantSchema.roles.deleted_at} IS NULL`));
-
-      const roles = userRoleResults.map((r) => r.role as Role);
+      const schemaName = this.tenantContext.getSchemaName();
+      
+      // Use raw SQL with explicit schema to avoid search_path issues
+      const query = sql`
+        SELECT 
+          r.id,
+          r.name,
+          r.slug,
+          r.description,
+          r.is_system,
+          r.created_at,
+          r.updated_at,
+          r.created_by,
+          r.updated_by,
+          r.deleted_at,
+          r.deleted_by
+        FROM ${sql.raw(`"${schemaName}".user_roles`)} ur
+        INNER JOIN ${sql.raw(`"${schemaName}".roles`)} r ON ur.role_id = r.id
+        WHERE ur.user_id = ${userId}
+          AND r.deleted_at IS NULL
+      `;
+      
+      const roleResults = await this.db.execute(query);
+      const roles = roleResults.rows as unknown as Role[];
 
       // Get permissions for each role
       for (const role of roles) {
-        const permissionResults = await this.db
-          .select({
-            id: tenantSchema.permissions.id,
-            resource: tenantSchema.permissions.resource,
-            action: tenantSchema.permissions.action,
-            scope: tenantSchema.permissions.scope,
-            description: tenantSchema.permissions.description,
-            created_at: tenantSchema.permissions.created_at,
-          })
-          .from(tenantSchema.rolePermissions)
-          .innerJoin(tenantSchema.permissions, eq(tenantSchema.rolePermissions.permission_id, tenantSchema.permissions.id))
-          .where(eq(tenantSchema.rolePermissions.role_id, role.id));
+        const permQuery = sql`
+          SELECT 
+            p.id,
+            p.name,
+            p.slug,
+            p.resource,
+            p.action,
+            p.description,
+            p.created_at
+          FROM ${sql.raw(`"${schemaName}".role_permissions`)} rp
+          INNER JOIN ${sql.raw(`"${schemaName}".permissions`)} p ON rp.permission_id = p.id
+          WHERE rp.role_id = ${role.id}
+        `;
+        
+        const permResults = await this.db.execute(permQuery);
+        const permissions = permResults.rows as any[];
 
-        // Add computed slug and name
-        role.permissions = permissionResults.map((p) => ({
-          ...p,
-          slug: `${p.resource}.${p.action}`,
-          name: `${p.resource}.${p.action}`,
-        }));
+        // Permissions already have name and slug from DB
+        role.permissions = permissions;
       }
 
       return roles;

@@ -4,14 +4,10 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { QueryCategoryDto } from './dto/query-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
-import { AuditService } from '../../core/audit/audit.service';
 
 @Injectable()
 export class CategoriesService {
-  constructor(
-    private readonly categoriesRepository: CategoriesRepository,
-    private readonly auditService: AuditService,
-  ) {}
+  constructor(private readonly categoriesRepository: CategoriesRepository) {}
 
   /**
    * Find all categories with pagination, filtering, sorting
@@ -48,18 +44,10 @@ export class CategoriesService {
    * Create new category
    */
   async create(dto: CreateCategoryDto): Promise<CategoryResponseDto> {
+    // BaseRepository.create() already handles created_by, updated_by, created_at, updated_at
     const item = await this.categoriesRepository.create({
-      ...this.prepareDataForDb(dto),
-      created_by: 1, // TODO: Get from current user
-      updated_by: 1, // TODO: Get from current user
-    } as any);
-
-    await this.auditService.logCrud({
-      action: 'create',
-      resource: 'categories',
-      resourceId: item.id,
-      newValues: dto as unknown as Record<string, unknown>,
-    });
+      ...dto,
+    }, 1); // TODO: Get user ID from @CurrentUser() decorator
 
     return this.toResponseDto(item);
   }
@@ -71,50 +59,21 @@ export class CategoriesService {
     // Check if exists
     await this.findById(id);
 
-    const item = await this.categoriesRepository.update(id, {
-      ...this.prepareDataForDb(dto),
-      updated_by: 1, // TODO: Get from current user
-    } as any);
-
-    await this.auditService.logCrud({
-      action: 'update',
-      resource: 'categories',
-      resourceId: id,
-      newValues: dto as unknown as Record<string, unknown>,
-    });
+    // BaseRepository.update() already handles updated_by, updated_at
+    const item = await this.categoriesRepository.update(id, dto, 1); // TODO: Get user ID from @CurrentUser()
 
     return this.toResponseDto(item);
   }
 
   /**
-   * Soft delete category
+   * Delete category (soft delete)
    */
-  async softDelete(id: number): Promise<void> {
+  async delete(id: number): Promise<void> {
     // Check if exists
     await this.findById(id);
 
-    await this.categoriesRepository.softDelete(id, 1); // TODO: Get from current user
-
-    await this.auditService.logCrud({
-      action: 'delete',
-      resource: 'categories',
-      resourceId: id,
-    });
-  }
-
-  /**
-   * Restore soft deleted category
-   */
-  async restore(id: number): Promise<CategoryResponseDto> {
-    const item = await this.categoriesRepository.restore(id);
-
-    await this.auditService.logCrud({
-      action: 'restore',
-      resource: 'categories',
-      resourceId: id,
-    });
-
-    return this.toResponseDto(item);
+    // Use soft delete from BaseRepository
+    await this.categoriesRepository.softDelete(id, 1); // TODO: Get user ID from @CurrentUser()
   }
 
   /**
@@ -123,15 +82,15 @@ export class CategoriesService {
   private toResponseDto(item: any): CategoryResponseDto {
     return {
       id: item.id,
-      parent_id: item.parent_id ?? undefined,
-      name: item.name ?? undefined,
-      slug: item.slug ?? undefined,
-      description: item.description ?? undefined,
-      type: item.type ?? undefined,
-      order: item.order ?? undefined,
+      parent_id: item.parent_id,
+      name: item.name,
+      slug: item.slug,
+      description: item.description,
+      type: item.type,
+      order: item.order,
+      is_active: item.is_active,
       created_at: item.created_at,
       updated_at: item.updated_at,
-      deleted_at: item.deleted_at ?? undefined,
     };
   }
 
@@ -141,8 +100,6 @@ export class CategoriesService {
    */
   private prepareDataForDb(dto: any): any {
     const data = { ...dto };
-
-    // Convert decimal/numeric fields from number to string for Drizzle ORM
 
     return data;
   }

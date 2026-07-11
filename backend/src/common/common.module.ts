@@ -1,5 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { TenantContextService } from './context/tenant-context.service';
+import { TenantGuard } from './guards/tenant.guard';
+import { TenantsModule } from '../modules/tenants/tenants.module';
 
 /**
  * Common Module
@@ -7,7 +9,8 @@ import { TenantContextService } from './context/tenant-context.service';
  */
 @Global()
 @Module({
-  providers: [TenantContextService],
-  exports: [TenantContextService],
+  imports: [TenantsModule],
+  providers: [TenantContextService, TenantGuard],
+  exports: [TenantContextService, TenantGuard],
 })
 export class CommonModule {}

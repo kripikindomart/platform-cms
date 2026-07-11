@@ -19,6 +19,7 @@ import { TagResponseDto } from './dto/tag-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
+import { Action, Subjects } from '../../core/casl/casl-ability.factory';
 
 @ApiTags('tags')
 @Controller('tags')
@@ -70,6 +71,6 @@ export class TagsController {
   @ApiResponse({ status: 200, description: 'Tag deleted' })
   @ApiResponse({ status: 404, description: 'Tag not found' })
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.tagsService.softDelete(id);
+    await this.tagsService.delete(id);
   }
 }

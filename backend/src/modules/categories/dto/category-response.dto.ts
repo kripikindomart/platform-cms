@@ -5,32 +5,32 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class CategoryResponseDto {
   @ApiProperty({ description: 'Category ID' })
-  id?: number;
+  id!: number;
 
-  @ApiProperty({ description: 'Parent_id', required: false })
+  @ApiProperty({ description: 'Parent category ID', required: false })
   parent_id?: number;
 
-  @ApiProperty({ description: 'Name', required: false })
-  name?: string;
+  @ApiProperty({ description: 'Category name' })
+  name!: string;
 
-  @ApiProperty({ description: 'Slug', required: false })
-  slug?: string;
+  @ApiProperty({ description: 'URL-friendly slug' })
+  slug!: string;
 
-  @ApiProperty({ description: 'Description', required: false })
+  @ApiProperty({ description: 'Category description', required: false })
   description?: string;
 
-  @ApiProperty({ description: 'Type', required: false })
-  type?: string;
+  @ApiProperty({ description: 'Category type' })
+  type!: string;
 
-  @ApiProperty({ description: 'Order', required: false })
-  order?: number;
+  @ApiProperty({ description: 'Display order' })
+  order!: number;
+
+  @ApiProperty({ description: 'Is category active' })
+  is_active!: boolean;
 
   @ApiProperty({ description: 'Creation timestamp' })
-  created_at?: Date;
+  created_at!: Date;
 
   @ApiProperty({ description: 'Last update timestamp' })
-  updated_at?: Date;
-
-  @ApiProperty({ description: 'Deletion timestamp', required: false })
-  deleted_at?: Date | null;
+  updated_at!: Date;
 }

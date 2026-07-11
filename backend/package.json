@@ -26,7 +26,8 @@
     "tenant:drop": "ts-node src/scripts/tenant-cli.ts drop",
     "tenant:list": "ts-node src/scripts/tenant-cli.ts list",
     "tenant:info": "ts-node src/scripts/tenant-cli.ts info",
-    "auth:setup": "ts-node src/scripts/setup-test-auth.ts"
+    "auth:setup": "ts-node src/scripts/setup-test-auth.ts",
+    "permissions:apply": "ts-node src/scripts/apply-module-permissions.ts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",

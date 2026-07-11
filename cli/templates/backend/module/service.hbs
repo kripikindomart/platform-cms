@@ -51,12 +51,12 @@ export class {{PascalCase name}}Service {
   /**
    * Create new {{singularize (lowercase name)}}
    */
-  async create(dto: Create{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
-    const item = await this.{{camelCase name}}Repository.create({
-      ...this.prepareDataForDb(dto),
-      created_by: 1, // TODO: Get from current user
-      updated_by: 1, // TODO: Get from current user
-    } as any);
+  async create(dto: Create{{PascalCase (singularize name)}}Dto, userId: number): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    // BaseRepository.create() handles audit fields (created_by, updated_by, timestamps)
+    const item = await this.{{camelCase name}}Repository.create(
+      this.prepareDataForDb(dto),
+      userId,
+    );
 
     {{#if audit}}
     await this.auditService.logCrud({
@@ -73,14 +73,16 @@ export class {{PascalCase name}}Service {
   /**
    * Update {{singularize (lowercase name)}}
    */
-  async update(id: number, dto: Update{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+  async update(id: number, dto: Update{{PascalCase (singularize name)}}Dto, userId: number): Promise<{{PascalCase (singularize name)}}ResponseDto> {
     // Check if exists
     await this.findById(id);
 
-    const item = await this.{{camelCase name}}Repository.update(id, {
-      ...this.prepareDataForDb(dto),
-      updated_by: 1, // TODO: Get from current user
-    } as any);
+    // BaseRepository.update() handles audit fields (updated_by, updated_at)
+    const item = await this.{{camelCase name}}Repository.update(
+      id,
+      this.prepareDataForDb(dto),
+      userId,
+    );
 
     {{#if audit}}
     await this.auditService.logCrud({
@@ -98,11 +100,12 @@ export class {{PascalCase name}}Service {
   /**
    * Soft delete {{singularize (lowercase name)}}
    */
-  async softDelete(id: number): Promise<void> {
+  async delete(id: number, userId: number): Promise<void> {
     // Check if exists
     await this.findById(id);
 
-    await this.{{camelCase name}}Repository.softDelete(id, 1); // TODO: Get from current user
+    // BaseRepository.softDelete() handles soft delete fields
+    await this.{{camelCase name}}Repository.softDelete(id, userId);
 
     {{#if audit}}
     await this.auditService.logCrud({
@@ -117,7 +120,13 @@ export class {{PascalCase name}}Service {
    * Restore soft deleted {{singularize (lowercase name)}}
    */
   async restore(id: number): Promise<{{PascalCase (singularize name)}}ResponseDto> {
-    const item = await this.{{camelCase name}}Repository.restore(id);
+    await this.{{camelCase name}}Repository.restore(id);
+    
+    // Fetch restored item
+    const item = await this.{{camelCase name}}Repository.findById(id);
+    if (!item) {
+      throw new NotFoundException(`{{PascalCase (singularize name)}} with ID ${id} not found after restore`);
+    }
 
     {{#if audit}}
     await this.auditService.logCrud({

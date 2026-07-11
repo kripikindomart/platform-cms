@@ -19,6 +19,7 @@ import { {{PascalCase (singularize name)}}ResponseDto } from './dto/{{kebab-case
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Action, Subjects } from '../../core/casl/casl-ability.factory';
 
 @ApiTags('{{pluralize (kebab-case name)}}')
@@ -49,8 +50,11 @@ export class {{PascalCase name}}Controller {
   @ApiOperation({ summary: 'Create new {{singularize (lowercase name)}}' })
   @ApiResponse({ status: 201, description: '{{PascalCase (singularize name)}} created', type: {{PascalCase (singularize name)}}ResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-  async create(@Body() dto: Create{{PascalCase (singularize name)}}Dto): Promise<{{PascalCase (singularize name)}}ResponseDto> {
-    return this.{{camelCase name}}Service.create(dto);
+  async create(
+    @Body() dto: Create{{PascalCase (singularize name)}}Dto,
+    @CurrentUser() user: any,
+  ): Promise<{{PascalCase (singularize name)}}ResponseDto> {
+    return this.{{camelCase name}}Service.create(dto, user.id);
   }
 
   @Patch(':id')
@@ -61,8 +65,9 @@ export class {{PascalCase name}}Controller {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: Update{{PascalCase (singularize name)}}Dto,
+    @CurrentUser() user: any,
   ): Promise<{{PascalCase (singularize name)}}ResponseDto> {
-    return this.{{camelCase name}}Service.update(id, dto);
+    return this.{{camelCase name}}Service.update(id, dto, user.id);
   }
 
   @Delete(':id')
@@ -70,9 +75,12 @@ export class {{PascalCase name}}Controller {
   @ApiOperation({ summary: 'Delete {{singularize (lowercase name)}}' })
   @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} deleted' })
   @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })
-  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  async delete(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ): Promise<void> {
     {{#if softDelete}}
-    await this.{{camelCase name}}Service.softDelete(id);
+    await this.{{camelCase name}}Service.delete(id, user.id);
     {{else}}
     await this.{{camelCase name}}Service.delete(id);
     {{/if}}

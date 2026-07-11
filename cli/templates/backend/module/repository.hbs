@@ -1,12 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
-{{#if softDelete}}
 import { BaseRepository } from '../../common/database/base.repository';
-{{/if}}
-{{#if tenant}}
 import { TenantContextService } from '../../common/context/tenant-context.service';
-{{/if}}
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq } from 'drizzle-orm';
+import { eq, sql, and, isNull, desc, asc, gte, lte, between } from 'drizzle-orm';
 import * as tenantSchema from '../../database/schema/tenant';
 {{#if useExistingSchema}}
 import { {{camelCase (pluralize name)}} } from '../../database/schema/tenant/{{kebab-case (pluralize name)}}.schema';
@@ -14,64 +10,43 @@ import { {{camelCase (pluralize name)}} } from '../../database/schema/tenant/{{k
 import { {{camelCase (pluralize name)}} } from './entities/{{kebab-case (singularize name)}}.entity';
 {{/if}}
 
-{{#if softDelete}}
+export type {{PascalCase (singularize name)}} = typeof {{camelCase (pluralize name)}}.$inferSelect;
+
+/**
+ * Repository for {{PascalCase (pluralize name)}}
+ * Extends BaseRepository for multi-tenant support and soft delete
+ */
 @Injectable()
-export class {{PascalCase name}}Repository extends BaseRepository<typeof {{camelCase (pluralize name)}}.$inferSelect> {
+export class {{PascalCase name}}Repository extends BaseRepository<{{PascalCase (singularize name)}}> {
   constructor(
     @Inject('DRIZZLE') db: NodePgDatabase<typeof tenantSchema>,
-    {{#if tenant}}
     tenantContext: TenantContextService,
-    {{/if}}
   ) {
-    super(
-      db,
-      {{camelCase (pluralize name)}},
-      {{#if tenant}}tenantContext{{else}}null{{/if}},
-    );
+    super(db, {{camelCase (pluralize name)}}, tenantContext);
   }
 
   /**
-   * Find all with pagination, filtering, sorting, and search
+   * Find all with pagination, filtering, sorting
+   * Uses withTenantSchema for multi-tenancy support
    */
   async findAllWithQuery(query: any): Promise<{
-    data: (typeof {{camelCase (pluralize name)}}.$inferSelect)[];
+    data: {{PascalCase (singularize name)}}[];
     total: number;
     page: number;
     limit: number;
+    totalPages: number;
   }> {
-    const { page = 1, limit = 10, sort, order = 'asc', search } = query;
+    const { page = 1, limit = 10, sort = 'created_at', order = 'asc', search } = query;
     const offset = (page - 1) * limit;
 
-    {{#if tenant}}
     return this.withTenantSchema(async () => {
-    {{/if}}
-      const { and, or, eq, ilike, isNull, sql, asc, desc } = await import('drizzle-orm');
-      
       // Build WHERE conditions
       const conditions: any[] = [isNull(this.table.deleted_at)];
-      
-      {{#if (hasFilterable fields)}}
-      // Apply filters
-      {{#each fields}}
-      {{#if this.isFilterable}}
-      if (query.{{this.name}} !== undefined) {
-        {{#if (eq this.type 'number')}}
-        if (query.{{this.name}} === null) {
-          conditions.push(isNull(this.table.{{this.name}}));
-        } else {
-          conditions.push(eq(this.table.{{this.name}}, query.{{this.name}}));
-        }
-        {{else}}
-        conditions.push(eq(this.table.{{this.name}}, query.{{this.name}}));
-        {{/if}}
-      }
-      {{/if}}
-      {{/each}}
-      {{/if}}
 
       {{#if (hasSearchable fields)}}
       // Apply search (case-insensitive)
       if (search) {
+        const { or, ilike } = await import('drizzle-orm');
         const searchConditions = [
           {{#each fields}}
           {{#if this.isSearchable}}
@@ -85,6 +60,46 @@ export class {{PascalCase name}}Repository extends BaseRepository<typeof {{camel
       }
       {{/if}}
 
+      {{#if (hasFilterable fields)}}
+      // Apply filters
+      {{#each fields}}
+      {{#if this.isFilterable}}
+{{#if (or (eq this.type 'number') (eq this.type 'decimal'))}}
+      // Number field with range support
+      if (query.{{this.name}} !== undefined) {
+        conditions.push(eq(this.table.{{this.name}}, query.{{this.name}}));
+      } else if (query.{{this.name}}_min !== undefined && query.{{this.name}}_max !== undefined) {
+        conditions.push(between(this.table.{{this.name}}, query.{{this.name}}_min, query.{{this.name}}_max));
+      } else if (query.{{this.name}}_min !== undefined) {
+        conditions.push(gte(this.table.{{this.name}}, query.{{this.name}}_min));
+      } else if (query.{{this.name}}_max !== undefined) {
+        conditions.push(lte(this.table.{{this.name}}, query.{{this.name}}_max));
+      }
+{{else if (or (eq this.type 'date') (eq this.type 'datetime'))}}
+      // Date field with range support
+      if (query.{{this.name}} !== undefined) {
+        conditions.push(eq(this.table.{{this.name}}, new Date(query.{{this.name}})));
+      } else if (query.{{this.name}}_from && query.{{this.name}}_to) {
+        conditions.push(between(this.table.{{this.name}}, new Date(query.{{this.name}}_from), new Date(query.{{this.name}}_to)));
+      } else if (query.{{this.name}}_from) {
+        conditions.push(gte(this.table.{{this.name}}, new Date(query.{{this.name}}_from)));
+      } else if (query.{{this.name}}_to) {
+        conditions.push(lte(this.table.{{this.name}}, new Date(query.{{this.name}}_to)));
+      }
+{{else}}
+      // Standard field
+      if (query.{{this.name}} !== undefined) {
+        if (query.{{this.name}} === null) {
+          conditions.push(isNull(this.table.{{this.name}}));
+        } else {
+          conditions.push(eq(this.table.{{this.name}}, query.{{this.name}}));
+        }
+      }
+{{/if}}
+      {{/if}}
+      {{/each}}
+      {{/if}}
+
       const whereClause = and(...conditions);
 
       // Get total count
@@ -94,21 +109,19 @@ export class {{PascalCase name}}Repository extends BaseRepository<typeof {{camel
         .where(whereClause);
       const total = Number(countResult[0]?.count || 0);
 
-      // Build main query
+      // Build main query with sorting
       let dbQuery: any = this.db
         .select()
         .from(this.table)
         .where(whereClause);
 
-      {{#if (hasSortable fields)}}
       // Apply sorting
-      const sortField = sort || 'created_at';
-      if (order === 'desc') {
-        dbQuery = dbQuery.orderBy(desc(this.table[sortField]));
-      } else {
-        dbQuery = dbQuery.orderBy(asc(this.table[sortField]));
+      const sortColumn = this.table[sort as keyof typeof this.table] as any;
+      if (sortColumn) {
+        dbQuery = order === 'desc' 
+          ? dbQuery.orderBy(desc(sortColumn))
+          : dbQuery.orderBy(asc(sortColumn));
       }
-      {{/if}}
 
       // Apply pagination
       const data = await dbQuery.limit(limit).offset(offset);
@@ -118,227 +131,24 @@ export class {{PascalCase name}}Repository extends BaseRepository<typeof {{camel
         total,
         page,
         limit,
-      };
-    {{#if tenant}}
-    });
-    {{/if}}
-  }
-
-  // Add custom query methods here
-}
-{{else}}
-@Injectable()
-export class {{PascalCase name}}Repository {
-  constructor(
-    @Inject('DRIZZLE') private readonly db: NodePgDatabase<typeof tenantSchema>,
-    {{#if tenant}}
-    private readonly tenantContext: TenantContextService,
-    {{/if}}
-  ) {}
-
-  {{#if tenant}}
-  /**
-   * Execute query within tenant schema
-   */
-  private async withTenantSchema<T>(callback: () => Promise<T>): Promise<T> {
-    const schemaName = this.tenantContext.getSchemaName();
-    await this.db.execute(`SET search_path TO ${schemaName}, public`);
-    try {
-      return await callback();
-    } finally {
-      await this.db.execute('SET search_path TO public');
-    }
-  }
-  {{/if}}
-
-  /**
-   * Find all {{pluralize (lowercase name)}}
-   */
-  async findAll(): Promise<(typeof {{camelCase (pluralize name)}}.$inferSelect)[]> {
-    {{#if tenant}}
-    return this.withTenantSchema(async () => {
-      return this.db.select().from({{camelCase (pluralize name)}});
-    });
-    {{else}}
-    return this.db.select().from({{camelCase (pluralize name)}});
-    {{/if}}
-  }
-
-  /**
-   * Find {{singularize (lowercase name)}} by ID
-   */
-  async findById(id: number): Promise<typeof {{camelCase (pluralize name)}}.$inferSelect | null> {
-    {{#if tenant}}
-    return this.withTenantSchema(async () => {
-      const result = await this.db
-        .select()
-        .from({{camelCase (pluralize name)}})
-        .where(eq({{camelCase (pluralize name)}}.id, id))
-        .limit(1);
-      return result[0] || null;
-    });
-    {{else}}
-    const result = await this.db
-      .select()
-      .from({{camelCase (pluralize name)}})
-      .where(eq({{camelCase (pluralize name)}}.id, id))
-      .limit(1);
-    return result[0] || null;
-    {{/if}}
-  }
-
-  /**
-   * Create {{singularize (lowercase name)}}
-   */
-  async create(data: typeof {{camelCase (pluralize name)}}.$inferInsert): Promise<typeof {{camelCase (pluralize name)}}.$inferSelect> {
-    {{#if tenant}}
-    return this.withTenantSchema(async () => {
-      const result = await this.db.insert({{camelCase (pluralize name)}}).values(data).returning();
-      return result[0];
-    });
-    {{else}}
-    const result = await this.db.insert({{camelCase (pluralize name)}}).values(data).returning();
-    return result[0];
-    {{/if}}
-  }
-
-  /**
-   * Update {{singularize (lowercase name)}}
-   */
-  async update(id: number, data: Partial<typeof {{camelCase (pluralize name)}}.$inferInsert>): Promise<typeof {{camelCase (pluralize name)}}.$inferSelect> {
-    {{#if tenant}}
-    return this.withTenantSchema(async () => {
-      const result = await this.db
-        .update({{camelCase (pluralize name)}})
-        .set({ ...data, updated_at: new Date() })
-        .where(eq({{camelCase (pluralize name)}}.id, id))
-        .returning();
-      return result[0];
-    });
-    {{else}}
-    const result = await this.db
-      .update({{camelCase (pluralize name)}})
-      .set({ ...data, updated_at: new Date() })
-      .where(eq({{camelCase (pluralize name)}}.id, id))
-      .returning();
-    return result[0];
-    {{/if}}
-  }
-
-  /**
-   * Hard delete {{singularize (lowercase name)}}
-   */
-  async hardDelete(id: number): Promise<void> {
-    {{#if tenant}}
-    await this.withTenantSchema(async () => {
-      await this.db.delete({{camelCase (pluralize name)}}).where(eq({{camelCase (pluralize name)}}.id, id));
-    });
-    {{else}}
-    await this.db.delete({{camelCase (pluralize name)}}).where(eq({{camelCase (pluralize name)}}.id, id));
-    {{/if}}
-  }
-
-  /**
-   * Find all with pagination, filtering, sorting
-   */
-  async findAllWithQuery(query: any): Promise<{
-    data: (typeof {{camelCase (pluralize name)}}.$inferSelect)[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }> {
-    const { page = 1, limit = 10, sort, order = 'asc', search } = query;
-    const offset = (page - 1) * limit;
-    
-    {{#if tenant}}
-    return this.withTenantSchema(async () => {
-    {{/if}}
-      const { and, or, eq, ilike, isNull, sql, asc, desc } = await import('drizzle-orm');
-      
-      // Build WHERE conditions
-      const conditions: any[] = [
-        {{#if softDelete}}
-        isNull({{camelCase (pluralize name)}}.deleted_at),
-        {{/if}}
-      ];
-      
-      {{#if (hasFilterable fields)}}
-      // Apply filters
-      {{#each fields}}
-      {{#if this.isFilterable}}
-      if (query.{{this.name}} !== undefined) {
-        conditions.push(eq({{camelCase (pluralize @root.name)}}.{{this.name}}, query.{{this.name}}));
-      }
-      {{/if}}
-      {{/each}}
-      {{/if}}
-
-      {{#if (hasSearchable fields)}}
-      // Apply search
-      if (search) {
-        const searchConditions = [
-          {{#each fields}}
-          {{#if this.isSearchable}}
-          ilike({{camelCase (pluralize @root.name)}}.{{this.name}}, `%${search}%`),
-          {{/if}}
-          {{/each}}
-        ];
-        if (searchConditions.length > 0) {
-          conditions.push(or(...searchConditions));
-        }
-      }
-      {{/if}}
-
-      // Count total
-      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-      const [countResult] = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from({{camelCase (pluralize name)}})
-        {{#if softDelete}}
-        .where(whereClause)
-        {{/if}};
-      
-      const total = Number(countResult.count);
-
-      // Fetch data
-      let dbQuery = this.db
-        .select()
-        .from({{camelCase (pluralize name)}})
-        {{#if softDelete}}
-        .where(whereClause)
-        {{/if}}
-        .limit(limit)
-        .offset(offset);
-
-      {{#if (hasSortable fields)}}
-      // Apply sorting
-      if (sort) {
-        const sortColumn = {{camelCase (pluralize name)}}[sort as keyof typeof {{camelCase (pluralize name)}}] as any;
-        if (sortColumn) {
-          if (order === 'desc') {
-            dbQuery = dbQuery.orderBy(desc(sortColumn)) as any;
-          } else {
-            dbQuery = dbQuery.orderBy(asc(sortColumn)) as any;
-          }
-        }
-      }
-      {{/if}}
-
-      const data = await dbQuery;
-
-      return {
-        data,
-        total,
-        page,
-        limit,
         totalPages: Math.ceil(total / limit),
       };
-    {{#if tenant}}
     });
-    {{/if}}
   }
 
   // Add custom query methods here
+  // Example:
+  // async findBySlug(slug: string): Promise<{{PascalCase (singularize name)}} | null> {
+  //   return this.withTenantSchema(async () => {
+  //     const results = await this.db
+  //       .select()
+  //       .from(this.table)
+  //       .where(and(
+  //         eq(this.table.slug, slug),
+  //         isNull(this.table.deleted_at)
+  //       ))
+  //       .limit(1);
+  //     return results[0] || null;
+  //   });
+  // }
 }
-{{/if}}

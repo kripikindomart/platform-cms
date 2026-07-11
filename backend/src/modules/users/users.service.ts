@@ -3,12 +3,14 @@ import { UsersRepository } from './users.repository';
 import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from '../../database/schema/tenant/users.schema';
+import { TenantContextService } from '../../common/context/tenant-context.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly rolesRepository: RolesRepository,
+    private readonly tenantContext: TenantContextService,
   ) {}
 
   /**
@@ -35,9 +37,20 @@ export class UsersService {
       return null;
     }
 
+    // Check if tenant context is set
+    if (!this.tenantContext.hasTenant()) {
+      console.log('[UsersService] ERROR: Tenant context not set!');
+      throw new Error('Tenant context not set when loading user roles');
+    }
+
+    console.log('[UsersService] Loading roles for user:', id);
+    console.log('[UsersService] Tenant schema:', this.tenantContext.getSchemaName());
+
     // Load user roles with permissions
     const roles = await this.rolesRepository.getUserRolesWithPermissions(id);
     
+    console.log('[UsersService] Loaded roles:', roles?.length || 0);
+
     // Attach roles to user
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (user as any).roles = roles;

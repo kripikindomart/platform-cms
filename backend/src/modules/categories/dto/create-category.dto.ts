@@ -21,57 +21,42 @@ import { Type } from 'class-transformer';
  * DTO for creating category
  */
 export class CreateCategoryDto {
-  @ApiProperty({
-    description: 'Parent_id',
-    required: false,
-  })
+  @ApiProperty({ description: 'Parent category ID', required: false })
   @IsNumber()
   @IsOptional()
   parent_id?: number;
 
-  @ApiProperty({
-    description: 'Name',
-    required: false,
-    maxLength: 255,
-  })
+  @ApiProperty({ description: 'Category name' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(255)
-  @IsOptional()
-  name?: string;
+  name!: string;
 
-  @ApiProperty({
-    description: 'Slug',
-    required: false,
-    maxLength: 255,
-  })
+  @ApiProperty({ description: 'URL-friendly slug' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(255)
-  @IsOptional()
-  slug?: string;
+  slug!: string;
 
-  @ApiProperty({
-    description: 'Description',
-    required: false,
-  })
+  @ApiProperty({ description: 'Category description', required: false })
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiProperty({
-    description: 'Type',
-    required: false,
-    maxLength: 50,
-  })
+  @ApiProperty({ description: 'Category type (e.g., product, content)' })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(50)
-  @IsOptional()
-  type?: string;
+  type!: string;
 
-  @ApiProperty({
-    description: 'Order',
-    required: false,
-  })
+  @ApiProperty({ description: 'Display order', required: false })
   @IsNumber()
   @IsOptional()
+  @Min(0)
   order?: number;
+
+  @ApiProperty({ description: 'Is category active', required: false, default: true })
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
 }

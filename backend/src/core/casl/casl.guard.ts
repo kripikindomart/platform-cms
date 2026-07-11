@@ -25,6 +25,12 @@ export class CaslGuard implements CanActivate {
       throw new UnauthorizedException('User not authenticated');
     }
 
+    // Debug logging
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[CaslGuard] User:', { id: user.id, email: user.email, roles: user.roles?.map((r: any) => r.name) });
+      console.log('[CaslGuard] User has roles:', user.roles?.length || 0);
+    }
+
     // Build ability for user
     const ability = this.caslAbilityFactory.createForUser(user);
 
@@ -32,6 +38,7 @@ export class CaslGuard implements CanActivate {
     const allowed = policyHandlers.every((handler) => this.execPolicyHandler(handler, ability));
 
     if (!allowed) {
+      console.log('[CaslGuard] Permission DENIED for user:', user.email);
       throw new UnauthorizedException('Anda tidak memiliki izin untuk mengakses resource ini');
     }
 

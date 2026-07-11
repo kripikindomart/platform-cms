@@ -19,6 +19,7 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Action, Subjects } from '../../core/casl/casl-ability.factory';
 
 @ApiTags('products')
@@ -49,8 +50,11 @@ export class ProductsController {
   @ApiOperation({ summary: 'Create new product' })
   @ApiResponse({ status: 201, description: 'Product created', type: ProductResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-  async create(@Body() dto: CreateProductDto): Promise<ProductResponseDto> {
-    return this.productsService.create(dto);
+  async create(
+    @Body() dto: CreateProductDto,
+    @CurrentUser() user: any,
+  ): Promise<ProductResponseDto> {
+    return this.productsService.create(dto, user.id);
   }
 
   @Patch(':id')
@@ -61,8 +65,9 @@ export class ProductsController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProductDto,
+    @CurrentUser() user: any,
   ): Promise<ProductResponseDto> {
-    return this.productsService.update(id, dto);
+    return this.productsService.update(id, dto, user.id);
   }
 
   @Delete(':id')
@@ -70,7 +75,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Delete product' })
   @ApiResponse({ status: 200, description: 'Product deleted' })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.productsService.softDelete(id);
+  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any): Promise<void> {
+    await this.productsService.delete(id);
   }
 }

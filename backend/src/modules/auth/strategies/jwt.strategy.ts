@@ -57,15 +57,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       }
     }
 
-    // Set tenant context from JWT payload
-    this.tenantContext.setTenant({
-      id: payload.tenantId,
-      slug: `tenant_${payload.tenantId}`,
-      name: '', // Will be loaded if needed
-      schemaName: `tenant_${payload.tenantId}`,
-    });
-
     // Load user from database WITH roles and permissions for CASL
+    // Tenant context sudah di-set oleh TenantMiddleware sebelum sampai sini
     const user = await this.usersService.findByIdWithRoles(payload.sub);
 
     if (!user) {

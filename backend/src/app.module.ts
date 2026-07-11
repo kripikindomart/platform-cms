@@ -1,4 +1,4 @@
-import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -15,12 +15,16 @@ import { CaslModule } from './core/casl/casl.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
-import { CategoriesModule } from './modules/categories/categories.module';
-import { TagsModule } from './modules/tags/tags.module';
+
+
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
+import { TenantGuard } from './common/guards/tenant.guard';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { TagsModule } from './modules/tags/tags.module';
 import { ProductsModule } from './modules/products/products.module';
-import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { OrdersModule } from './modules/orders/orders.module';
+
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -50,14 +54,19 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     CliMetadataModule,
     CategoriesModule,
     TagsModule,
-    ProductsModule
-  ],
+    ProductsModule,
+    OrdersModule],
   controllers: [],
   providers: [
     // Global Throttler Guard
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // Global Tenant Guard (MUST be first to set tenant context)
+    {
+      provide: APP_GUARD,
+      useClass: TenantGuard,
     },
     // Global JWT Auth Guard (applied to all routes unless @Public())
     {
@@ -66,18 +75,4 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(TenantMiddleware)
-      .exclude(
-        // Public routes yang tidak butuh tenant
-        { path: 'api/auth/login', method: RequestMethod.POST },
-        { path: 'api/auth/register', method: RequestMethod.POST },
-        { path: 'api/health', method: RequestMethod.GET },
-        { path: 'api-docs', method: RequestMethod.ALL },
-        { path: 'api-docs/(.*)', method: RequestMethod.ALL },
-      )
-      .forRoutes('*'); // Apply to all other routes
-  }
-}
+export class AppModule {}

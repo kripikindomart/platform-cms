@@ -196,6 +196,24 @@ export class ModuleGenerator extends BaseGenerator {
       content: await this.renderTemplate('backend/module/dto/response.hbs', data),
     });
 
+    // 10. Service Test
+    files.push({
+      path: path.join(baseDir, moduleName, `${moduleName}.service.spec.ts`),
+      content: await this.renderTemplate('backend/module/service.spec.hbs', data),
+    });
+
+    // 11. Controller Test
+    files.push({
+      path: path.join(baseDir, moduleName, `${moduleName}.controller.spec.ts`),
+      content: await this.renderTemplate('backend/module/controller.spec.hbs', data),
+    });
+
+    // 12. Repository Test
+    files.push({
+      path: path.join(baseDir, moduleName, `${moduleName}.repository.spec.ts`),
+      content: await this.renderTemplate('backend/module/repository.spec.hbs', data),
+    });
+
     return files;
   }
 

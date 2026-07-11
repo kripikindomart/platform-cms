@@ -4,14 +4,10 @@ import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { QueryTagDto } from './dto/query-tag.dto';
 import { TagResponseDto } from './dto/tag-response.dto';
-import { AuditService } from '../../core/audit/audit.service';
 
 @Injectable()
 export class TagsService {
-  constructor(
-    private readonly tagsRepository: TagsRepository,
-    private readonly auditService: AuditService,
-  ) {}
+  constructor(private readonly tagsRepository: TagsRepository) {}
 
   /**
    * Find all tags with pagination, filtering, sorting
@@ -54,13 +50,6 @@ export class TagsService {
       updated_by: 1, // TODO: Get from current user
     } as any);
 
-    await this.auditService.logCrud({
-      action: 'create',
-      resource: 'tags',
-      resourceId: item.id,
-      newValues: dto as unknown as Record<string, unknown>,
-    });
-
     return this.toResponseDto(item);
   }
 
@@ -76,45 +65,17 @@ export class TagsService {
       updated_by: 1, // TODO: Get from current user
     } as any);
 
-    await this.auditService.logCrud({
-      action: 'update',
-      resource: 'tags',
-      resourceId: id,
-      newValues: dto as unknown as Record<string, unknown>,
-    });
-
     return this.toResponseDto(item);
   }
 
   /**
-   * Soft delete tag
+   * Delete tag
    */
-  async softDelete(id: number): Promise<void> {
+  async delete(id: number): Promise<void> {
     // Check if exists
     await this.findById(id);
 
-    await this.tagsRepository.softDelete(id, 1); // TODO: Get from current user
-
-    await this.auditService.logCrud({
-      action: 'delete',
-      resource: 'tags',
-      resourceId: id,
-    });
-  }
-
-  /**
-   * Restore soft deleted tag
-   */
-  async restore(id: number): Promise<TagResponseDto> {
-    const item = await this.tagsRepository.restore(id);
-
-    await this.auditService.logCrud({
-      action: 'restore',
-      resource: 'tags',
-      resourceId: id,
-    });
-
-    return this.toResponseDto(item);
+    await this.tagsRepository.hardDelete(id);
   }
 
   /**
@@ -123,13 +84,9 @@ export class TagsService {
   private toResponseDto(item: any): TagResponseDto {
     return {
       id: item.id,
-      name: item.name ?? undefined,
-      slug: item.slug ?? undefined,
-      color: item.color ?? undefined,
-      usage_count: item.usage_count ?? undefined,
+      // TODO: Add other fields
       created_at: item.created_at,
       updated_at: item.updated_at,
-      deleted_at: item.deleted_at ?? undefined,
     };
   }
 
@@ -139,8 +96,6 @@ export class TagsService {
    */
   private prepareDataForDb(dto: any): any {
     const data = { ...dto };
-
-    // Convert decimal/numeric fields from number to string for Drizzle ORM
 
     return data;
   }

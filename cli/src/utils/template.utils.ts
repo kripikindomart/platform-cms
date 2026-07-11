@@ -23,7 +23,9 @@ import {
 function registerHelpers(): void {
   // Case conversion helpers
   Handlebars.registerHelper('PascalCase', (str: string) => toPascalCase(str));
+  Handlebars.registerHelper('pascalCase', (str: string) => toPascalCase(str)); // Alias
   Handlebars.registerHelper('camelCase', (str: string) => toCamelCase(str));
+  Handlebars.registerHelper('kebabCase', (str: string) => toKebabCase(str)); // Alias
   Handlebars.registerHelper('kebab-case', (str: string) => toKebabCase(str));
   Handlebars.registerHelper('snake_case', (str: string) => toSnakeCase(str));
 

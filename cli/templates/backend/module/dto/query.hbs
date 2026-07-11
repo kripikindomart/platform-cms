@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsInt, Min, Max, IsString, IsEnum{{#if (hasFilterable fields)}}, IsBoolean{{/if}} } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsString, IsEnum, IsNumber, IsDateString{{#if (hasFilterable fields)}}, IsBoolean{{/if}} } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -25,23 +25,61 @@ export class Query{{PascalCase (singularize name)}}Dto {
   // Filterable fields
 {{#each fields}}
 {{#if this.isFilterable}}
+{{#if (eq this.type 'string')}}
   @ApiPropertyOptional({ description: 'Filter by {{this.name}}' })
   @IsOptional()
-{{#if (eq this.type 'string')}}
   @IsString()
   {{this.name}}?: string;
-{{else if (eq this.type 'number')}}
-  @Type(() => Number)
-  @IsInt()
-  {{this.name}}?: number;
-{{else if (eq this.type 'boolean')}}
-  @Type(() => Boolean)
-  {{this.name}}?: boolean;
-{{else}}
-  @IsString()
-  {{this.name}}?: string;
-{{/if}}
 
+{{else if (eq this.type 'number')}}
+  @ApiPropertyOptional({ description: 'Filter by {{this.name}}' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  {{this.name}}?: number;
+
+  @ApiPropertyOptional({ description: 'Minimum {{this.name}}' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  {{this.name}}_min?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum {{this.name}}' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  {{this.name}}_max?: number;
+
+{{else if (or (eq this.type 'date') (eq this.type 'datetime'))}}
+  @ApiPropertyOptional({ description: 'Filter by {{this.name}}' })
+  @IsOptional()
+  @IsDateString()
+  {{this.name}}?: string;
+
+  @ApiPropertyOptional({ description: 'From {{this.name}}' })
+  @IsOptional()
+  @IsDateString()
+  {{this.name}}_from?: string;
+
+  @ApiPropertyOptional({ description: 'To {{this.name}}' })
+  @IsOptional()
+  @IsDateString()
+  {{this.name}}_to?: string;
+
+{{else if (eq this.type 'boolean')}}
+  @ApiPropertyOptional({ description: 'Filter by {{this.name}}' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  {{this.name}}?: boolean;
+
+{{else}}
+  @ApiPropertyOptional({ description: 'Filter by {{this.name}}' })
+  @IsOptional()
+  @IsString()
+  {{this.name}}?: string;
+
+{{/if}}
 {{/if}}
 {{/each}}
 {{/if}}

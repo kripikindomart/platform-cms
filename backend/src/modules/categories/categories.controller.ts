@@ -19,6 +19,7 @@ import { CategoryResponseDto } from './dto/category-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
+import { Action, Subjects } from '../../core/casl/casl-ability.factory';
 
 @ApiTags('categories')
 @Controller('categories')
@@ -70,6 +71,6 @@ export class CategoriesController {
   @ApiResponse({ status: 200, description: 'Category deleted' })
   @ApiResponse({ status: 404, description: 'Category not found' })
   async delete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.categoriesService.softDelete(id);
+    await this.categoriesService.delete(id);
   }
 }

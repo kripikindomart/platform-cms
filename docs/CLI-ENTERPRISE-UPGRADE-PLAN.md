@@ -98,8 +98,103 @@ Git Commit: db6f278
 Status: **DONE** (2026-07-10)
 Git Commit: 2317b59
 
-#### 3.2 Advanced Query Features (OPTIONAL)
-Status: **PENDING**
+#### 3.2 Advanced Query Features
+Status: **COMPLETE ✅** (2026-07-11)
+Git Commit: Pending
+
+**Features Implemented**:
+- ✅ Date range filtering (field_from, field_to)
+- ✅ Number range filtering (field_min, field_max)  
+- ✅ Between operator support (gte, lte, between)
+- ✅ Enhanced Query DTO template
+- ✅ Enhanced Repository template
+
+**Changes**:
+1. Query DTO Template (`dto/query.hbs`):
+   - Added IsDateString validator
+   - Added IsNumber validator
+   - Auto-generate range fields for date types (from, to)
+   - Auto-generate range fields for number types (min, max)
+
+2. Repository Template (`repository.hbs`):
+   - Import gte, lte, between operators
+   - Date range logic with between/gte/lte
+   - Number range logic with between/gte/lte
+   - Type conversion for dates (new Date())
+
+**Test Results**:
+```bash
+# Generated orders module with date & number fields
+node bin/cms.js generate crud orders \
+  --fields="total:decimal:10:2,order_date:datetime" \
+  --filterable="total,order_date"
+
+# Verification:
+✅ Query DTO has total_min, total_max fields
+✅ Query DTO has order_date_from, order_date_to fields
+✅ Repository uses between() for range queries
+✅ Type-check passes
+✅ Build succeeds
+```
+
+**Usage Examples**:
+```typescript
+// Number range filter
+GET /api/orders?total_min=100&total_max=500
+
+// Date range filter  
+GET /api/orders?order_date_from=2024-01-01&order_date_to=2024-12-31
+
+// Combined filters
+GET /api/orders?total_min=100&order_date_from=2024-01-01&page=1&limit=10
+```
+
+**GitHub Issue**: #27 (task-5-5-2.md)  
+**Git Commit**: Pending
+
+---
+
+### Task 5.6: Test Generation (Phase 4)
+**Status**: COMPLETE ✅ (2026-07-11)
+**Priority**: P2 - MEDIUM  
+**Estimated Time**: 4 hours
+**Actual Time**: 2 hours
+
+**Objective**:
+Auto-generate unit tests dan integration tests untuk generated modules.
+
+**Features Implemented**:
+- ✅ Service test template (service.spec.hbs)
+- ✅ Controller test template (controller.spec.hbs)  
+- ✅ Repository test template (repository.spec.hbs)
+- ✅ Auto-generate 3 test files per module
+- ✅ Mock dependencies properly
+- ✅ Test basic CRUD operations
+- ✅ Test error handling (404, validation)
+- ✅ Test pagination & query features
+
+**Files Created**:
+- `cli/templates/backend/module/service.spec.hbs` - Service unit tests
+- `cli/templates/backend/module/controller.spec.hbs` - Controller integration tests
+- `cli/templates/backend/module/repository.spec.hbs` - Repository unit tests
+
+**Files Modified**:
+- `cli/src/generators/module.generator.ts` - Added test file generation
+- `cli/src/utils/template.utils.ts` - Added pascalCase/kebabCase helper aliases
+- `cli/templates/backend/module/entities/entity.hbs` - Always include soft delete fields
+
+**Test Coverage**:
+Each generated module now includes:
+- Service tests: findAll, findById, create, update, delete, findAllWithQuery
+- Controller tests: GET, POST, PATCH, DELETE endpoints with auth guards
+- Repository tests: CRUD operations with tenant context & soft delete
+
+**GitHub Issue**: #28
+**Next Phase**: Phase 5 - Interactive Mode (optional)
+
+---
+
+#### 3.3 Aggregation Queries (OPTIONAL) - PENDING
 
 **Goal**: Auto-generate proper validation based on field type
 

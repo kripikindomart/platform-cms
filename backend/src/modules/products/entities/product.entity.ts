@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, serial, timestamp, integer, bigint } from 'drizzle-orm/pg-core';
 
 /**
  * Product entity
@@ -6,22 +6,21 @@ import { pgTable, serial, varchar, text, timestamp, integer } from 'drizzle-orm/
 export const products = pgTable('products', {
   id: serial('id').primaryKey(),
 
-  // Fields
-  name: varchar('name', { length: 255 }),
-  sku: varchar('sku', { length: 100 }),
-  price: integer('price'),
-  stock: integer('stock'),
-  description: text('description'),
+  // TODO: Add your fields here
+  // Example:
+  // name: varchar('name', { length: 255 }).notNull(),
+  // description: text('description'),
+  // is_active: boolean('is_active').default(true).notNull(),
 
   // Audit fields
-  created_at: timestamp('created_at').defaultNow().notNull(),
-  updated_at: timestamp('updated_at').defaultNow().notNull(),
-  created_by: integer('created_by').notNull(),
-  updated_by: integer('updated_by').notNull(),
-
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  created_by: bigint('created_by', { mode: 'number' }),
+  updated_by: bigint('updated_by', { mode: 'number' }),
+  
   // Soft delete fields
-  deleted_at: timestamp('deleted_at'),
-  deleted_by: integer('deleted_by'),
+  deleted_at: timestamp('deleted_at', { withTimezone: true }),
+  deleted_by: bigint('deleted_by', { mode: 'number' }),
 });
 
 // Infer types

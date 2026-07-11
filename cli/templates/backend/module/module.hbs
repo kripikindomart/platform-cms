@@ -9,12 +9,14 @@ import { CommonModule } from '../../common/common.module';
 import { AuditModule } from '../../core/audit/audit.module';
 {{/if}}
 import { DatabaseModule } from '../../database/database.module';
+import { CaslModule } from '../../core/casl/casl.module';
 
 @Module({
   imports: [
     DatabaseModule,
     {{#if tenant}}CommonModule,{{/if}}
     {{#if audit}}AuditModule,{{/if}}
+    CaslModule,
   ],
   controllers: [{{PascalCase name}}Controller],
   providers: [{{PascalCase name}}Service, {{PascalCase name}}Repository],

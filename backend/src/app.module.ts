@@ -15,8 +15,6 @@ import { CaslModule } from './core/casl/casl.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
-
-
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { TenantGuard } from './common/guards/tenant.guard';
@@ -50,7 +48,8 @@ import { TenantGuard } from './common/guards/tenant.guard';
     CaslModule,
     PermissionsModule,
     RolesModule,
-    CliMetadataModule],
+    CliMetadataModule,
+  ],
   controllers: [],
   providers: [
     // Global Throttler Guard

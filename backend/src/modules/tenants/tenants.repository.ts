@@ -55,6 +55,71 @@ export class TenantsRepository {
   }
 
   /**
+   * Find all tenants with pagination, filtering, sorting
+   */
+  async findAllPaginated(options: {
+    page: number;
+    limit: number;
+    sort?: string;
+    order?: 'asc' | 'desc';
+    search?: string;
+    is_active?: boolean;
+    subscription_tier?: string;
+  }): Promise<{ data: Tenant[]; meta: any }> {
+    const { page, limit, sort = 'created_at', order = 'asc', search, is_active, subscription_tier } = options;
+    
+    const offset = (page - 1) * limit;
+
+    // Build where conditions
+    const conditions = [isNull(tenants.deleted_at)];
+    
+    if (search) {
+      conditions.push(
+        sql`(${tenants.name} ILIKE ${'%' + search + '%'} OR ${tenants.slug} ILIKE ${'%' + search + '%'})`
+      );
+    }
+    
+    if (is_active !== undefined) {
+      conditions.push(eq(tenants.is_active, is_active));
+    }
+    
+    if (subscription_tier) {
+      conditions.push(eq(tenants.subscription_tier, subscription_tier));
+    }
+
+    // Build order by
+    const orderByColumn = (tenants as any)[sort] || tenants.created_at;
+    const orderDirection = order === 'desc' ? sql`DESC` : sql`ASC`;
+
+    // Execute query with pagination
+    const data = await this.db
+      .select()
+      .from(tenants)
+      .where(and(...conditions))
+      .orderBy(sql`${orderByColumn} ${orderDirection}`)
+      .limit(limit)
+      .offset(offset);
+
+    // Get total count
+    const countResult = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(tenants)
+      .where(and(...conditions));
+
+    const total = countResult[0]?.count || 0;
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Update tenant
    */
   async update(id: number, data: Partial<NewTenant>): Promise<Tenant> {

@@ -1,53 +1,52 @@
-import { z } from 'zod';
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  MaxLength,
+} from 'class-validator';
 
 /**
- * Create Tenant DTO Schema
- * Validation untuk create new tenant
+ * DTO for creating tenant
  */
-export const CreateTenantDtoSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'Nama tenant minimal 2 karakter')
-    .max(255, 'Nama tenant maksimal 255 karakter')
-    .trim(),
+export class CreateTenantDto {
+  @ApiProperty({
+    description: 'Tenant name',
+    required: true,
+    maxLength: 255,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name!: string;
 
-  domain: z
-    .string()
-    .max(255, 'Domain maksimal 255 karakter')
-    .regex(
-      /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/i,
-      'Format domain tidak valid',
-    )
-    .optional(),
+  @ApiProperty({
+    description: 'Tenant domain',
+    required: false,
+    maxLength: 255,
+  })
+  @IsString()
+  @MaxLength(255)
+  @IsOptional()
+  domain?: string;
 
-  subscriptionTier: z
-    .enum(['free', 'basic', 'pro', 'enterprise'])
-    .default('free'),
+  @ApiProperty({
+    description: 'Subscription tier',
+    required: false,
+    maxLength: 50,
+  })
+  @IsString()
+  @MaxLength(50)
+  @IsOptional()
+  subscription_tier?: string;
 
-  config: z
-    .object({
-      branding: z
-        .object({
-          logo: z.string().url().optional(),
-          primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-          secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-        })
-        .optional(),
-      features: z
-        .object({
-          maxUsers: z.number().int().positive().optional(),
-          maxStorage: z.number().int().positive().optional(),
-          enabledFeatures: z.array(z.string()).optional(),
-        })
-        .optional(),
-      limits: z
-        .object({
-          apiRateLimit: z.number().int().positive().optional(),
-          storageLimit: z.number().int().positive().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-});
-
-export type CreateTenantDto = z.infer<typeof CreateTenantDtoSchema>;
+  @ApiProperty({
+    description: 'Is tenant active',
+    required: false,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
+}

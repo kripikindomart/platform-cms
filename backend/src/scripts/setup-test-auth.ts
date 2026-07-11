@@ -18,7 +18,7 @@ async function setup() {
       console.log(`   ID: ${existingTenant.id}`);
       console.log(`   Name: ${existingTenant.name}`);
       console.log(`   Slug: ${existingTenant.slug}`);
-      console.log(`   Schema: ${existingTenant.schemaName}\n`);
+      console.log(`   Schema: ${existingTenant.schema_name}\n`);
       console.log('✨ Ready for authentication testing!');
       console.log('   Tenant ID: 1');
       console.log('   Schema: tenant_demo_company\n');
@@ -27,14 +27,14 @@ async function setup() {
 
       const result = await tenantsService.provisionTenant({
         name: 'Demo Company',
-        subscriptionTier: 'free',
+        subscription_tier: 'free',
       });
 
       console.log('\n✅ Test tenant created successfully!');
       console.log(`   ID: ${result.tenant.id}`);
       console.log(`   Name: ${result.tenant.name}`);
       console.log(`   Slug: ${result.tenant.slug}`);
-      console.log(`   Schema: ${result.tenant.schemaName}`);
+      console.log(`   Schema: ${result.tenant.schema_name}`);
       console.log(`   Tables: ${result.tablesCreated}`);
       console.log(`   Roles: ${result.rolesSeeded}`);
       console.log(`   Permissions: ${result.permissionsSeeded}\n`);

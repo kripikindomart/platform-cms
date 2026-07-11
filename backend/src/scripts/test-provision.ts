@@ -11,7 +11,7 @@ async function test() {
 
     const result = await tenantsService.provisionTenant({
       name: 'Demo Company',
-      subscriptionTier: 'free',
+      subscription_tier: 'free',
     });
 
     console.log('✅ Tenant created successfully!\n');
@@ -20,10 +20,10 @@ async function test() {
     console.log(`ID: ${result.tenant.id}`);
     console.log(`Name: ${result.tenant.name}`);
     console.log(`Slug: ${result.tenant.slug}`);
-    console.log(`Schema: ${result.tenant.schemaName}`);
-    console.log(`Subscription Tier: ${result.tenant.subscriptionTier}`);
-    console.log(`Active: ${result.tenant.isActive}`);
-    console.log(`Created At: ${result.tenant.createdAt}\n`);
+    console.log(`Schema: ${result.tenant.schema_name}`);
+    console.log(`Subscription Tier: ${result.tenant.subscription_tier}`);
+    console.log(`Active: ${result.tenant.is_active}`);
+    console.log(`Created At: ${result.tenant.created_at}\n`);
 
     console.log('Provisioning Stats:');
     console.log('------------------');

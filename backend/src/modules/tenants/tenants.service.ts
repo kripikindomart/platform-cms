@@ -4,6 +4,8 @@ import { sql } from 'drizzle-orm';
 import { TenantsRepository } from './tenants.repository';
 import { TenantSchemaService } from '../../database/tenant-schema.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { QueryTenantDto } from './dto/query-tenant.dto';
 import { TenantResponseDto } from './dto/tenant-response.dto';
 import { TenantProvisionResult } from './interfaces/tenant-provision.interface';
 import * as publicSchema from '../../database/schema/public';
@@ -51,8 +53,8 @@ export class TenantsService {
         slug,
         domain: dto.domain ?? null,
         schema_name: schemaName,
-        subscription_tier: dto.subscriptionTier || 'free',
-        config: dto.config ? JSON.stringify(dto.config) : null,
+        subscription_tier: dto.subscription_tier || 'free',
+        config: null,
         is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
@@ -504,19 +506,39 @@ export class TenantsService {
   }
 
   /**
-   * Find all tenants
+   * Find all tenants with pagination, filtering, sorting
    */
-  async findAll(): Promise<TenantResponseDto[]> {
-    const tenants = await this.tenantsRepository.findAll();
-    return tenants.map((tenant) => new TenantResponseDto(tenant));
+  async findAll(query: any) {
+    const { page = 1, limit = 10, sort = 'created_at', order = 'asc', search, is_active, subscription_tier } = query;
+
+    const result = await this.tenantsRepository.findAllPaginated({
+      page,
+      limit,
+      sort,
+      order,
+      search,
+      is_active,
+      subscription_tier,
+    });
+
+    return {
+      data: result.data.map(tenant => new TenantResponseDto(tenant)),
+      meta: result.meta,
+    };
   }
 
   /**
    * Find tenant by ID
    */
-  async findById(id: number): Promise<TenantResponseDto | null> {
+  async findById(id: number): Promise<TenantResponseDto> {
     const tenant = await this.tenantsRepository.findById(id);
-    return tenant ? new TenantResponseDto(tenant) : null;
+    if (!tenant) {
+      throw new ConflictException({
+        code: 'TENANT_NOT_FOUND',
+        message: `Tenant dengan ID ${id} tidak ditemukan`,
+      });
+    }
+    return new TenantResponseDto(tenant);
   }
 
   /**
@@ -525,5 +547,95 @@ export class TenantsService {
   async findBySlug(slug: string): Promise<TenantResponseDto | null> {
     const tenant = await this.tenantsRepository.findBySlug(slug);
     return tenant ? new TenantResponseDto(tenant) : null;
+  }
+
+  /**
+   * Create tenant (simplified version for admin, without full provisioning)
+   */
+  async create(dto: CreateTenantDto, userId: number): Promise<TenantResponseDto> {
+    // Generate slug
+    const slug = this.generateSlug(dto.name);
+    const schemaName = `tenant_${slug}`;
+
+    this.logger.log(`Creating tenant: ${dto.name} (${slug}) by user ${userId}`);
+
+    // Check if slug already exists
+    const existing = await this.tenantsRepository.findBySlug(slug);
+    if (existing) {
+      throw new ConflictException({
+        code: 'TENANT_SLUG_EXISTS',
+        message: `Tenant dengan slug '${slug}' sudah ada`,
+      });
+    }
+
+    // Create tenant record
+    const tenant = await this.tenantsRepository.create({
+      name: dto.name,
+      slug,
+      domain: dto.domain ?? null,
+      schema_name: schemaName,
+      subscription_tier: dto.subscription_tier || 'free',
+      config: null,
+      is_active: dto.is_active !== undefined ? dto.is_active : true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    this.logger.log(`✅ Tenant created successfully: ${tenant.name} (ID: ${tenant.id})`);
+
+    return new TenantResponseDto(tenant);
+  }
+
+  /**
+   * Update tenant
+   */
+  async update(id: number, dto: any, userId: number): Promise<TenantResponseDto> {
+    this.logger.log(`Updating tenant ID ${id} by user ${userId}`);
+
+    // Check if tenant exists
+    const existing = await this.tenantsRepository.findById(id);
+    if (!existing) {
+      throw new ConflictException({
+        code: 'TENANT_NOT_FOUND',
+        message: `Tenant dengan ID ${id} tidak ditemukan`,
+      });
+    }
+
+    // Update tenant
+    const updateData: any = {
+      updated_at: new Date(),
+    };
+
+    if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.domain !== undefined) updateData.domain = dto.domain;
+    if (dto.subscription_tier !== undefined) updateData.subscription_tier = dto.subscription_tier;
+    if (dto.is_active !== undefined) updateData.is_active = dto.is_active;
+
+    const tenant = await this.tenantsRepository.update(id, updateData);
+
+    this.logger.log(`✅ Tenant updated successfully: ${tenant.name} (ID: ${tenant.id})`);
+
+    return new TenantResponseDto(tenant);
+  }
+
+  /**
+   * Soft delete tenant
+   */
+  async delete(id: number, userId: number): Promise<void> {
+    this.logger.log(`Deleting tenant ID ${id} by user ${userId}`);
+
+    // Check if tenant exists
+    const existing = await this.tenantsRepository.findById(id);
+    if (!existing) {
+      throw new ConflictException({
+        code: 'TENANT_NOT_FOUND',
+        message: `Tenant dengan ID ${id} tidak ditemukan`,
+      });
+    }
+
+    // Soft delete tenant
+    await this.tenantsRepository.softDelete(id, userId);
+
+    this.logger.log(`✅ Tenant deleted successfully: ID ${id}`);
   }
 }

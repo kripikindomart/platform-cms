@@ -1,31 +1,30 @@
-'use client';
-
-import { useState } from 'react';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
+import { AppSidebar } from "@/components/layout/app-sidebar"
+import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
 
 export default function PrivateLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
   return (
-    <div className="flex min-h-screen bg-neutral-50">
-      {/* Sidebar */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-      />
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        <Header onMenuClick={() => setSidebarCollapsed(!sidebarCollapsed)} />
-
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          {/* Breadcrumb atau search bisa ditambahkan di sini */}
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

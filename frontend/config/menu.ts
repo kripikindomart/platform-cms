@@ -13,65 +13,111 @@ import {
 
 export interface MenuItem {
   title: string;
-  href: string;
+  url: string;
   icon: LucideIcon;
   badge?: string;
   superAdminOnly?: boolean;
   adminOnly?: boolean;
-  children?: MenuItem[];
+  isActive?: boolean;
+  items?: Array<{
+    title: string;
+    url: string;
+  }>;
 }
 
-export const menuItems: MenuItem[] = [
+// Main navigation items
+export const navMainItems: MenuItem[] = [
   {
     title: 'Dashboard',
-    href: '/portal',
+    url: '/portal',
     icon: LayoutDashboard,
+    isActive: true,
   },
   {
     title: 'User Management',
-    href: '/mgmt-users',
+    url: '/mgmt-users',
     icon: Users,
     adminOnly: true,
-  },
-  {
-    title: 'Role Management',
-    href: '/mgmt-roles',
-    icon: Shield,
-    adminOnly: true,
-  },
-  {
-    title: 'Tenant Management',
-    href: '/mgmt-tenants',
-    icon: Building2,
-    superAdminOnly: true,
-    badge: 'Admin',
-  },
-  {
-    title: 'Master Data',
-    href: '/data-master',
-    icon: Database,
-    children: [
+    items: [
       {
-        title: 'Categories',
-        href: '/data-master/categories',
-        icon: FolderTree,
+        title: 'All Users',
+        url: '/mgmt-users',
       },
       {
-        title: 'Tags',
-        href: '/data-master/tags',
-        icon: Tag,
+        title: 'Add User',
+        url: '/mgmt-users/create',
       },
     ],
   },
   {
-    title: 'Audit Logs',
-    href: '/sys-audit',
-    icon: FileText,
+    title: 'Role Management',
+    url: '/mgmt-roles',
+    icon: Shield,
     adminOnly: true,
+    items: [
+      {
+        title: 'All Roles',
+        url: '/mgmt-roles',
+      },
+      {
+        title: 'Permissions',
+        url: '/mgmt-roles/permissions',
+      },
+    ],
   },
   {
-    title: 'Settings',
-    href: '/sys-settings',
+    title: 'Master Data',
+    url: '/data-master',
+    icon: Database,
+    items: [
+      {
+        title: 'Categories',
+        url: '/data-master/categories',
+      },
+      {
+        title: 'Tags',
+        url: '/data-master/tags',
+      },
+    ],
+  },
+  {
+    title: 'System',
+    url: '/sys-settings',
     icon: Settings,
+    items: [
+      {
+        title: 'Audit Logs',
+        url: '/sys-audit',
+      },
+      {
+        title: 'Settings',
+        url: '/sys-settings',
+      },
+    ],
+  },
+];
+
+// Projects/Quick Access (optional)
+export const projectsItems = [
+  {
+    name: 'Tenant Management',
+    url: '/mgmt-tenants',
+    icon: Building2,
+  },
+];
+
+// User data (will be replaced with actual auth)
+export const userData = {
+  name: 'Admin User',
+  email: 'admin@demo.com',
+  avatar: '/avatars/admin.jpg',
+};
+
+// Teams/Tenants data (for multi-tenant support)
+export const teamsData = [
+  {
+    name: 'Platform CMS',
+    logo: Building2,
+    plan: 'Enterprise',
   },
 ];

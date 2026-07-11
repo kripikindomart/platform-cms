@@ -22,11 +22,15 @@ import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../database/schema/tenant/users.schema';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { TenantContextService } from '../../common/context/tenant-context.service';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly tenantContext: TenantContextService,
+  ) {}
 
   /**
    * Register new user
@@ -40,6 +44,14 @@ export class AuthController {
   async register(
     @Body(new ZodValidationPipe(registerSchema)) dto: RegisterDto,
   ) {
+    // Set tenant context (hardcoded for now, should come from subdomain/header)
+    this.tenantContext.setTenant({
+      id: 1,
+      slug: 'tenant_1',
+      name: 'Default Tenant',
+      schemaName: 'tenant_1',
+    });
+
     return this.authService.register(dto);
   }
 
@@ -59,9 +71,14 @@ export class AuthController {
     const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.get('user-agent') || 'unknown';
 
-    // TODO: Get tenantId from request (from subdomain or header)
-    // For now, use a hardcoded value
+    // Set tenant context (hardcoded for now, should come from subdomain/header)
     const tenantId = 1;
+    this.tenantContext.setTenant({
+      id: tenantId,
+      slug: 'tenant_1',
+      name: 'Default Tenant',
+      schemaName: 'tenant_1',
+    });
 
     return this.authService.login(dto, ipAddress, userAgent, tenantId);
   }

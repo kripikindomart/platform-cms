@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -11,6 +11,7 @@ import { RedisModule } from '../../core/cache/redis.module';
 import { CommonModule } from '../../common/common.module';
 import { AuditModule } from '../../core/audit/audit.module';
 
+@Global() // Make this module global so JwtStrategy is available everywhere
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -24,6 +25,7 @@ import { AuditModule } from '../../core/audit/audit.module';
         },
       }),
       inject: [ConfigService],
+      global: true, // Make JwtModule available globally
     }),
     UsersModule,
     RedisModule,
@@ -32,6 +34,6 @@ import { AuditModule } from '../../core/audit/audit.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard],
-  exports: [AuthService, JwtAuthGuard],
+  exports: [AuthService, JwtAuthGuard, JwtStrategy, PassportModule],
 })
 export class AuthModule {}

@@ -17,6 +17,8 @@ import { RolesModule } from './modules/roles/roles.module';
 import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { TagsModule } from './modules/tags/tags.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -31,13 +33,15 @@ import { TagsModule } from './modules/tags/tags.module';
         limit: 100, // 100 requests per 15 minutes
       },
     ]),
+    // Make PassportModule available globally
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     CommonModule,
     DatabaseModule,
     RedisModule,
     HealthModule,
     TenantsModule,
     UsersModule,
-    AuthModule,
+    AuthModule, // AuthModule must be imported AFTER UsersModule
     CaslModule,
     PermissionsModule,
     RolesModule,
@@ -51,6 +55,11 @@ import { TagsModule } from './modules/tags/tags.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    // Global JWT Auth Guard (applied to all routes unless @Public())
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })

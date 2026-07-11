@@ -8,7 +8,6 @@ import {
   Param,
   Query,
   ParseIntPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
@@ -16,13 +15,24 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { QueryCategoryDto } from './dto/query-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TenantContextService } from '../../common/context/tenant-context.service';
 
 @ApiTags('categories')
 @Controller('categories')
-@UseGuards(JwtAuthGuard)
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(
+    private readonly categoriesService: CategoriesService,
+    private readonly tenantContext: TenantContextService,
+  ) {
+    // Set default tenant context for testing
+    // TODO: Replace with proper tenant middleware
+    this.tenantContext.setTenant({
+      id: 1,
+      slug: 'tenant_1',
+      name: 'Default Tenant',
+      schemaName: 'tenant_1',
+    });
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get all categories with pagination, filtering, sorting' })

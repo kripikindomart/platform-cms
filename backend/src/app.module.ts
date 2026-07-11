@@ -18,6 +18,8 @@ import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { TenantGuard } from './common/guards/tenant.guard';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { TagsModule } from './modules/tags/tags.module';
 
 
 
@@ -49,6 +51,8 @@ import { TenantGuard } from './common/guards/tenant.guard';
     PermissionsModule,
     RolesModule,
     CliMetadataModule,
+    CategoriesModule,
+    TagsModule
   ],
   controllers: [],
   providers: [

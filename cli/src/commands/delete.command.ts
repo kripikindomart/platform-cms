@@ -226,6 +226,23 @@ export function deleteCommand(): Command {
           logger.warn(`⚠ Could not delete migration files: ${(error as Error).message}`);
         }
 
+        // 5b. Delete permission migration
+        logger.info(`\n5b. Deleting permission migration...`);
+        try {
+          const permissionsDir = path.join(workspaceRoot, 'backend/src/database/migrations/permissions');
+          const permissionFile = `${name}-permissions.sql`;
+          const permissionFilePath = path.join(permissionsDir, permissionFile);
+          
+          try {
+            await fs.unlink(permissionFilePath);
+            logger.success(`✓ Deleted permission migration: ${permissionFile}`);
+          } catch (e) {
+            logger.info(`  No permission migration found`);
+          }
+        } catch (error) {
+          logger.warn(`⚠ Could not delete permission migration: ${(error as Error).message}`);
+        }
+
         // 6. Delete database metadata
         if (!options.keepDb) {
           logger.info(`\n4. Deleting database metadata...`);

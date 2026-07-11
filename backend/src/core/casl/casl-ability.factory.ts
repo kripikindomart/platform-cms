@@ -24,9 +24,11 @@ export interface UserWithPermissions {
   id: number;
   email: string;
   roles?: Array<{
-    name: string; // This is the slug
+    name: string;
     permissions?: Array<{
-      slug: string;
+      resource: string;
+      action: string;
+      scope: string;
     }>;
   }>;
 }
@@ -36,7 +38,7 @@ export class CaslAbilityFactory {
   createForUser(user: UserWithPermissions): AppAbility {
     const { can, build } = new AbilityBuilder<AppAbility>(Ability as AbilityClass<AppAbility>);
 
-    // Check if user is super admin (using name as slug)
+    // Check if user is super admin
     const isSuperAdmin = user.roles?.some((role) => role.name === 'super_admin');
 
     if (isSuperAdmin) {
@@ -46,30 +48,29 @@ export class CaslAbilityFactory {
     }
 
     // Collect all permissions from all roles
-    const permissions = new Set<string>();
+    const permissionsMap = new Map<string, Set<string>>();
 
     user.roles?.forEach((role) => {
       role.permissions?.forEach((permission) => {
-        permissions.add(permission.slug);
+        if (!permissionsMap.has(permission.resource)) {
+          permissionsMap.set(permission.resource, new Set());
+        }
+        permissionsMap.get(permission.resource)!.add(permission.action);
       });
     });
 
     // Map permissions to CASL rules
-    for (const permissionSlug of permissions) {
-      const [resource, action] = permissionSlug.split('.');
-
-      if (!resource || !action) {
-        continue; // Skip invalid permission format
-      }
-
-      if (action === '*') {
-        // Full access to resource (all CRUD operations)
-        can('manage', resource as Subjects);
-      } else {
-        // Specific action on resource
-        const caslAction = this.mapActionToCasl(action);
-        if (caslAction) {
-          can(caslAction, resource as Subjects);
+    for (const [resource, actions] of permissionsMap) {
+      for (const action of actions) {
+        if (action === '*') {
+          // Full access to resource (all CRUD operations)
+          can('manage', resource as Subjects);
+        } else {
+          // Specific action on resource
+          const caslAction = this.mapActionToCasl(action);
+          if (caslAction) {
+            can(caslAction, resource as Subjects);
+          }
         }
       }
     }

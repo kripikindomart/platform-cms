@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
@@ -16,9 +17,13 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { QueryCategoryDto } from './dto/query-category.dto';
 import { CategoryResponseDto } from './dto/category-response.dto';
 import { TenantContextService } from '../../common/context/tenant-context.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CaslGuard } from '../../core/casl/casl.guard';
+import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
 
 @ApiTags('categories')
 @Controller('categories')
+@UseGuards(JwtAuthGuard, CaslGuard)
 export class CategoriesController {
   constructor(
     private readonly categoriesService: CategoriesService,
@@ -35,6 +40,7 @@ export class CategoriesController {
   }
 
   @Get()
+  @CheckPolicies((ability) => ability.can('read', 'categories'))
   @ApiOperation({ summary: 'Get all categories with pagination, filtering, sorting' })
   @ApiResponse({ status: 200, description: 'Paginated list of categories' })
   async findAll(@Query() query: QueryCategoryDto) {
@@ -42,6 +48,7 @@ export class CategoriesController {
   }
 
   @Get(':id')
+  @CheckPolicies((ability) => ability.can('read', 'categories'))
   @ApiOperation({ summary: 'Get category by ID' })
   @ApiResponse({ status: 200, description: 'Category found', type: CategoryResponseDto })
   @ApiResponse({ status: 404, description: 'Category not found' })
@@ -50,6 +57,7 @@ export class CategoriesController {
   }
 
   @Post()
+  @CheckPolicies((ability) => ability.can('create', 'categories'))
   @ApiOperation({ summary: 'Create new category' })
   @ApiResponse({ status: 201, description: 'Category created', type: CategoryResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid input' })
@@ -58,6 +66,7 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @CheckPolicies((ability) => ability.can('update', 'categories'))
   @ApiOperation({ summary: 'Update category' })
   @ApiResponse({ status: 200, description: 'Category updated', type: CategoryResponseDto })
   @ApiResponse({ status: 404, description: 'Category not found' })
@@ -69,6 +78,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @CheckPolicies((ability) => ability.can('delete', 'categories'))
   @ApiOperation({ summary: 'Delete category' })
   @ApiResponse({ status: 200, description: 'Category deleted' })
   @ApiResponse({ status: 404, description: 'Category not found' })

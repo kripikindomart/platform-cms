@@ -4,8 +4,8 @@
  */
 
 export interface PermissionDefinition {
-  slug: string;
   name: string;
+  slug: string;
   resource: string;
   action: string;
   description: string;
@@ -28,34 +28,36 @@ export function generateModulePermissions(
   const display = displayName || capitalizeFirst(moduleName);
 
   const actions = [
-    { action: 'read', verb: 'View', description: `Can view ${resource}` },
-    { action: 'create', verb: 'Create', description: `Can create ${resource}` },
-    { action: 'update', verb: 'Update', description: `Can update ${resource}` },
-    { action: 'delete', verb: 'Delete', description: `Can delete ${resource}` },
+    { action: 'read', verb: 'Read', description: `Permission to view and list ${resource}` },
+    { action: 'create', verb: 'Create', description: `Permission to create new ${resource}` },
+    { action: 'update', verb: 'Update', description: `Permission to update existing ${resource}` },
+    { action: 'delete', verb: 'Delete', description: `Permission to delete ${resource}` },
   ];
 
   const permissions: PermissionDefinition[] = actions.map((item) => ({
-    slug: `${resource}.${item.action}`,
     name: `${item.verb} ${display}`,
+    slug: `${resource}.${item.action}`,
     resource: resource,
     action: item.action,
     description: item.description,
   }));
 
-  // Generate SQL INSERT statement
+  // Generate SQL INSERT statement for tenant schema
   const sqlValues = permissions
     .map(
       (p) =>
-        `('${p.name}', '${p.slug}', '${p.resource}', '${p.action}', '${p.description}')`,
+        `  ('${p.name}', '${p.slug}', '${p.resource}', '${p.action}', '${p.description}')`,
     )
-    .join(',\n  ');
+    .join(',\n');
 
   const sqlInsert = `
--- Insert permissions for ${display} module
-INSERT INTO permissions (name, slug, resource, action, description)
+-- Auto-generated permissions for ${resource} module
+-- Generated at: ${new Date().toISOString().split('T')[0]}
+-- NOTE: This uses tenant_1 schema. Update to target schema if needed.
+
+INSERT INTO tenant_1.permissions (name, slug, resource, action, description)
 VALUES
-  ${sqlValues}
-ON CONFLICT (slug) DO NOTHING;
+${sqlValues};
 `.trim();
 
   return {
@@ -99,8 +101,6 @@ export function generatePermissionMigration(
   permissions: PermissionDefinition[],
 ): string {
   const resource = moduleName.toLowerCase();
-  const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
-  const fileName = `${timestamp}_add_${resource}_permissions.sql`;
 
   const values = permissions
     .map(
@@ -110,19 +110,18 @@ export function generatePermissionMigration(
     .join(',\n');
 
   const content = `-- Migration: Add ${moduleName} module permissions
--- Generated: ${new Date().toISOString()}
+-- Generated: ${new Date().toISOString().split('T')[0]}
+-- NOTE: This uses tenant_1 schema. Update to target schema if needed.
 
-INSERT INTO permissions (name, slug, resource, action, description)
+INSERT INTO tenant_1.permissions (name, slug, resource, action, description)
 VALUES
-${values}
-ON CONFLICT (slug) DO NOTHING;
+${values};
 
 -- Optionally assign all permissions to administrator role
--- INSERT INTO role_permissions (role_id, permission_id)
--- SELECT r.id, p.id 
--- FROM roles r 
--- CROSS JOIN permissions p 
--- WHERE r.slug = 'administrator' AND p.resource = '${resource}'
+-- INSERT INTO tenant_1.role_permissions (role_id, permission_id)
+-- SELECT 1, id 
+-- FROM tenant_1.permissions 
+-- WHERE resource = '${resource}'
 -- ON CONFLICT DO NOTHING;
 `;
 

@@ -19,6 +19,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -47,7 +48,8 @@ import { PassportModule } from '@nestjs/passport';
     RolesModule,
     CliMetadataModule,
     CategoriesModule,
-    TagsModule
+    TagsModule,
+    ProductsModule
   ],
   controllers: [],
   providers: [

@@ -17,14 +17,18 @@ import { Update{{PascalCase (singularize name)}}Dto } from './dto/update-{{kebab
 import { Query{{PascalCase (singularize name)}}Dto } from './dto/query-{{kebab-case (singularize name)}}.dto';
 import { {{PascalCase (singularize name)}}ResponseDto } from './dto/{{kebab-case (singularize name)}}-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CaslGuard } from '../../core/casl/casl.guard';
+import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
+import { Action, Subjects } from '../../core/casl/casl-ability.factory';
 
 @ApiTags('{{pluralize (kebab-case name)}}')
 @Controller('{{pluralize (kebab-case name)}}')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, CaslGuard)
 export class {{PascalCase name}}Controller {
   constructor(private readonly {{camelCase name}}Service: {{PascalCase name}}Service) {}
 
   @Get()
+  @CheckPolicies((ability) => ability.can('read', '{{pluralize (lowercase name)}}'))
   @ApiOperation({ summary: 'Get all {{pluralize (lowercase name)}} with pagination, filtering, sorting' })
   @ApiResponse({ status: 200, description: 'Paginated list of {{pluralize (lowercase name)}}' })
   async findAll(@Query() query: Query{{PascalCase (singularize name)}}Dto) {
@@ -32,6 +36,7 @@ export class {{PascalCase name}}Controller {
   }
 
   @Get(':id')
+  @CheckPolicies((ability) => ability.can('read', '{{pluralize (lowercase name)}}'))
   @ApiOperation({ summary: 'Get {{singularize (lowercase name)}} by ID' })
   @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} found', type: {{PascalCase (singularize name)}}ResponseDto })
   @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })
@@ -40,6 +45,7 @@ export class {{PascalCase name}}Controller {
   }
 
   @Post()
+  @CheckPolicies((ability) => ability.can('create', '{{pluralize (lowercase name)}}'))
   @ApiOperation({ summary: 'Create new {{singularize (lowercase name)}}' })
   @ApiResponse({ status: 201, description: '{{PascalCase (singularize name)}} created', type: {{PascalCase (singularize name)}}ResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid input' })
@@ -48,6 +54,7 @@ export class {{PascalCase name}}Controller {
   }
 
   @Patch(':id')
+  @CheckPolicies((ability) => ability.can('update', '{{pluralize (lowercase name)}}'))
   @ApiOperation({ summary: 'Update {{singularize (lowercase name)}}' })
   @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} updated', type: {{PascalCase (singularize name)}}ResponseDto })
   @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })
@@ -59,6 +66,7 @@ export class {{PascalCase name}}Controller {
   }
 
   @Delete(':id')
+  @CheckPolicies((ability) => ability.can('delete', '{{pluralize (lowercase name)}}'))
   @ApiOperation({ summary: 'Delete {{singularize (lowercase name)}}' })
   @ApiResponse({ status: 200, description: '{{PascalCase (singularize name)}} deleted' })
   @ApiResponse({ status: 404, description: '{{PascalCase (singularize name)}} not found' })

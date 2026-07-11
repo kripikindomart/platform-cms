@@ -46,10 +46,10 @@ export class Query{{PascalCase (singularize name)}}Dto {
 {{/each}}
 {{/if}}
 {{#if (hasSortable fields)}}
-  @ApiPropertyOptional({ description: 'Sort by field', enum: [{{#each fields}}{{#if this.isSortable}}'{{this.name}}'{{#unless @last}}, {{/unless}}{{/if}}{{/each}}] })
+  @ApiPropertyOptional({ description: 'Sort by field', enum: [{{#each fields}}{{#if this.isSortable}}'{{this.name}}', {{/if}}{{/each}}'created_at'] })
   @IsOptional()
   @IsString()
-  sort?: {{#each fields}}{{#if this.isSortable}}'{{this.name}}'{{#unless @last}} | {{/unless}}{{/if}}{{/each}};
+  sort?: {{#each fields}}{{#if this.isSortable}}'{{this.name}}' | {{/if}}{{/each}}'created_at';
 
   @ApiPropertyOptional({ description: 'Sort order', enum: ['asc', 'desc'], default: 'asc' })
   @IsOptional()

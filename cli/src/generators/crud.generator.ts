@@ -967,7 +967,7 @@ export class CrudGenerator extends ModuleGenerator {
 
       // Write migration file
       const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
-      const fileName = `${timestamp}_add_${permissionSet.resource}_permissions.sql`;
+      const fileName = `${permissionSet.resource}-permissions.sql`;
       const filePath = path.join(permissionsDir, fileName);
 
       await fs.writeFile(filePath, migrationContent, 'utf-8');
@@ -979,8 +979,8 @@ export class CrudGenerator extends ModuleGenerator {
       });
 
       console.log('\nTo apply permissions:');
-      console.log(`  1. Run: psql -h localhost -p 5432 -U postgres -d platform_cms -f ${filePath}`);
-      console.log(`  2. Or manually execute the SQL in the migration file`);
+      console.log(`  psql -U postgres -d platform_cms -f ${filePath}`);
+      console.log(`\nNote: Update tenant schema name (tenant_1) in SQL file if needed`);
     } catch (error) {
       console.warn(`Could not generate permissions: ${(error as Error).message}`);
       console.log('You can manually create permissions later');

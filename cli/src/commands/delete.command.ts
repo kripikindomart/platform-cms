@@ -113,7 +113,120 @@ export function deleteCommand(): Command {
           logger.warn(`⚠ Could not remove entity from tenant schema: ${(error as Error).message}`);
         }
 
-        // 4. Delete database metadata
+        // 4. Delete junction tables (many-to-many)
+        logger.info(`\n4. Deleting junction tables...`);
+        try {
+          const migrationsPath = path.join(workspaceRoot, 'backend/src/database/migrations');
+          const tenantSchemaPath = path.join(workspaceRoot, 'backend/src/database/schema/tenant');
+          const tenantSchemaIndexPath = path.join(tenantSchemaPath, 'index.ts');
+          
+          // Find junction tables that include this module name
+          const schemaFiles = await fs.readdir(tenantSchemaPath);
+          const singularName = singularize(name);
+          const pluralName = pluralize(name);
+          
+          let junctionTablesDeleted = 0;
+          for (const file of schemaFiles) {
+            // Check if it's a junction table (contains underscore and module name)
+            if (file.endsWith('.schema.ts') && file.includes('_') && 
+                (file.includes(singularName) || file.includes(pluralName))) {
+              const junctionTablePath = path.join(tenantSchemaPath, file);
+              await fs.unlink(junctionTablePath);
+              
+              // Remove from tenant schema index
+              const content = await fs.readFile(tenantSchemaIndexPath, 'utf-8');
+              const exportName = file.replace('.schema.ts', '');
+              const exportRegex = new RegExp(
+                `export\\s*\\*\\s*from\\s*['"]\\./${exportName}\\.schema['"];?\\n?`,
+                'g',
+              );
+              const updatedContent = content.replace(exportRegex, '');
+              await fs.writeFile(tenantSchemaIndexPath, updatedContent, 'utf-8');
+              
+              logger.success(`✓ Deleted junction table: ${file}`);
+              junctionTablesDeleted++;
+            }
+          }
+          
+          if (junctionTablesDeleted === 0) {
+            logger.info(`  No junction tables found`);
+          }
+        } catch (error) {
+          logger.warn(`⚠ Could not delete junction tables: ${(error as Error).message}`);
+        }
+
+        // 5. Delete migration files
+        logger.info(`\n5. Deleting migration files...`);
+        try {
+          const migrationsPath = path.join(workspaceRoot, 'backend/src/database/migrations');
+          const metaPath = path.join(migrationsPath, 'meta');
+          
+          // Read migration files
+          const migrationFiles = await fs.readdir(migrationsPath);
+          const metaFiles = await fs.readdir(metaPath);
+          
+          let migrationsDeleted = 0;
+          
+          // Find migrations that contain the table name
+          const tableName = toSnakeCase(pluralize(name));
+          
+          for (const file of migrationFiles) {
+            if (file.endsWith('.sql')) {
+              const filePath = path.join(migrationsPath, file);
+              const content = await fs.readFile(filePath, 'utf-8');
+              
+              // Check if migration contains this table
+              if (content.includes(`CREATE TABLE "${tableName}"`) || 
+                  content.includes(`"${tableName}"`) ||
+                  content.includes(`DROP TABLE "${tableName}"`)) {
+                
+                // Delete SQL file
+                await fs.unlink(filePath);
+                
+                // Delete corresponding meta file
+                const migrationNumber = file.split('_')[0];
+                const metaFile = `${migrationNumber}_snapshot.json`;
+                const metaFilePath = path.join(metaPath, metaFile);
+                
+                try {
+                  await fs.unlink(metaFilePath);
+                } catch (e) {
+                  // Meta file might not exist
+                }
+                
+                logger.success(`✓ Deleted migration: ${file}`);
+                migrationsDeleted++;
+              }
+            }
+          }
+          
+          // Update _journal.json
+          const journalPath = path.join(metaPath, '_journal.json');
+          const journalContent = await fs.readFile(journalPath, 'utf-8');
+          const journal = JSON.parse(journalContent);
+          
+          // Filter out deleted migrations
+          const originalLength = journal.entries.length;
+          journal.entries = journal.entries.filter((entry: any) => {
+            const sqlFile = `${entry.idx.toString().padStart(4, '0')}_${entry.tag}.sql`;
+            return migrationFiles.includes(sqlFile);
+          });
+          
+          if (journal.entries.length < originalLength) {
+            await fs.writeFile(journalPath, JSON.stringify(journal, null, 2), 'utf-8');
+            logger.success(`✓ Updated _journal.json (removed ${originalLength - journal.entries.length} entries)`);
+          }
+          
+          if (migrationsDeleted === 0) {
+            logger.info(`  No migration files found for this module`);
+          } else {
+            logger.success(`✓ Deleted ${migrationsDeleted} migration file(s)`);
+          }
+        } catch (error) {
+          logger.warn(`⚠ Could not delete migration files: ${(error as Error).message}`);
+        }
+
+        // 6. Delete database metadata
         if (!options.keepDb) {
           logger.info(`\n4. Deleting database metadata...`);
           try {
@@ -261,6 +374,16 @@ function toKebabCase(str: string): string {
   return str
     .replace(/([a-z])([A-Z])/g, '$1-$2')
     .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+}
+
+/**
+ * Helper: Convert to snake_case
+ */
+function toSnakeCase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
     .toLowerCase();
 }
 

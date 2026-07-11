@@ -210,6 +210,41 @@ export const fieldValidations = pgTable('field_validations', {
 });
 
 /**
+ * Module migrations table
+ * Tracks migration files associated with each module
+ */
+export const moduleMigrations = pgTable('module_migrations', {
+  id: serial('id').primaryKey(),
+  
+  // Reference to module
+  module_id: integer('module_id').notNull().references(() => generatedModules.id, { onDelete: 'cascade' }),
+  
+  // Migration info
+  migration_file: varchar('migration_file', { length: 255 }).notNull(), // e.g., "0004_adorable_thaddeus_ross.sql"
+  migration_name: varchar('migration_name', { length: 255 }).notNull(), // Human readable: "create_products_table"
+  migration_path: text('migration_path').notNull(), // Full path to migration file
+  
+  // Drizzle meta info
+  snapshot_file: varchar('snapshot_file', { length: 255 }), // e.g., "0004_snapshot.json"
+  
+  // Status
+  is_applied: boolean('is_applied').default(false).notNull(), // Has been run via db:push or migrate
+  applied_at: timestamp('applied_at'),
+  
+  // Rollback info
+  can_rollback: boolean('can_rollback').default(true).notNull(),
+  is_rolled_back: boolean('is_rolled_back').default(false).notNull(),
+  rolled_back_at: timestamp('rolled_back_at'),
+  
+  // SQL content (for rollback without file)
+  up_sql: text('up_sql'), // Migration SQL
+  down_sql: text('down_sql'), // Rollback SQL (if we generate it)
+  
+  // Timestamps
+  created_at: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
  * Generation history table
  * Audit trail for all CLI operations
  */
@@ -249,5 +284,7 @@ export type ModuleField = typeof moduleFields.$inferSelect;
 export type NewModuleField = typeof moduleFields.$inferInsert;
 export type FieldValidation = typeof fieldValidations.$inferSelect;
 export type NewFieldValidation = typeof fieldValidations.$inferInsert;
+export type ModuleMigration = typeof moduleMigrations.$inferSelect;
+export type NewModuleMigration = typeof moduleMigrations.$inferInsert;
 export type GenerationHistory = typeof generationHistory.$inferSelect;
 export type NewGenerationHistory = typeof generationHistory.$inferInsert;

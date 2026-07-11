@@ -8,7 +8,11 @@ import { TenantContextService } from '../../common/context/tenant-context.servic
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import * as tenantSchema from '../../database/schema/tenant';
+{{#if useExistingSchema}}
+import { {{camelCase (pluralize name)}} } from '../../database/schema/tenant/{{kebab-case (pluralize name)}}.schema';
+{{else}}
 import { {{camelCase (pluralize name)}} } from './entities/{{kebab-case (singularize name)}}.entity';
+{{/if}}
 
 {{#if softDelete}}
 @Injectable()
@@ -24,6 +28,100 @@ export class {{PascalCase name}}Repository extends BaseRepository<typeof {{camel
       {{camelCase (pluralize name)}},
       {{#if tenant}}tenantContext{{else}}null{{/if}},
     );
+  }
+
+  /**
+   * Find all with pagination, filtering, sorting, and search
+   */
+  async findAllWithQuery(query: any): Promise<{
+    data: (typeof {{camelCase (pluralize name)}}.$inferSelect)[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { page = 1, limit = 10, sort, order = 'asc', search } = query;
+    const offset = (page - 1) * limit;
+
+    {{#if tenant}}
+    return this.withTenantSchema(async () => {
+    {{/if}}
+      const { and, or, eq, ilike, isNull, sql, asc, desc } = await import('drizzle-orm');
+      
+      // Build WHERE conditions
+      const conditions: any[] = [isNull(this.table.deleted_at)];
+      
+      {{#if (hasFilterable fields)}}
+      // Apply filters
+      {{#each fields}}
+      {{#if this.isFilterable}}
+      if (query.{{this.name}} !== undefined) {
+        {{#if (eq this.type 'number')}}
+        if (query.{{this.name}} === null) {
+          conditions.push(isNull(this.table.{{this.name}}));
+        } else {
+          conditions.push(eq(this.table.{{this.name}}, query.{{this.name}}));
+        }
+        {{else}}
+        conditions.push(eq(this.table.{{this.name}}, query.{{this.name}}));
+        {{/if}}
+      }
+      {{/if}}
+      {{/each}}
+      {{/if}}
+
+      {{#if (hasSearchable fields)}}
+      // Apply search (case-insensitive)
+      if (search) {
+        const searchConditions = [
+          {{#each fields}}
+          {{#if this.isSearchable}}
+          ilike(this.table.{{this.name}}, `%${search}%`),
+          {{/if}}
+          {{/each}}
+        ];
+        if (searchConditions.length > 0) {
+          conditions.push(or(...searchConditions)!);
+        }
+      }
+      {{/if}}
+
+      const whereClause = and(...conditions);
+
+      // Get total count
+      const countResult = await this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(this.table)
+        .where(whereClause);
+      const total = Number(countResult[0]?.count || 0);
+
+      // Build main query
+      let dbQuery: any = this.db
+        .select()
+        .from(this.table)
+        .where(whereClause);
+
+      {{#if (hasSortable fields)}}
+      // Apply sorting
+      const sortField = sort || 'created_at';
+      if (order === 'desc') {
+        dbQuery = dbQuery.orderBy(desc(this.table[sortField]));
+      } else {
+        dbQuery = dbQuery.orderBy(asc(this.table[sortField]));
+      }
+      {{/if}}
+
+      // Apply pagination
+      const data = await dbQuery.limit(limit).offset(offset);
+
+      return {
+        data,
+        total,
+        page,
+        limit,
+      };
+    {{#if tenant}}
+    });
+    {{/if}}
   }
 
   // Add custom query methods here

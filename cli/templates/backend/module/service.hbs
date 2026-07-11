@@ -31,6 +31,7 @@ export class {{PascalCase name}}Service {
     return {
       ...result,
       data: result.data.map((item) => this.toResponseDto(item)),
+      totalPages: Math.ceil(result.total / result.limit),
     };
   }
 
@@ -148,7 +149,7 @@ export class {{PascalCase name}}Service {
       id: item.id,
 {{#if hasFields}}
 {{#each fields}}
-      {{this.name}}: item.{{this.name}},
+      {{this.name}}: item.{{this.name}}{{#unless this.required}} ?? undefined{{/unless}},
 {{/each}}
 {{else}}
       // TODO: Add other fields
@@ -156,7 +157,7 @@ export class {{PascalCase name}}Service {
       created_at: item.created_at,
       updated_at: item.updated_at,
       {{#if softDelete}}
-      deleted_at: item.deleted_at,
+      deleted_at: item.deleted_at ?? undefined,
       {{/if}}
     };
   }

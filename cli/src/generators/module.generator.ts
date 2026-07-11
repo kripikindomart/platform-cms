@@ -121,6 +121,22 @@ export class ModuleGenerator extends BaseGenerator {
       console.log('  If this is incorrect, use --dir option to specify the correct path.\n');
     }
     
+    // Check if schema already exists BEFORE generating files
+    const entityName = toKebabCase(singularize(name));
+    const schemaPath = path.join(workspaceRoot, 'backend', 'src', 'database', 'schema', 'tenant', `${pluralize(entityName)}.schema.ts`);
+    
+    let useExistingSchema = false;
+    try {
+      await fs.access(schemaPath);
+      useExistingSchema = true;
+      console.log(`ℹ Schema already exists: ${pluralize(entityName)}.schema.ts - skipping entity generation`);
+    } catch {
+      // Schema doesn't exist
+    }
+    
+    // Update data with schema detection result
+    data.useExistingSchema = useExistingSchema;
+    
     const baseDir = options.dir || path.join(workspaceRoot, 'backend', 'src', 'modules');
     const moduleName = toKebabCase(pluralize(name));
 
@@ -148,12 +164,13 @@ export class ModuleGenerator extends BaseGenerator {
       content: await this.renderTemplate('backend/module/repository.hbs', data),
     });
 
-    // 5. Entity file
-    const entityName = toKebabCase(singularize(name));
-    files.push({
-      path: path.join(baseDir, moduleName, 'entities', `${entityName}.entity.ts`),
-      content: await this.renderTemplate('backend/module/entities/entity.hbs', data),
-    });
+    // 5. Entity file (conditionally generate based on schema existence)
+    if (!useExistingSchema) {
+      files.push({
+        path: path.join(baseDir, moduleName, 'entities', `${entityName}.entity.ts`),
+        content: await this.renderTemplate('backend/module/entities/entity.hbs', data),
+      });
+    }
 
     // 6. Create DTO
     files.push({

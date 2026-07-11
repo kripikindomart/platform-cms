@@ -15,6 +15,8 @@ import { CaslModule } from './core/casl/casl.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { TagsModule } from './modules/tags/tags.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -39,7 +41,10 @@ import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
     CaslModule,
     PermissionsModule,
     RolesModule,
-    CliMetadataModule],
+    CliMetadataModule,
+    CategoriesModule,
+    TagsModule
+  ],
   controllers: [],
   providers: [
     // Global Throttler Guard

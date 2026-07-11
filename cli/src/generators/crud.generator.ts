@@ -523,26 +523,51 @@ export class CrudGenerator extends ModuleGenerator {
     }
     
     try {
+      const entityFileName = this.toKebabCase(this.singularize(name));
+      const schemaFileName = this.pluralize(entityFileName);
+      
+      // Check if schema already exists in tenant schema folder
+      const schemaPath = path.join(path.dirname(tenantSchemaPath), `${schemaFileName}.schema.ts`);
+      let schemaExists = false;
+      
+      try {
+        await fs.access(schemaPath);
+        schemaExists = true;
+      } catch {
+        // Schema doesn't exist
+      }
+      
       // Read tenant schema index
       const content = await fs.readFile(tenantSchemaPath, 'utf-8');
       
-      // Check if already exported
-      const exportStatement = `export * from '../../../modules/${this.toKebabCase(this.pluralize(name))}/entities/${entityFileName}.entity';`;
+      let exportStatement: string;
       
-      if (content.includes(entityFileName)) {
-        console.log(`⚠ Entity already exported in tenant schema index`);
-        return;
+      if (schemaExists) {
+        // Use existing schema export (should already be there)
+        exportStatement = `export * from './${schemaFileName}.schema';`;
+        
+        if (content.includes(exportStatement)) {
+          console.log(`✓ Using existing schema: ${schemaFileName}.schema.ts`);
+          return;
+        }
+      } else {
+        // Export generated entity
+        exportStatement = `export * from '../../../modules/${this.toKebabCase(this.pluralize(name))}/entities/${entityFileName}.entity';`;
+        
+        if (content.includes(entityFileName)) {
+          console.log(`⚠ Entity already exported in tenant schema index`);
+          return;
+        }
       }
       
       // Add export statement at the end
       const updatedContent = content.trim() + `\n${exportStatement}\n`;
       
       await fs.writeFile(tenantSchemaPath, updatedContent, 'utf-8');
-      console.log(`✓ Auto-exported entity to tenant schema index`);
+      console.log(`✓ Auto-exported ${schemaExists ? 'schema' : 'entity'} to tenant schema index`);
     } catch (error) {
-      console.log(`\n⚠ Could not auto-export entity: ${(error as Error).message}`);
-      console.log(`  Please manually add to backend/src/database/schema/tenant/index.ts:`);
-      console.log(`  export * from '../../../modules/${this.toKebabCase(this.pluralize(name))}/entities/${entityFileName}.entity';`);
+      console.log(`\n⚠ Could not auto-export: ${(error as Error).message}`);
+      console.log(`  Please manually add to backend/src/database/schema/tenant/index.ts`);
     }
   }
 

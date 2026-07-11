@@ -4,6 +4,10 @@
  */
 
 import { ModuleGenerator, ModuleGeneratorOptions } from './module.generator';
+import {
+  generateModulePermissions,
+  generatePermissionMigration,
+} from '../utils/permission-generator';
 
 export interface Field {
   name: string;
@@ -112,6 +116,11 @@ export class CrudGenerator extends ModuleGenerator {
 
       // Write files
       await this.writeFiles(files);
+
+      // Generate permissions for this module
+      if (!options.dryRun) {
+        await this.generatePermissions(name, options);
+      }
 
       // Generate junction tables for many-to-many relations
       if (!options.dryRun && manyToManyRelations.length > 0) {
@@ -919,5 +928,62 @@ export class CrudGenerator extends ModuleGenerator {
     if (word.endsWith('ies')) return word.slice(0, -3) + 'y';
     if (word.endsWith('s')) return word.slice(0, -1);
     return word;
+  }
+
+  /**
+   * Generate permissions for the module
+   */
+  private async generatePermissions(name: string, options: CrudGeneratorOptions): Promise<void> {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      // Generate permission set
+      const permissionSet = generateModulePermissions(name, this.toPascalCase(this.pluralize(name)));
+
+      // Calculate workspace root
+      let workspaceRoot = this.options.outputPath || process.cwd();
+      workspaceRoot = path.normalize(workspaceRoot);
+
+      // Try current directory first, then parent
+      let migrationsDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'migrations');
+      try {
+        await fs.access(migrationsDir);
+      } catch {
+        workspaceRoot = path.join(workspaceRoot, '..');
+        migrationsDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'migrations');
+      }
+
+      // Create permissions directory if not exists
+      const permissionsDir = path.join(migrationsDir, 'permissions');
+      try {
+        await fs.mkdir(permissionsDir, { recursive: true });
+      } catch {
+        // Directory already exists
+      }
+
+      // Generate migration content
+      const migrationContent = generatePermissionMigration(name, permissionSet.permissions);
+
+      // Write migration file
+      const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+      const fileName = `${timestamp}_add_${permissionSet.resource}_permissions.sql`;
+      const filePath = path.join(permissionsDir, fileName);
+
+      await fs.writeFile(filePath, migrationContent, 'utf-8');
+
+      console.log(`✓ Generated permissions migration: ${fileName}`);
+      console.log(`Permissions created for ${permissionSet.resource}:`);
+      permissionSet.permissions.forEach((p) => {
+        console.log(`  - ${p.slug}: ${p.description}`);
+      });
+
+      console.log('\nTo apply permissions:');
+      console.log(`  1. Run: psql -h localhost -p 5432 -U postgres -d platform_cms -f ${filePath}`);
+      console.log(`  2. Or manually execute the SQL in the migration file`);
+    } catch (error) {
+      console.warn(`Could not generate permissions: ${(error as Error).message}`);
+      console.log('You can manually create permissions later');
+    }
   }
 }

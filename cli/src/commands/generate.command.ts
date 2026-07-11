@@ -46,8 +46,9 @@ export function generateCommand(): Command {
 
   // CRUD subcommand
   cmd
-    .command('crud <name>')
+    .command('crud [name]')
     .description('Generate full CRUD (module, controller, service, repository, DTOs)')
+    .option('-i, --interactive', 'Interactive mode with guided prompts')
     .option('--fields <fields>', 'Field definitions (name:type:length:precision:scale:modifiers)')
     .option('--enum <enum>', 'Enum definitions (field:value1,value2;field2:val1,val2)')
     .option('--relation <relation>', 'Relation definitions (field:module:type)')
@@ -62,8 +63,38 @@ export function generateCommand(): Command {
     .option('--dir <directory>', 'Custom output directory (absolute or relative to workspace root)')
     .option('--dry-run', 'Show what would be generated without creating files')
     .option('--force', 'Overwrite existing files without prompting')
-    .action(async (name: string, options) => {
+    .action(async (name: string | undefined, options) => {
       try {
+        // Interactive mode
+        if (options.interactive) {
+          const { interactiveCrudGeneration } = await import('../utils/interactive.utils');
+          const interactiveOptions = await interactiveCrudGeneration();
+          
+          if (!interactiveOptions) {
+            // User cancelled
+            process.exit(0);
+          }
+          
+          // Use interactive options
+          name = interactiveOptions.name;
+          options = {
+            ...options,
+            fields: interactiveOptions.fields.join(','),
+            tenant: interactiveOptions.tenant,
+            softDelete: interactiveOptions.softDelete,
+            audit: interactiveOptions.audit,
+            searchable: interactiveOptions.searchable,
+            sortable: interactiveOptions.sortable,
+            filterable: interactiveOptions.filterable,
+          };
+        }
+        
+        // Validate name
+        if (!name) {
+          logger.error('Module name is required. Use --interactive or provide <name> argument.');
+          process.exit(1);
+        }
+        
         const { CrudGenerator } = await import('../generators/crud.generator');
         
         const generator = new CrudGenerator({

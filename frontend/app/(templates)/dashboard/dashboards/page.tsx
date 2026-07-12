@@ -22,7 +22,7 @@ export default function DashboardsIndexPage() {
       icon: TrendingUp,
       color: 'from-cyan-500 to-blue-600',
       href: '/dashboard/dashboards/sales',
-      status: 'coming',
+      status: 'ready',
     },
     {
       id: 'ecommerce',
@@ -31,7 +31,7 @@ export default function DashboardsIndexPage() {
       icon: ShoppingCart,
       color: 'from-green-500 to-emerald-600',
       href: '/dashboard/dashboards/ecommerce',
-      status: 'coming',
+      status: 'ready',
     },
     {
       id: 'crm',
@@ -40,7 +40,7 @@ export default function DashboardsIndexPage() {
       icon: Users,
       color: 'from-amber-500 to-orange-600',
       href: '/dashboard/dashboards/crm',
-      status: 'coming',
+      status: 'ready',
     },
     {
       id: 'project',
@@ -49,7 +49,7 @@ export default function DashboardsIndexPage() {
       icon: FolderKanban,
       color: 'from-rose-500 to-pink-600',
       href: '/dashboard/dashboards/project',
-      status: 'coming',
+      status: 'ready',
     },
   ];
 

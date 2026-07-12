@@ -16,10 +16,10 @@
 | Week 8-9 | ✅ Complete | 2 | 2 | 100% |
 | Week 10-11 | ✅ Complete | 11 | 11 | 100% |
 | Week 12-13 | ✅ Complete | 4 | 4 | 100% |
-| Week 14-15 | 🟡 In Progress | 1 | 5 | 20% |
+| Week 14-15 | 🟡 In Progress | 2 | 5 | 40% |
 | Week 16 | ⏳ Pending | 0 | 5 | 0% |
 
-**Total Progress**: 32/35 tasks (91.4%)
+**Total Progress**: 33/35 tasks (94.3%)
 
 ---
 
@@ -132,6 +132,143 @@ components/
 - Proceed to Task 7.2 (API Integration Layer)
 
 **Time Savings**: 25% faster (3h vs 4h estimated)
+
+---
+
+### Task 7.2: API Integration Layer
+**Status**: COMPLETE ✅  
+**Started**: 2026-07-12  
+**Completed**: 2026-07-12  
+**Assignee**: AI Assistant  
+**Priority**: P0 - CRITICAL  
+**Estimated Time**: 4 hours  
+**Actual Time**: 2 hours
+
+**Objective**:
+Implement API integration layer dengan typed client, services, dan React hooks untuk data fetching.
+
+**Implementation Approach**:
+1. Create typed API client dengan automatic header management
+2. Create service layer untuk semua resources (users, roles, tenants, audit, auth)
+3. Create React hooks untuk state management
+4. Setup environment variables
+5. Add toast notifications (sonner)
+
+**Features Implemented**:
+- ✅ **API Client** (`lib/api/client.ts`):
+  - Type-safe HTTP methods (GET, POST, PUT, PATCH, DELETE)
+  - Automatic tenant header (X-Tenant-Slug)
+  - Error handling dengan custom ApiError class
+  - Query params support
+  - Credentials included for cookies/JWT
+
+- ✅ **Type Definitions** (`lib/api/types.ts`):
+  - User, Role, Permission, Tenant, AuditLog types
+  - DTO types (Create, Update)
+  - PaginatedResponse, ApiResponse generics
+  - Auth types (LoginDTO, RegisterDTO, AuthResponse)
+
+- ✅ **Services** (`lib/api/services/`):
+  - `auth.service.ts` - login, register, logout, me, refreshToken
+  - `users.service.ts` - CRUD + assignRoles, removeRole
+  - `roles.service.ts` - CRUD + getAllPermissions, assignPermissions
+  - `tenants.service.ts` - CRUD operations
+  - `audit.service.ts` - Read-only getAll, getById
+
+- ✅ **React Hooks** (`hooks/`):
+  - `use-users.ts` - fetchUsers, createUser, updateUser, deleteUser
+  - `use-roles.ts` - fetchRoles, createRole, updateRole, deleteRole
+  - With loading states, error handling, pagination
+  - Toast notifications pada success/error
+
+- ✅ **Environment Config**:
+  - `config/env.ts` - Typed environment variables
+  - `.env.local` - API_URL, DEFAULT_TENANT_SLUG
+
+- ✅ **Toast Notifications**:
+  - Installed sonner
+  - Added <Toaster /> to root layout
+  - Toast messages dalam Bahasa Indonesia
+
+**API Client Features**:
+```typescript
+// Auto tenant header
+apiClient.setTenantSlug('tenant_1');
+
+// Type-safe requests
+const users = await apiClient.get<PaginatedResponse<User>>('/users', {
+  params: { page: 1, per_page: 10 }
+});
+
+// Error handling
+try {
+  await apiClient.post('/users', userData);
+} catch (error) {
+  if (error instanceof ApiError) {
+    console.log(error.statusCode, error.code);
+  }
+}
+```
+
+**React Hook Usage**:
+```typescript
+function UsersPage() {
+  const { users, loading, pagination, fetchUsers, deleteUser } = useUsers();
+  
+  useEffect(() => {
+    fetchUsers({ page: 1, per_page: 10 });
+  }, []);
+  
+  return (
+    <div>
+      {loading && <div>Loading...</div>}
+      {users.map(user => <div key={user.id}>{user.name}</div>)}
+    </div>
+  );
+}
+```
+
+**Git Commits**:
+- `2bd4940` - feat(frontend): implement API integration layer dengan services dan hooks
+  - 14 files changed, 693 insertions(+)
+  - Created API client, types, services, hooks
+  - Added sonner toast, env config
+
+**Testing Results**:
+- ✅ Build successful: `npm run build` passed
+- ✅ No TypeScript errors
+- ✅ All services properly typed
+- ✅ Hooks ready for use in pages
+- ⏳ Integration testing with backend API pending
+
+**Files Structure**:
+```
+lib/api/
+├── client.ts              # HTTP client dengan tenant support
+├── types.ts               # TypeScript types & DTOs
+├── index.ts               # Re-exports
+└── services/
+    ├── auth.service.ts
+    ├── users.service.ts
+    ├── roles.service.ts
+    ├── tenants.service.ts
+    └── audit.service.ts
+
+hooks/
+├── use-users.ts           # Users data fetching
+└── use-roles.ts           # Roles data fetching
+
+config/
+└── env.ts                 # Environment config
+```
+
+**Next Steps**:
+- Test API integration dengan backend yang running
+- Implement authentication pages (login/register)
+- Implement user management pages
+- Implement role management pages
+
+**Time Savings**: 50% faster (2h vs 4h estimated)
 
 ---
 

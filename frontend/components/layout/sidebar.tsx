@@ -76,7 +76,12 @@ export function Sidebar() {
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
             <span className="flex-1">{item.title}</span>
-            {isActive && (
+            {item.badge && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-md">
+                {item.badge}
+              </span>
+            )}
+            {isActive && !item.badge && (
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
             )}
           </Link>

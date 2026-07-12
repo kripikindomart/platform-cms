@@ -6,6 +6,7 @@ import {
   Database,
   FileText,
   Settings,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,6 +25,12 @@ export const menuItems: MenuItem[] = [
     title: 'Dashboard',
     url: '/portal',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'UI Components',
+    url: '/portal/components',
+    icon: Sparkles,
+    badge: 'New',
   },
   {
     title: 'User Management',

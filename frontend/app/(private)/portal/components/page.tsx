@@ -293,21 +293,77 @@ export default function ComponentsPage() {
       </section>
 
       {/* Buttons */}
-      <section className="space-y-4">
+      <section className="space-y-6">
         <h2 className="text-xl font-bold text-neutral-900">Buttons</h2>
-        <div className="flex flex-wrap gap-3">
-          <Button>Default Button</Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="outline">Outline</Button>
-          <Button variant="ghost">Ghost</Button>
-          <Button variant="destructive">Destructive</Button>
-          <Button size="sm">Small</Button>
-          <Button size="lg">Large</Button>
-          <Button disabled>Disabled</Button>
-          <Button>
-            <Download className="mr-2 h-4 w-4" />
-            With Icon
-          </Button>
+        
+        {/* Gradient Variants */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-700">Gradient Variants (Premium)</h3>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary">
+              <Download className="w-4 h-4" />
+              Primary
+            </Button>
+            <Button variant="accent">
+              <Sparkles className="w-4 h-4" />
+              Accent
+            </Button>
+            <Button variant="success">Success</Button>
+            <Button variant="warning">Warning</Button>
+            <Button variant="danger">Danger</Button>
+          </div>
+        </div>
+
+        {/* Solid Variants */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-700">Solid Variants</h3>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline">Outline</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button variant="link">Link Button</Button>
+          </div>
+        </div>
+
+        {/* Sizes */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-700">Sizes</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button size="sm">Small (h-10)</Button>
+            <Button size="default">Default (h-12)</Button>
+            <Button size="lg">Large (h-14)</Button>
+          </div>
+        </div>
+
+        {/* Icon Buttons */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-700">Icon Buttons</h3>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary" size="icon">
+              <Download className="w-5 h-5" />
+            </Button>
+            <Button variant="accent" size="icon">
+              <Sparkles className="w-5 h-5" />
+            </Button>
+            <Button variant="outline" size="icon-sm">
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon-lg">
+              <Trash2 className="w-6 h-6" />
+            </Button>
+          </div>
+        </div>
+
+        {/* States */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-neutral-700">States</h3>
+          <div className="flex flex-wrap gap-3">
+            <Button disabled>Disabled</Button>
+            <Button variant="primary">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+              Loading
+            </Button>
+          </div>
         </div>
       </section>
 

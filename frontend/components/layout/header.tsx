@@ -1,69 +1,48 @@
 'use client';
 
-import { Bell, User, Search } from 'lucide-react';
+import { Bell, Search, Command } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Header() {
-  // Mock user data - akan diganti dengan actual auth
-  const user = {
-    name: 'Admin User',
-    email: 'admin@demo.com',
-    avatar: undefined,
-    initials: 'AU',
-  };
-
   return (
-    <header className="h-16 border-b border-neutral-200 bg-white px-6 flex items-center justify-between sticky top-0 z-10">
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-          <Input placeholder="Search..." className="pl-10" />
+    <header className="h-16 border-b border-neutral-100 bg-white/80 backdrop-blur-xl sticky top-0 z-10">
+      <div className="h-full px-6 flex items-center justify-between">
+        {/* Search */}
+        <div className="flex-1 max-w-xl">
+          <button className="w-full max-w-md group">
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-neutral-50 hover:bg-neutral-100 rounded-xl border border-neutral-200 transition-all duration-200">
+              <Search className="h-4 w-4 text-neutral-400" />
+              <span className="text-sm text-neutral-500 flex-1 text-left">Search or jump to...</span>
+              <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 bg-white rounded-lg border border-neutral-200 text-xs font-medium text-neutral-500">
+                <Command className="h-3 w-3" />
+                <span>K</span>
+              </kbd>
+            </div>
+          </button>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon">
-          <Bell className="h-5 w-5" />
-        </Button>
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {/* Notifications */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="relative h-10 w-10 rounded-xl hover:bg-neutral-100"
+          >
+            <Bell className="h-5 w-5 text-neutral-600" />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white" />
+          </Button>
 
-        {/* User menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="ghost" className="gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback>{user.initials}</AvatarFallback>
-              </Avatar>
-              <div className="hidden md:flex flex-col items-start text-sm">
-                <span className="font-medium">{user.name}</span>
-                <span className="text-xs text-neutral-500">{user.email}</span>
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600">Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          {/* Divider */}
+          <div className="w-px h-6 bg-neutral-200 mx-2" />
+
+          {/* User Avatar */}
+          <button className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-50 rounded-xl transition-all">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+              AU
+            </div>
+          </button>
+        </div>
       </div>
     </header>
   );

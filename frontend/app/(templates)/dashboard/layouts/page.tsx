@@ -118,39 +118,6 @@ export default function LayoutsPage() {
     },
   ];
 
-  const layouts = [
-    {
-      id: 'floating',
-      title: 'Floating Sidebar Layout',
-      description: 'Complete layout with floating sidebar',
-      status: 'coming',
-    },
-    {
-      id: 'collapsible',
-      title: 'Collapsible Sidebar Layout',
-      description: 'Layout with collapsible sidebar',
-      status: 'coming',
-    },
-    {
-      id: 'compact',
-      title: 'Compact Sidebar Layout',
-      description: 'Layout with compact icon sidebar',
-      status: 'coming',
-    },
-    {
-      id: 'horizontal',
-      title: 'Horizontal Navigation Layout',
-      description: 'Layout with top navigation',
-      status: 'coming',
-    },
-    {
-      id: 'header-footer',
-      title: 'Header + Footer Layout',
-      description: 'Marketing layout with header & footer',
-      status: 'coming',
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-[#FAFBFC]">
       {/* Header */}
@@ -180,7 +147,7 @@ export default function LayoutsPage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-50 text-cyan-700 rounded-full text-sm font-semibold mb-4">
             <Layout className="w-4 h-4" />
-            12 Components Ready
+            22 Items (12 Components + 10 Layouts)
           </div>
           <h1 className="text-4xl font-bold text-neutral-900 mb-4">
             Layout Components & Templates
@@ -235,27 +202,40 @@ export default function LayoutsPage() {
         <section>
           <h2 className="text-2xl font-bold text-neutral-900 mb-6">Complete Layouts</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {layouts.map((layout, index) => (
+            {[
+              { id: 'floating', title: 'Floating Sidebar', desc: 'Elevated sidebar with shadow' },
+              { id: 'collapsible', title: 'Collapsible Sidebar', desc: 'Sidebar that collapses' },
+              { id: 'compact', title: 'Compact Sidebar', desc: 'Dark icon-only sidebar' },
+              { id: 'horizontal', title: 'Horizontal Nav', desc: 'Top navigation bar' },
+              { id: 'header-footer', title: 'Header + Footer', desc: 'Marketing layout' },
+              { id: 'with-command', title: 'With Command Palette', desc: 'Cmd+K search' },
+              { id: 'with-workspace', title: 'With Workspace', desc: 'Multi-workspace' },
+              { id: 'with-notifications', title: 'With Notifications', desc: 'Notification center' },
+              { id: 'with-search', title: 'With Search', desc: 'Global search' },
+              { id: 'minimal', title: 'Minimal', desc: 'Clean minimal layout' },
+            ].map((layout, index) => (
               <motion.div
                 key={layout.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + index * 0.05 }}
               >
-                <div className="p-6 bg-white rounded-2xl border border-neutral-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <Layout className="w-8 h-8 text-neutral-400" />
-                    <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded-lg">
-                      Coming Soon
-                    </span>
+                <Link href={`/dashboard/layouts/${layout.id}`}>
+                  <div className="group h-full p-6 bg-white rounded-2xl border border-neutral-200 hover:border-indigo-200 hover:shadow-xl transition-all cursor-pointer">
+                    <div className="flex items-start justify-between mb-3">
+                      <Layout className="w-8 h-8 text-indigo-600 group-hover:scale-110 transition-transform" />
+                      <span className="px-2 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-lg">
+                        Ready
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-neutral-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                      {layout.title}
+                    </h3>
+                    <p className="text-sm text-neutral-600">
+                      {layout.desc}
+                    </p>
                   </div>
-                  <h3 className="text-lg font-bold text-neutral-900 mb-2">
-                    {layout.title}
-                  </h3>
-                  <p className="text-sm text-neutral-600">
-                    {layout.description}
-                  </p>
-                </div>
+                </Link>
               </motion.div>
             ))}
           </div>

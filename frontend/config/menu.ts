@@ -7,6 +7,7 @@ import {
   FileText,
   Settings,
   Sparkles,
+  Palette,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -25,6 +26,12 @@ export const menuItems: MenuItem[] = [
     title: 'Dashboard',
     url: '/portal',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'Template Gallery',
+    url: '/dashboard',
+    icon: Palette,
+    badge: 'Premium',
   },
   {
     title: 'UI Components',

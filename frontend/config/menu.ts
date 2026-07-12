@@ -6,8 +6,6 @@ import {
   Database,
   FileText,
   Settings,
-  Tag,
-  FolderTree,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -18,20 +16,14 @@ export interface MenuItem {
   badge?: string;
   superAdminOnly?: boolean;
   adminOnly?: boolean;
-  isActive?: boolean;
-  items?: Array<{
-    title: string;
-    url: string;
-  }>;
+  items?: MenuItem[];
 }
 
-// Main navigation items
-export const navMainItems: MenuItem[] = [
+export const menuItems: MenuItem[] = [
   {
     title: 'Dashboard',
     url: '/portal',
     icon: LayoutDashboard,
-    isActive: true,
   },
   {
     title: 'User Management',
@@ -42,10 +34,12 @@ export const navMainItems: MenuItem[] = [
       {
         title: 'All Users',
         url: '/mgmt-users',
+        icon: Users,
       },
       {
         title: 'Add User',
         url: '/mgmt-users/create',
+        icon: Users,
       },
     ],
   },
@@ -58,12 +52,20 @@ export const navMainItems: MenuItem[] = [
       {
         title: 'All Roles',
         url: '/mgmt-roles',
+        icon: Shield,
       },
       {
         title: 'Permissions',
         url: '/mgmt-roles/permissions',
+        icon: Shield,
       },
     ],
+  },
+  {
+    title: 'Tenant Management',
+    url: '/mgmt-tenants',
+    icon: Building2,
+    superAdminOnly: true,
   },
   {
     title: 'Master Data',
@@ -73,10 +75,12 @@ export const navMainItems: MenuItem[] = [
       {
         title: 'Categories',
         url: '/data-master/categories',
+        icon: Database,
       },
       {
         title: 'Tags',
         url: '/data-master/tags',
+        icon: Database,
       },
     ],
   },
@@ -88,36 +92,13 @@ export const navMainItems: MenuItem[] = [
       {
         title: 'Audit Logs',
         url: '/sys-audit',
+        icon: FileText,
       },
       {
         title: 'Settings',
         url: '/sys-settings',
+        icon: Settings,
       },
     ],
-  },
-];
-
-// Projects/Quick Access (optional)
-export const projectsItems = [
-  {
-    name: 'Tenant Management',
-    url: '/mgmt-tenants',
-    icon: Building2,
-  },
-];
-
-// User data (will be replaced with actual auth)
-export const userData = {
-  name: 'Admin User',
-  email: 'admin@demo.com',
-  avatar: '/avatars/admin.jpg',
-};
-
-// Teams/Tenants data (for multi-tenant support)
-export const teamsData = [
-  {
-    name: 'Platform CMS',
-    logo: Building2,
-    plan: 'Enterprise',
   },
 ];

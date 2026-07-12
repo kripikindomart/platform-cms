@@ -14,6 +14,7 @@ import {
   Palette,
   Component,
   ArrowRight,
+  FileWarning,
 } from 'lucide-react';
 
 export default function TemplateGalleryPage() {
@@ -50,16 +51,16 @@ export default function TemplateGalleryPage() {
       title: 'Dashboards',
       description: 'Analytics, Stats, Charts, Widgets',
       icon: LayoutDashboard,
-      count: 6,
+      count: 5,
       color: 'from-emerald-500 to-green-600',
       href: '/dashboard/dashboards',
     },
     {
       id: 'forms',
       title: 'Forms',
-      description: 'Input, Select, Upload, Validation, Wizard',
+      description: 'Contact, Profile, Checkout, Survey, Settings',
       icon: FileText,
-      count: 20,
+      count: 6,
       color: 'from-amber-500 to-orange-600',
       href: '/dashboard/forms',
     },
@@ -68,9 +69,18 @@ export default function TemplateGalleryPage() {
       title: 'Tables',
       description: 'Data Grid, Sorting, Filtering, Pagination',
       icon: Table,
-      count: 5,
+      count: 4,
       color: 'from-rose-500 to-pink-600',
       href: '/dashboard/tables',
+    },
+    {
+      id: 'states',
+      title: 'State Pages',
+      description: 'Empty, Loading, 404, 500, Maintenance, Success',
+      icon: FileWarning,
+      count: 6,
+      color: 'from-orange-500 to-red-600',
+      href: '/dashboard/states',
     },
     {
       id: 'components',
@@ -136,7 +146,7 @@ export default function TemplateGalleryPage() {
             </span>
           </h1>
           <p className="text-xl text-neutral-600 leading-relaxed">
-            100+ production-ready components, pages, and layouts built with Next.js 15,
+            70+ production-ready components and 51+ templates built with Next.js 15,
             React 19, TypeScript, and Tailwind CSS. Designed for modern SaaS applications.
           </p>
         </motion.div>
@@ -205,10 +215,10 @@ export default function TemplateGalleryPage() {
           className="mt-16 grid grid-cols-4 gap-6"
         >
           {[
-            { label: 'Components', value: '100+' },
-            { label: 'Pages', value: '50+' },
+            { label: 'Components', value: '70+' },
+            { label: 'Templates', value: '51+' },
             { label: 'Layouts', value: '10+' },
-            { label: 'Variants', value: '200+' },
+            { label: 'Routes', value: '55' },
           ].map((stat, i) => (
             <div
               key={i}
@@ -233,15 +243,15 @@ export default function TemplateGalleryPage() {
               'Premium Design System',
               'Authentication Pages',
               'Dashboard Layouts',
-              'Form Components',
+              'Form Templates',
               'Data Tables',
-              'Charts & Graphs',
+              'State Pages',
               'Modal & Dialogs',
               'Navigation Components',
               'Empty States',
               'Loading States',
               'Error Pages',
-              'Settings Pages',
+              'Success Pages',
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">

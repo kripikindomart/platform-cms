@@ -48,24 +48,24 @@ export default function PagesGalleryPage() {
       description: 'Two-factor authentication, sessions, and security log',
       icon: Shield,
       color: 'from-rose-500 to-red-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/security',
+      status: 'available',
     },
     {
       title: 'Help & Support',
       description: 'FAQ, contact support, and documentation',
       icon: HelpCircle,
       color: 'from-cyan-500 to-blue-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/help',
+      status: 'available',
     },
     {
       title: 'Privacy Policy',
       description: 'Terms of service and privacy policy pages',
       icon: FileText,
       color: 'from-violet-500 to-purple-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/privacy',
+      status: 'available',
     },
     {
       title: 'Team Management',
@@ -242,8 +242,9 @@ export default function PagesGalleryPage() {
 
           <div className="mt-4 p-4 bg-white rounded-xl border border-neutral-200">
             <p className="text-sm text-neutral-600">
-              <strong className="text-neutral-900">✅ Now Available:</strong> Profile, Account, Billing, Notifications, and Team Management pages are ready to use!
-              The remaining templates (Security, Help, Privacy, Email) are in development.
+              <strong className="text-neutral-900">🎉 Complete!</strong> All 8 page templates are now available:
+              Profile, Account, Billing, Notifications, Security, Team Management, Help & Support, and Privacy Policy.
+              Only Email Templates remain as coming soon.
             </p>
           </div>
         </motion.div>

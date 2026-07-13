@@ -40,8 +40,8 @@ export default function PagesGalleryPage() {
       description: 'Notification preferences and activity center',
       icon: Bell,
       color: 'from-amber-500 to-orange-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/notifications',
+      status: 'available',
     },
     {
       title: 'Security',
@@ -72,8 +72,8 @@ export default function PagesGalleryPage() {
       description: 'Invite members, manage roles, and team settings',
       icon: Lock,
       color: 'from-fuchsia-500 to-pink-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/team',
+      status: 'available',
     },
     {
       title: 'Email Templates',
@@ -242,8 +242,8 @@ export default function PagesGalleryPage() {
 
           <div className="mt-4 p-4 bg-white rounded-xl border border-neutral-200">
             <p className="text-sm text-neutral-600">
-              <strong className="text-neutral-900">Good news!</strong> Profile, Account, and Billing pages are now available.
-              The remaining templates are in active development and will be released soon.
+              <strong className="text-neutral-900">✅ Now Available:</strong> Profile, Account, Billing, Notifications, and Team Management pages are ready to use!
+              The remaining templates (Security, Help, Privacy, Email) are in development.
             </p>
           </div>
         </motion.div>

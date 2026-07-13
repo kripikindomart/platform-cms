@@ -7,5 +7,8 @@ export * from './validation';
 export { apiClient, ApiClient } from './api-client';
 export type { ApiResponse, ApiError } from './api-client';
 
+// Performance Monitoring
+export * from './performance';
+
 // Custom Hooks
 export * from './hooks';

@@ -13,8 +13,8 @@ import { RadioGroup } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert } from '@/components/ui/alert';
-import { Tabs } from '@/components/ui/tabs';
-import { Modal } from '@/components/ui/modal';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Modal, ModalHeader, ModalContent, ModalFooter } from '@/components/ui/modal';
 
 /**
  * Component Showcase Page
@@ -23,7 +23,7 @@ import { Modal } from '@/components/ui/modal';
 
 export default function ComponentShowcasePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [switchValue, setSwitch Value] = useState(false);
+  const [switchValue, setSwitchValue] = useState(false);
   const [checkboxValue, setCheckboxValue] = useState(false);
   const [radioValue, setRadioValue] = useState('option1');
   const [inputValue, setInputValue] = useState('');
@@ -73,9 +73,9 @@ export default function ComponentShowcasePage() {
                 <Button variant="ghost">Ghost</Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="gradient">Gradient</Button>
-                <Button variant="gradient-purple">Purple</Button>
-                <Button variant="gradient-success">Success</Button>
+                <Button variant="accent">Accent</Button>
+                <Button variant="success">Success</Button>
+                <Button variant="warning">Warning</Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="danger">Danger</Button>
@@ -202,7 +202,7 @@ export default function ComponentShowcasePage() {
                 </div>
                 <Switch
                   checked={switchValue}
-                  onChange={setSwitchValue}
+                  onCheckedChange={setSwitchValue}
                 />
               </div>
               {switchValue && (
@@ -225,22 +225,21 @@ export default function ComponentShowcasePage() {
           >
             <h2 className="text-xl font-bold text-neutral-900 mb-4">Checkbox</h2>
             <div className="space-y-3">
-              <Checkbox
-                label="I agree to the terms and conditions"
-                checked={checkboxValue}
-                onChange={setCheckboxValue}
-              />
-              <Checkbox
-                label="Subscribe to newsletter"
-                checked={false}
-                onChange={() => {}}
-              />
-              <Checkbox
-                label="Disabled checkbox"
-                checked={false}
-                onChange={() => {}}
-                disabled
-              />
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={checkboxValue}
+                  onCheckedChange={setCheckboxValue}
+                />
+                <label className="text-sm text-neutral-700">I agree to the terms and conditions</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox checked={false} />
+                <label className="text-sm text-neutral-700">Subscribe to newsletter</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox checked={false} disabled />
+                <label className="text-sm text-neutral-500">Disabled checkbox</label>
+              </div>
             </div>
           </motion.div>
 
@@ -254,7 +253,8 @@ export default function ComponentShowcasePage() {
             <h2 className="text-xl font-bold text-neutral-900 mb-4">Radio Group</h2>
             <RadioGroup
               value={radioValue}
-              onChange={setRadioValue}
+              onValueChange={setRadioValue}
+              name="radio-demo"
               options={[
                 { value: 'option1', label: 'Option 1', description: 'First choice' },
                 { value: 'option2', label: 'Option 2', description: 'Second choice' },
@@ -273,17 +273,17 @@ export default function ComponentShowcasePage() {
             <h2 className="text-xl font-bold text-neutral-900 mb-4">Badges</h2>
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
-                <Badge variant="primary">Primary</Badge>
+                <Badge variant="default">Default</Badge>
                 <Badge variant="secondary">Secondary</Badge>
-                <Badge variant="success">Success</Badge>
-                <Badge variant="warning">Warning</Badge>
-                <Badge variant="danger">Danger</Badge>
-                <Badge variant="info">Info</Badge>
+                <Badge variant="destructive">Destructive</Badge>
+                <Badge variant="outline">Outline</Badge>
+                <Badge variant="ghost">Ghost</Badge>
+                <Badge variant="link">Link</Badge>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="primary" size="sm">Small</Badge>
-                <Badge variant="success" size="md">Medium</Badge>
-                <Badge variant="danger" size="lg">Large</Badge>
+                <Badge variant="default">Status: Active</Badge>
+                <Badge variant="destructive">Error: Failed</Badge>
+                <Badge variant="outline">Count: 42</Badge>
               </div>
             </div>
           </motion.div>
@@ -326,15 +326,24 @@ export default function ComponentShowcasePage() {
         >
           <h2 className="text-xl font-bold text-neutral-900 mb-4">Tabs</h2>
           <Tabs
-            tabs={['Overview', 'Details', 'Settings']}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
-          <div className="mt-4 p-4 bg-neutral-50 rounded-xl">
-            <p className="text-neutral-700">
-              Content for <strong>Tab {activeTab + 1}</strong>
-            </p>
-          </div>
+            value={`tab${activeTab + 1}`}
+            onValueChange={(value) => setActiveTab(parseInt(value.replace('tab', '')) - 1)}
+          >
+            <TabsList>
+              <TabsTrigger value="tab1">Overview</TabsTrigger>
+              <TabsTrigger value="tab2">Details</TabsTrigger>
+              <TabsTrigger value="tab3">Settings</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tab1" className="mt-4 p-4 bg-neutral-50 rounded-xl">
+              <p className="text-neutral-700">Content for <strong>Overview</strong></p>
+            </TabsContent>
+            <TabsContent value="tab2" className="mt-4 p-4 bg-neutral-50 rounded-xl">
+              <p className="text-neutral-700">Content for <strong>Details</strong></p>
+            </TabsContent>
+            <TabsContent value="tab3" className="mt-4 p-4 bg-neutral-50 rounded-xl">
+              <p className="text-neutral-700">Content for <strong>Settings</strong></p>
+            </TabsContent>
+          </Tabs>
         </motion.div>
 
         {/* Modal Demo */}
@@ -350,23 +359,27 @@ export default function ComponentShowcasePage() {
           </Button>
 
           <Modal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            title="Example Modal"
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
           >
-            <div className="space-y-4">
-              <p className="text-neutral-700">
-                This is a premium modal component with backdrop blur and smooth animations.
-              </p>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="primary" onClick={() => setIsModalOpen(false)}>
-                  Confirm
-                </Button>
+            <ModalHeader onClose={() => setIsModalOpen(false)}>
+              <h2 className="text-xl font-bold text-neutral-900">Example Modal</h2>
+            </ModalHeader>
+            <ModalContent>
+              <div className="space-y-4">
+                <p className="text-neutral-700">
+                  This is a premium modal component with backdrop blur and smooth animations.
+                </p>
               </div>
-            </div>
+            </ModalContent>
+            <ModalFooter>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={() => setIsModalOpen(false)}>
+                Confirm
+              </Button>
+            </ModalFooter>
           </Modal>
         </motion.div>
 

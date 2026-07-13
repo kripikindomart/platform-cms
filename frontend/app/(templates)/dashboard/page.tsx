@@ -100,6 +100,15 @@ export default function TemplateGalleryPage() {
       color: 'from-purple-500 to-fuchsia-600',
       href: '/dashboard/pages',
     },
+    {
+      id: 'advanced',
+      title: 'Advanced Components',
+      description: 'Premium libraries: Alerts, Tables, Charts, Kanban, Calendar',
+      icon: Sparkles,
+      count: 15,
+      color: 'from-violet-500 to-indigo-600',
+      href: '/dashboard/advanced',
+    },
   ];
 
   return (
@@ -215,10 +224,10 @@ export default function TemplateGalleryPage() {
           className="mt-16 grid grid-cols-4 gap-6"
         >
           {[
-            { label: 'Components', value: '70+' },
-            { label: 'Templates', value: '51+' },
+            { label: 'Components', value: '85+' },
+            { label: 'Templates', value: '80+' },
             { label: 'Layouts', value: '10+' },
-            { label: 'Routes', value: '55' },
+            { label: 'Libraries', value: '18' },
           ].map((stat, i) => (
             <div
               key={i}
@@ -245,9 +254,9 @@ export default function TemplateGalleryPage() {
               'Dashboard Layouts',
               'Form Templates',
               'Data Tables',
-              'State Pages',
-              'Modal & Dialogs',
-              'Navigation Components',
+              'Charts & Graphs',
+              'Kanban Board',
+              'Event Calendar',
               'Empty States',
               'Loading States',
               'Error Pages',

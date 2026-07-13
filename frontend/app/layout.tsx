@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from 'sonner';
+import { ToastProvider } from '@/components/advanced/alerts/toast-provider';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -25,6 +26,7 @@ export default function RootLayout({
         <TooltipProvider>
           {children}
           <Toaster position="top-right" richColors />
+          <ToastProvider />
         </TooltipProvider>
       </body>
     </html>

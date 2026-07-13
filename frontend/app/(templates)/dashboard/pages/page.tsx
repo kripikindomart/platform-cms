@@ -16,24 +16,24 @@ export default function PagesGalleryPage() {
       description: 'User profile with avatar upload, bio, and personal information',
       icon: User,
       color: 'from-indigo-500 to-blue-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/profile',
+      status: 'available',
     },
     {
       title: 'Account Settings',
       description: 'Account preferences, password change, and security settings',
       icon: Settings,
       color: 'from-purple-500 to-pink-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/account',
+      status: 'available',
     },
     {
       title: 'Billing & Subscription',
       description: 'Payment methods, invoices, and subscription management',
       icon: CreditCard,
       color: 'from-emerald-500 to-teal-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/billing',
+      status: 'available',
     },
     {
       title: 'Notifications',
@@ -124,42 +124,83 @@ export default function PagesGalleryPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <div className="group relative p-6 bg-white rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-200/50 transition-all duration-300 h-full">
-                  {/* Coming Soon Badge */}
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-lg">
-                    Coming Soon
-                  </div>
+                {page.status === 'available' ? (
+                  <Link href={page.href}>
+                    <div className="group relative p-6 bg-white rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-200/50 transition-all duration-300 h-full cursor-pointer">
+                      {/* Available Badge */}
+                      <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg">
+                        Available
+                      </div>
 
-                  {/* Icon */}
-                  <div
-                    className={`w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300 ${page.color}`}
-                  >
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
+                      {/* Icon */}
+                      <div
+                        className={`w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300 ${page.color}`}
+                      >
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
 
-                  {/* Content */}
-                  <h3 className="text-lg font-bold text-neutral-900 mb-2">
-                    {page.title}
-                  </h3>
-                  <p className="text-sm text-neutral-600 leading-relaxed">
-                    {page.description}
-                  </p>
+                      {/* Content */}
+                      <h3 className="text-lg font-bold text-neutral-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                        {page.title}
+                      </h3>
+                      <p className="text-sm text-neutral-600 leading-relaxed">
+                        {page.description}
+                      </p>
 
-                  {/* Placeholder Features */}
-                  <div className="mt-4 pt-4 border-t border-neutral-100">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
-                        Responsive
-                      </span>
-                      <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
-                        Forms
-                      </span>
-                      <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
-                        Validation
-                      </span>
+                      {/* Features */}
+                      <div className="mt-4 pt-4 border-t border-neutral-100">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                            Responsive
+                          </span>
+                          <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                            Forms
+                          </span>
+                          <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                            Validation
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="group relative p-6 bg-white rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-xl hover:shadow-neutral-200/50 transition-all duration-300 h-full">
+                    {/* Coming Soon Badge */}
+                    <div className="absolute top-4 right-4 px-3 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-lg">
+                      Coming Soon
+                    </div>
+
+                    {/* Icon */}
+                    <div
+                      className={`w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300 ${page.color}`}
+                    >
+                      <Icon className="w-7 h-7 text-white" />
+                    </div>
+
+                    {/* Content */}
+                    <h3 className="text-lg font-bold text-neutral-900 mb-2">
+                      {page.title}
+                    </h3>
+                    <p className="text-sm text-neutral-600 leading-relaxed">
+                      {page.description}
+                    </p>
+
+                    {/* Placeholder Features */}
+                    <div className="mt-4 pt-4 border-t border-neutral-100">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                          Responsive
+                        </span>
+                        <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                          Forms
+                        </span>
+                        <span className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                          Validation
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             );
           })}
@@ -199,10 +240,10 @@ export default function PagesGalleryPage() {
             ))}
           </div>
 
-          <div className="mt-8 p-4 bg-white rounded-xl border border-neutral-200">
+          <div className="mt-4 p-4 bg-white rounded-xl border border-neutral-200">
             <p className="text-sm text-neutral-600">
-              <strong className="text-neutral-900">Want early access?</strong> These templates are in active development.
-              Check back soon or star the repository to get notified when they're released.
+              <strong className="text-neutral-900">Good news!</strong> Profile, Account, and Billing pages are now available.
+              The remaining templates are in active development and will be released soon.
             </p>
           </div>
         </motion.div>

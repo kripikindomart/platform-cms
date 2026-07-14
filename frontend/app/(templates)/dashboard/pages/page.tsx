@@ -80,8 +80,8 @@ export default function PagesGalleryPage() {
       description: 'Transactional email templates for various actions',
       icon: Mail,
       color: 'from-sky-500 to-blue-600',
-      href: '#',
-      status: 'coming-soon',
+      href: '/dashboard/pages/email-templates',
+      status: 'available',
     },
   ];
 
@@ -105,9 +105,11 @@ export default function PagesGalleryPage() {
           <p className="text-lg text-neutral-600">
             Complete page templates for common application features
           </p>
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-sm font-semibold border border-amber-200">
-            <Settings className="w-4 h-4" />
-            Coming Soon - In Development
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-semibold border border-emerald-200">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            All 9 Pages Complete!
           </div>
         </motion.div>
       </div>
@@ -213,10 +215,10 @@ export default function PagesGalleryPage() {
           transition={{ delay: 0.8 }}
           className="mt-12 p-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-neutral-200"
         >
-          <h2 className="text-2xl font-bold text-neutral-900 mb-3">What's Coming</h2>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-3">🎉 All Page Templates Complete!</h2>
           <p className="text-neutral-600 mb-6">
-            We're actively developing these page templates to provide you with production-ready components
-            for common application features. Each page will include:
+            All 9 page templates are now available with production-ready components
+            for common application features. Each page includes:
           </p>
           <div className="grid md:grid-cols-2 gap-4">
             {[
@@ -242,9 +244,9 @@ export default function PagesGalleryPage() {
 
           <div className="mt-4 p-4 bg-white rounded-xl border border-neutral-200">
             <p className="text-sm text-neutral-600">
-              <strong className="text-neutral-900">🎉 Complete!</strong> All 8 page templates are now available:
-              Profile, Account, Billing, Notifications, Security, Team Management, Help & Support, and Privacy Policy.
-              Only Email Templates remain as coming soon.
+              <strong className="text-neutral-900">✅ 100% Complete!</strong> All 9 page templates are now available:
+              Profile, Account, Billing, Notifications, Security, Team Management, Help & Support, Privacy Policy, and Email Templates.
+              Each template is production-ready with premium design and full functionality.
             </p>
           </div>
         </motion.div>

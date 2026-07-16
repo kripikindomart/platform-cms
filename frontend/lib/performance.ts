@@ -234,7 +234,7 @@ export function getPageLoadMetrics() {
     tcp: perfData.connectEnd - perfData.connectStart,
     ttfb: perfData.responseStart - perfData.requestStart,
     download: perfData.responseEnd - perfData.responseStart,
-    domProcessing: perfData.domComplete - perfData.domLoading,
+    domProcessing: perfData.domComplete - perfData.domInteractive,
     domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
     loadComplete: perfData.loadEventEnd - perfData.loadEventStart,
     totalTime: perfData.loadEventEnd - perfData.fetchStart,

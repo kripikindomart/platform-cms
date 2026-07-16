@@ -4,7 +4,7 @@ export * from './format';
 export * from './validation';
 
 // API Client
-export { apiClient, ApiClient } from './api-client';
+export { apiClient, default as ApiClient } from './api-client';
 export type { ApiResponse, ApiError } from './api-client';
 
 // Performance Monitoring

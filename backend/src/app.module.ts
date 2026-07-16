@@ -20,6 +20,8 @@ import { PassportModule } from '@nestjs/passport';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { TagsModule } from './modules/tags/tags.module';
+import { MenusModule } from './modules/menus/menus.module';
+import { MenuItemsModule } from './modules/menu-items/menu-items.module';
 
 
 
@@ -52,7 +54,9 @@ import { TagsModule } from './modules/tags/tags.module';
     RolesModule,
     CliMetadataModule,
     CategoriesModule,
-    TagsModule
+    TagsModule,
+    MenusModule,
+    MenuItemsModule
   ],
   controllers: [],
   providers: [

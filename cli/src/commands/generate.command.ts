@@ -60,6 +60,9 @@ export function generateCommand(): Command {
     .option('--tenant', 'Enable tenant isolation')
     .option('--soft-delete', 'Enable soft delete')
     .option('--audit', 'Add authentication guards')
+    .option('--menu-icon <icon>', 'Lucide icon name for menu item', 'Package')
+    .option('--menu-parent <parent>', 'Parent menu slug', 'main-menu')
+    .option('--no-menu', 'Skip menu registration')
     .option('--dir <directory>', 'Custom output directory (absolute or relative to workspace root)')
     .option('--dry-run', 'Show what would be generated without creating files')
     .option('--force', 'Overwrite existing files without prompting')
@@ -116,6 +119,9 @@ export function generateCommand(): Command {
           softDelete: options.softDelete,
           audit: options.audit,
           dir: options.dir,
+          menuIcon: options.menuIcon,
+          menuParent: options.menuParent,
+          noMenu: options.noMenu,
         });
       } catch (error) {
         logger.error(`Failed to generate CRUD: ${(error as Error).message}`);

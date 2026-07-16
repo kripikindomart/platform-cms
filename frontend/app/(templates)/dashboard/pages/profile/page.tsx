@@ -3,11 +3,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowLeft, Upload, Camera, User, Mail, Phone, MapPin, Globe, Briefcase, Calendar } from 'lucide-react';
+import { ArrowLeft, Upload, Camera, User, Mail, Phone, MapPin, Globe, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
 
 /**
  * Profile Settings Page
@@ -262,7 +261,8 @@ export default function ProfileSettingsPage() {
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
                   Timezone
                 </label>
-                <Select
+                <select
+                  className="w-full h-12 px-4 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   value={formData.timezone}
                   onChange={(e) => handleChange('timezone', e.target.value)}
                 >
@@ -273,7 +273,7 @@ export default function ProfileSettingsPage() {
                   <option value="Europe/London">London (GMT)</option>
                   <option value="Europe/Paris">Paris (CET)</option>
                   <option value="Asia/Tokyo">Tokyo (JST)</option>
-                </Select>
+                </select>
               </div>
             </div>
           </div>

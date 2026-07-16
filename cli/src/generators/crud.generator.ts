@@ -46,6 +46,9 @@ export interface CrudGeneratorOptions extends ModuleGeneratorOptions {
   sortable?: string; // "title,created_at"
   filterable?: string; // "status,category"
   input?: string; // "content:wysiwyg,thumbnail:image"
+  menuIcon?: string; // Lucide icon name for menu
+  menuParent?: string; // Parent menu slug
+  noMenu?: boolean; // Skip menu registration
 }
 
 export class CrudGenerator extends ModuleGenerator {
@@ -984,6 +987,88 @@ export class CrudGenerator extends ModuleGenerator {
     } catch (error) {
       console.warn(`Could not generate permissions: ${(error as Error).message}`);
       console.log('You can manually create permissions later');
+    }
+
+    // Generate menu registration (if not disabled)
+    await this.generateMenuRegistration(name, options);
+  }
+
+  /**
+   * Generate menu registration SQL file
+   */
+  private async generateMenuRegistration(name: string, options: CrudGeneratorOptions): Promise<void> {
+    // Skip if --no-menu flag is set
+    if (options.noMenu) {
+      console.log('\n⊘ Skipping menu registration (--no-menu flag)');
+      return;
+    }
+
+    try {
+      const path = await import('path');
+      const fs = await import('fs/promises');
+      const { kebabCase, pascalCase, sentenceCase, singularize } = await import('../utils/string.utils');
+      const { renderTemplate } = await import('../utils/template.utils');
+
+      // Find workspace root
+      let workspaceRoot = this.options.outputPath || process.cwd();
+      if (!workspaceRoot.includes('backend')) {
+        workspaceRoot = path.join(workspaceRoot, 'backend');
+      }
+
+      // Menu migrations directory
+      let migrationsDir = path.join(workspaceRoot, 'src', 'database', 'migrations');
+      
+      // Check if migrations directory exists, if not, try parent directory
+      try {
+        await fs.access(migrationsDir);
+      } catch {
+        workspaceRoot = path.join(workspaceRoot, '..');
+        migrationsDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'migrations');
+      }
+
+      // Create menus directory if not exists
+      const menusDir = path.join(migrationsDir, 'menus');
+      try {
+        await fs.mkdir(menusDir, { recursive: true });
+      } catch {
+        // Directory already exists
+      }
+
+      // Prepare template data
+      const templateData = {
+        name,
+        kebabCase: kebabCase(name),
+        pascalCase: pascalCase(name),
+        sentenceCase: sentenceCase(name),
+        singularize: singularize(name),
+        icon: options.menuIcon || 'Package',
+        menuSlug: options.menuParent || 'main-menu',
+      };
+
+      // Render menu template
+      const menuContent = await renderTemplate('backend/module/menu-item.sql', templateData);
+
+      // Write menu SQL file
+      const fileName = `${kebabCase(name)}-menu.sql`;
+      const filePath = path.join(menusDir, fileName);
+
+      await fs.writeFile(filePath, menuContent, 'utf-8');
+
+      console.log(`\n✓ Generated menu registration: ${fileName}`);
+      console.log(`Menu details:`);
+      console.log(`  - Label: ${sentenceCase(name)}`);
+      console.log(`  - URL: /portal/${kebabCase(name)}`);
+      console.log(`  - Icon: ${templateData.icon}`);
+      console.log(`  - Parent: ${templateData.menuSlug}`);
+      console.log(`  - Permission: ${kebabCase(name)}:read`);
+
+      console.log('\nTo apply menu registration:');
+      console.log(`  psql -U postgres -d platform_cms -v tenant_schema=your_tenant_schema -f ${filePath}`);
+      console.log(`\nExample:`);
+      console.log(`  psql -U postgres -d platform_cms -v tenant_schema=tenant_demo_company -f ${filePath}`);
+    } catch (error) {
+      console.warn(`Could not generate menu registration: ${(error as Error).message}`);
+      console.log('You can manually create menu items later');
     }
   }
 }

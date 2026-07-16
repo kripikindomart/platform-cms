@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { ArrowLeft, UserPlus, Mail, MoreVertical, Crown, Shield, User as UserIcon, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
 /**
@@ -152,12 +151,12 @@ export default function TeamManagementPage() {
                 className="pl-12"
               />
             </div>
-            <Select className="w-48">
+            <select className="w-48 h-12 px-4 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
               <option value="all">All Roles</option>
               <option value="owner">Owner</option>
               <option value="admin">Admin</option>
               <option value="member">Member</option>
-            </Select>
+            </select>
           </div>
         </motion.div>
 

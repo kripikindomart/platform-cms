@@ -119,3 +119,22 @@ export function capitalize(str: string): string {
 export function uncapitalize(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
+
+/**
+ * Convert to sentence case
+ * Examples:
+ * - user-roles -> User roles
+ * - userRoles -> User roles
+ */
+export function toSentenceCase(str: string): string {
+  return capitalize(toKebabCase(str).replace(/-/g, ' '));
+}
+
+// Alias exports for template compatibility
+export { 
+  toPascalCase as pascalCase,
+  toCamelCase as camelCase,
+  toKebabCase as kebabCase,
+  toSnakeCase as snakeCase,
+  toSentenceCase as sentenceCase,
+};

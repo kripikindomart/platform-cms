@@ -87,7 +87,7 @@ export default function NotificationsPage() {
       ...prev,
       [category]: {
         ...prev[category],
-        [key]: !prev[category][key as keyof typeof prev.email],
+        [key]: !(prev[category] as any)[key],
       },
     }));
   };

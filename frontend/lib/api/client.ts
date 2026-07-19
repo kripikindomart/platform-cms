@@ -17,17 +17,18 @@ interface RequestConfig extends RequestInit {
 
 class ApiClient {
   private baseURL: string;
-  private tenantSlug?: string;
+  private tenantSlug: string;
 
   constructor() {
     this.baseURL = env.NEXT_PUBLIC_API_URL;
+    this.tenantSlug = env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG;
   }
 
   setTenantSlug(slug: string) {
     this.tenantSlug = slug;
   }
 
-  private getHeaders(customHeaders?: HeadersInit): HeadersInit {
+  private getHeaders(customHeaders?: HeadersInit, skipTenant = false): HeadersInit {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -47,16 +48,34 @@ class ApiClient {
       }
     }
 
-    // Add tenant header if available
-    if (this.tenantSlug) {
+    // Add tenant header if available and not skipped
+    if (this.tenantSlug && !skipTenant) {
       headers['X-Tenant-Slug'] = this.tenantSlug;
+    }
+
+    // Add authorization header from cookie if available
+    if (typeof document !== 'undefined') {
+      const cookies = document.cookie.split(';');
+      const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+      if (tokenCookie) {
+        const token = tokenCookie.split('=')[1];
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return headers;
   }
 
   private buildURL(endpoint: string, params?: Record<string, unknown>): string {
-    const url = new URL(endpoint, this.baseURL);
+    // Remove leading slash from endpoint if exists
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+    
+    // Ensure baseURL ends with / for proper concatenation
+    const baseWithSlash = this.baseURL.endsWith('/') ? this.baseURL : `${this.baseURL}/`;
+    
+    // Concatenate manually to avoid URL() path replacement issue
+    const fullPath = baseWithSlash + cleanEndpoint;
+    const url = new URL(fullPath);
     
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -89,9 +108,14 @@ class ApiClient {
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = this.buildURL(endpoint, config?.params);
     
+    // Skip tenant header for auth endpoints and user profile
+    const skipTenant = endpoint.includes('/auth/') || 
+                      endpoint.includes('/users/my-tenants') ||
+                      endpoint.includes('/users/me');
+    
     const response = await fetch(url, {
       method: 'GET',
-      headers: this.getHeaders(config?.headers),
+      headers: this.getHeaders(config?.headers, skipTenant),
       credentials: 'include', // Include cookies
       ...config,
     });
@@ -102,9 +126,12 @@ class ApiClient {
   async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = this.buildURL(endpoint, config?.params);
     
+    // Skip tenant header for auth endpoints
+    const skipTenant = endpoint.includes('/auth/') || endpoint.includes('/users/my-tenants');
+    
     const response = await fetch(url, {
       method: 'POST',
-      headers: this.getHeaders(config?.headers),
+      headers: this.getHeaders(config?.headers, skipTenant),
       body: data ? JSON.stringify(data) : undefined,
       credentials: 'include',
       ...config,
@@ -116,9 +143,12 @@ class ApiClient {
   async put<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
     const url = this.buildURL(endpoint, config?.params);
     
+    // Skip tenant header for user preferences
+    const skipTenant = endpoint.includes('/users/me');
+    
     const response = await fetch(url, {
       method: 'PUT',
-      headers: this.getHeaders(config?.headers),
+      headers: this.getHeaders(config?.headers, skipTenant),
       body: data ? JSON.stringify(data) : undefined,
       credentials: 'include',
       ...config,

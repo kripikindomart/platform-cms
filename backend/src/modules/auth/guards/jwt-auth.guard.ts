@@ -67,9 +67,20 @@ export class JwtAuthGuard implements CanActivate {
         });
       }
 
-      // Load full user with roles and permissions for CASL
-      // Tenant context sudah di-set oleh TenantGuard sebelum sampai sini
-      const user = await this.usersService.findByIdWithRoles(payload.sub);
+      // Check if this is a tenant-free endpoint
+      const skipRoleLoading = this.shouldSkipRoleLoading(request);
+
+      let user: any;
+
+      if (skipRoleLoading) {
+        // For /users/me and /users/me/preferences - load basic user info only
+        // No tenant context needed, no roles needed
+        user = await this.usersService.findById(payload.sub);
+      } else {
+        // For all other endpoints - load full user with roles and permissions for CASL
+        // Tenant context must be set by TenantGuard before this
+        user = await this.usersService.findByIdWithRoles(payload.sub);
+      }
 
       if (!user) {
         throw new UnauthorizedException({
@@ -100,6 +111,26 @@ export class JwtAuthGuard implements CanActivate {
         message: 'Token tidak valid atau sudah kadaluarsa',
       });
     }
+  }
+
+  /**
+   * Check if we should skip role loading for this endpoint
+   * These endpoints don't need tenant context or roles
+   */
+  private shouldSkipRoleLoading(request: Request): boolean {
+    const skipRoutes = [
+      '/api/users/me',
+      '/api/users/me/preferences',
+      '/users/me',
+      '/users/me/preferences',
+    ];
+
+    return skipRoutes.some(route => 
+      request.url === route || 
+      request.path === route ||
+      request.url.startsWith(route) || 
+      request.path.startsWith(route)
+    );
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

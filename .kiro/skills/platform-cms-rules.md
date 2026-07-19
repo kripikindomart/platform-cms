@@ -3,7 +3,54 @@
 
 ---
 
+## PART 0: AI CONTEXT MANAGEMENT
+
+### Rule 0.1: CONTEXT FILES REFERENCE
+
+**WAJIB BACA SAAT SESSION BARU**:
+1. `.kiro/skills/platform-cms-rules.md` (THIS FILE) - Development rules
+2. `.kiro/skills/AI-CONTEXT-FILES.md` - File mana yang wajib dibaca
+3. `.kiro/specs/tenant-module-enhancement.md` - Current active tasks
+
+**JANGAN BUAT FILE DOKUMENTASI BARU** tanpa baca `AI-CONTEXT-FILES.md` dulu!
+
+**File Priority**:
+- TIER 1 (WAJIB): Rules, Specs, BRD
+- TIER 2 (PENTING): API, DB, Architecture docs
+- TIER 3 (REFERENSI): Security, Business rules, Backend docs
+- TIER 4 (OPTIONAL): Design, Session summaries
+
+**Lihat detail**: `.kiro/skills/AI-CONTEXT-FILES.md`
+
+---
+
 ## CRITICAL RULES
+
+### Rule 0: USE BASH/LINUX COMMANDS (Git Bash Environment)
+
+**MANDATORY**:
+- ALWAYS use Linux/Bash commands (ls, rm, cat, grep, etc.)
+- NEVER use Windows CMD commands (dir, del, type, findstr, etc.)
+- Environment runs Git Bash on Windows, so Unix commands work
+
+**Examples**:
+```bash
+# [OK] CORRECT - Bash commands
+ls -la
+rm file.txt
+cat file.txt
+grep "pattern" file.txt
+find . -name "*.ts"
+mkdir -p path/to/dir
+
+# [X] WRONG - Windows CMD commands
+dir
+del file.txt
+type file.txt
+findstr "pattern" file.txt
+```
+
+**REASON**: Git Bash provides Unix-like environment on Windows. Using Windows commands will fail.
 
 ### Rule 1: NO EMOJI ANYWHERE
 
@@ -247,16 +294,246 @@ Skill ini memastikan AI assistant (Kiro) mengikuti aturan development yang konsi
 
 ### Rule 1.4: Issue Labels (if labels exist)
 
-Use consistent labels:
-- `task` - Regular development task
-- `bug` - Bug fix
-- `enhancement` - Feature enhancement
-- `cli` - CLI-related work
-- `backend` - Backend work
-- `frontend` - Frontend work
-- `database` - Database changes
-- `week-X-Y` - Sprint identifier
-- `phase-X` - Phase identifier
+Use consistent labels yang sudah dibuat:
+
+**Category Labels**:
+- `enhancement` - New feature or request (default)
+- `bug` - Something isn't working
+- `documentation` - Improvements or additions to documentation
+- `question` - Further information is requested
+
+**Component Labels**:
+- `frontend` - Frontend related changes (React, Next.js, UI)
+- `backend` - Backend related changes (NestJS, API, Database)
+
+**Priority Labels**:
+- `P0-critical` - Priority 0 - Critical (Must fix immediately)
+- `P1-high` - Priority 1 - High (Should fix soon)
+- `P2-medium` - Priority 2 - Medium (Nice to have)
+- `P3-low` - Priority 3 - Low (Future consideration)
+
+**Security Label**:
+- `security` - Security related issues and improvements
+
+**How to Create Labels** (if not exist):
+```bash
+# Create frontend label
+gh label create "frontend" --description "Frontend related changes (React, Next.js, UI)" --color "61dafb"
+
+# Create backend label
+gh label create "backend" --description "Backend related changes (NestJS, API, Database)" --color "68a063"
+
+# Create security label
+gh label create "security" --description "Security related issues and improvements" --color "d73a4a"
+
+# Create priority labels
+gh label create "P0-critical" --description "Priority 0 - Critical (Must fix immediately)" --color "b60205"
+gh label create "P1-high" --description "Priority 1 - High (Should fix soon)" --color "e99695"
+gh label create "P2-medium" --description "Priority 2 - Medium (Nice to have)" --color "fbca04"
+gh label create "P3-low" --description "Priority 3 - Low (Future consideration)" --color "c5def5"
+```
+
+**Label Colors Reference**:
+- Frontend: `#61dafb` (React blue)
+- Backend: `#68a063` (NestJS green)
+- Security: `#d73a4a` (Red)
+- P0-critical: `#b60205` (Dark red)
+- P1-high: `#e99695` (Light red)
+- P2-medium: `#fbca04` (Yellow)
+- P3-low: `#c5def5` (Light blue)
+
+### Rule 1.4.1: GitHub Issue Creation Rules (EXTENDED)
+
+**MANDATORY RULES untuk membuat GitHub Issue**:
+
+#### Rule 1: BAHASA INDONESIA
+- **WAJIB** menggunakan Bahasa Indonesia untuk:
+  - Title issue
+  - Deskripsi objective
+  - Penjelasan goals
+  - Acceptance criteria descriptions
+  - Testing checklist
+  - Common pitfalls explanations
+- **BOLEH** Bahasa Inggris untuk:
+  - Code examples
+  - Technical terms tanpa padanan Indonesia
+  - Command line examples
+
+#### Rule 2: DETAIL MAKSIMAL
+- Setiap deliverable HARUS memiliki checklist lengkap
+- Setiap file yang dimodifikasi HARUS dijelaskan:
+  - Path lengkap file
+  - Perubahan apa yang dilakukan
+  - Line numbers approximate (jika tahu)
+  - Code example SEBELUM dan SESUDAH
+- Setiap acceptance criteria HARUS:
+  - Spesifik dan measurable
+  - Memiliki expected result yang jelas
+  - Include edge cases
+
+#### Rule 3: PROGRAMMER JUNIOR FRIENDLY
+- Gunakan bahasa yang sederhana dan mudah dipahami
+- Sertakan code example untuk setiap perubahan
+- Jelaskan WHY, bukan hanya WHAT
+- Tambahkan section "Common Pitfalls" dengan contoh WRONG vs CORRECT
+- Sertakan expected output untuk testing
+- Breakdown time estimate per bagian
+
+**Template untuk penjelasan**:
+```markdown
+## Apa yang Harus Dikerjakan
+
+[Penjelasan dalam 2-3 kalimat sederhana]
+
+## Kenapa Ini Penting
+
+[Jelaskan value/benefit dari task ini]
+
+## Langkah-langkah Implementasi
+
+### Langkah 1: [Judul Langkah]
+**File**: path/to/file.ts
+
+**Apa yang dikerjakan**:
+1. Buka file X
+2. Cari bagian Y
+3. Tambahkan code Z
+
+**Code SEBELUM**:
+\`\`\`typescript
+// Code existing
+\`\`\`
+
+**Code SESUDAH**:
+\`\`\`typescript
+// Code setelah perubahan
+\`\`\`
+
+### Langkah 2: [Judul Langkah]
+...
+```
+
+#### Rule 4: NO EMOJI (CRITICAL)
+- **DILARANG KERAS** menggunakan emoji di:
+  - Issue title
+  - Issue body
+  - Checklist items
+  - Code examples
+  - Comments
+- **GUNAKAN ALTERNATIF**:
+  - [OK] untuk checkmark
+  - [X] untuk X mark
+  - [INFO] untuk info icon
+  - [WARNING] untuk warning icon
+  - [ERROR] untuk error icon
+  - [SUCCESS] untuk success
+  - [FAIL] untuk failure
+
+**ALASAN**: Emoji menyebabkan encoding issues dan muncul sebagai question marks (?) di beberapa environment.
+
+**WRONG Example**:
+```markdown
+✅ Task complete
+❌ Don't do this
+🚀 Ready to deploy
+```
+
+**CORRECT Example**:
+```markdown
+[OK] Task complete
+[X] Don't do this
+[READY] Ready to deploy
+```
+
+#### Rule 5: WORKFLOW SETELAH ISSUE DIBUAT
+**MANDATORY WORKFLOW**:
+
+1. **CREATE Issue**
+   ```bash
+   gh issue create --title "[TASK X.Y] Judul Task" --body "..." 
+   ```
+
+2. **START Working**
+   - Baca issue dari awal sampai akhir
+   - Pahami setiap acceptance criteria
+   - Cek dependencies apakah sudah complete
+
+3. **DURING Work**
+   - Update issue dengan progress comments setiap milestone
+   - Format: `[PROGRESS] Langkah X selesai - [penjelasan]`
+   - Jika ada blocker, comment: `[BLOCKED] [penjelasan] - perlu [solusi]`
+
+4. **AFTER Complete**
+   - Run ALL tests dari testing checklist
+   - Verify SETIAP acceptance criteria
+   - Screenshot hasil testing (jika UI)
+
+5. **CLOSE Issue**
+   - Add closing comment dengan template lengkap (lihat Rule 1.5)
+   - Close dengan: `gh issue close [NUMBER] --comment "..."`
+
+#### Rule 6: PROGRESS UPDATE FORMAT
+
+**Saat mulai task**:
+```markdown
+[MULAI] Task dimulai
+
+**Persiapan**:
+- [OK] Baca semua requirements
+- [OK] Check dependencies
+- [OK] Setup environment
+
+**Target selesai**: [estimasi waktu]
+```
+
+**Saat progress**:
+```markdown
+[PROGRESS] Langkah 1/3 selesai
+
+**Yang sudah dikerjakan**:
+- [OK] File X sudah dimodifikasi
+- [OK] Import dependencies ditambahkan
+- [OK] Type-check pass
+
+**Sedang dikerjakan**:
+- [ ] Testing functionality
+- [ ] Handle edge cases
+
+**Masalah yang ditemui**: [jika ada]
+**Estimasi selesai**: [waktu]
+```
+
+**Saat selesai** (BEFORE close):
+```markdown
+[SELESAI] Task complete - Ready for review
+
+## Acceptance Criteria - ALL CHECKED
+[Copy semua acceptance criteria dan mark sebagai checked]
+
+## Testing Results
+[OK] Type-check: PASS
+[OK] Lint: PASS  
+[OK] Build: PASS
+[OK] Manual Test 1: PASS - [describe result]
+[OK] Manual Test 2: PASS - [describe result]
+
+## Files Modified
+- path/to/file1.ts (modified - added rows per page selector)
+- path/to/file2.ts (modified - updated imports)
+
+## Screenshots
+[Attach screenshots jika UI changes]
+
+## Testing Evidence
+\`\`\`bash
+# Command yang dijalankan
+npm run type-check
+# Output: All checks passed
+\`\`\`
+
+**Actual Time**: X hours (vs estimated Y hours)
+**Commits**: [commit hash] [commit message]
+```
 
 ### Rule 1.5: Closing Issues - VERIFICATION REQUIRED
 

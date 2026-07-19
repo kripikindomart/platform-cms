@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { MenusService } from './menus.service';
+import { MenusService } from './menuses.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { QueryMenuDto } from './dto/query-menu.dto';
@@ -22,8 +22,8 @@ import { CheckPolicies } from '../../common/decorators/check-policies.decorator'
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Action, Subjects } from '../../core/casl/casl-ability.factory';
 
-@ApiTags('menuses')
-@Controller('menuses')
+@ApiTags('menus')
+@Controller(['menus', 'menuses']) // Support both /menus and /menuses routes
 @UseGuards(JwtAuthGuard, CaslGuard)
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
@@ -34,6 +34,20 @@ export class MenusController {
   @ApiResponse({ status: 200, description: 'Paginated list of menuses' })
   async findAll(@Query() query: QueryMenuDto) {
     return this.menusService.findAll(query);
+  }
+
+  @Get('for-user')
+  @ApiOperation({ summary: 'Get active menus with items for current user (permission-filtered)' })
+  @ApiResponse({ status: 200, description: 'List of active menus with nested items' })
+  async getMenusForUser(@CurrentUser() user: any) {
+    return this.menusService.getMenusForUser(user);
+  }
+
+  @Get('active')
+  @ApiOperation({ summary: 'Get all active menus with items' })
+  @ApiResponse({ status: 200, description: 'List of active menus' })
+  async getActiveMenus() {
+    return this.menusService.getActiveMenus();
   }
 
   @Get(':id')

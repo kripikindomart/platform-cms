@@ -36,8 +36,16 @@ export class RolesController {
   @Get()
   @CheckPolicies((ability: AppAbility) => ability.can('read', 'roles'))
   async findAll() {
-    const roles = await this.rolesService.findAll();
-    return roles.map((role) => new RoleResponseDto(role));
+    const roles = await this.rolesService.findAllWithPermissions();
+    
+    // Return paginated format for frontend
+    return {
+      data: roles.map((role) => new RoleWithPermissionsResponseDto(role)),
+      total: roles.length,
+      page: 1,
+      limit: roles.length,
+      totalPages: 1,
+    };
   }
 
   @Get('with-permissions')

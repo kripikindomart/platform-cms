@@ -22,11 +22,17 @@ export class TenantsRepository {
   /**
    * Find tenant by ID
    */
-  async findById(id: number): Promise<Tenant | undefined> {
+  async findById(id: number, includeDeleted: boolean = false): Promise<Tenant | undefined> {
+    const conditions = [eq(tenants.id, id)];
+    
+    if (!includeDeleted) {
+      conditions.push(isNull(tenants.deleted_at));
+    }
+
     const [tenant] = await this.db
       .select()
       .from(tenants)
-      .where(and(eq(tenants.id, id), isNull(tenants.deleted_at)));
+      .where(and(...conditions));
 
     return tenant;
   }
@@ -65,13 +71,18 @@ export class TenantsRepository {
     search?: string;
     is_active?: boolean;
     subscription_tier?: string;
+    includeDeleted?: boolean;
   }): Promise<{ data: Tenant[]; meta: any }> {
-    const { page, limit, sort = 'created_at', order = 'asc', search, is_active, subscription_tier } = options;
+    const { page, limit, sort = 'created_at', order = 'asc', search, is_active, subscription_tier, includeDeleted = false } = options;
     
     const offset = (page - 1) * limit;
 
     // Build where conditions
-    const conditions = [isNull(tenants.deleted_at)];
+    const conditions = [];
+    
+    if (!includeDeleted) {
+      conditions.push(isNull(tenants.deleted_at));
+    }
     
     if (search) {
       conditions.push(

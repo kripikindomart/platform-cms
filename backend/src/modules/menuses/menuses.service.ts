@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MenusRepository } from './menus.repository';
+import { MenusRepository } from './menuses.repository';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { QueryMenuDto } from './dto/query-menu.dto';
@@ -26,7 +26,7 @@ export class MenusService {
     const result = await this.menusRepository.findAllWithQuery(query);
     return {
       ...result,
-      data: result.data.map((item) => this.toResponseDto(item)),
+      data: result.data.map((item: any) => this.toResponseDto(item)),
       totalPages: Math.ceil(result.total / result.limit),
     };
   }
@@ -117,6 +117,59 @@ export class MenusService {
     });
 
     return this.toResponseDto(item);
+  }
+
+  /**
+   * Get active menus with nested menu items
+   */
+  async getActiveMenus(): Promise<any[]> {
+    return this.menusRepository.findActiveMenusWithItems();
+  }
+
+  /**
+   * Get menus for current user (filtered by permissions)
+   */
+  async getMenusForUser(user: any): Promise<any[]> {
+    try {
+      // Get all active menus with items
+      const menus = await this.getActiveMenus();
+      
+      // Filter menu items by user permissions
+      const filteredMenus = menus.map((menu) => ({
+        ...menu,
+        items: this.filterMenuItemsByPermissions(menu.items, user),
+      })).filter((menu) => menu.items.length > 0); // Only return menus that have items
+
+      return filteredMenus;
+    } catch (error: any) {
+      // If table doesn't exist, return empty array
+      if (error.message?.includes('does not exist')) {
+        console.warn('[MenusService] Menus table does not exist, returning empty array');
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Filter menu items by user permissions
+   * TODO: Implement actual permission checking
+   */
+  private filterMenuItemsByPermissions(items: any[], user: any): any[] {
+    if (!items || items.length === 0) return [];
+
+    return items
+      .filter((item) => {
+        // TODO: Check if user has required_permission
+        // For now, allow all items
+        return true;
+      })
+      .map((item) => ({
+        ...item,
+        children: item.children 
+          ? this.filterMenuItemsByPermissions(item.children, user)
+          : undefined,
+      }));
   }
 
   /**

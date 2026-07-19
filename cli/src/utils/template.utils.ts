@@ -28,6 +28,9 @@ function registerHelpers(): void {
   Handlebars.registerHelper('kebabCase', (str: string) => toKebabCase(str)); // Alias
   Handlebars.registerHelper('kebab-case', (str: string) => toKebabCase(str));
   Handlebars.registerHelper('snake_case', (str: string) => toSnakeCase(str));
+  Handlebars.registerHelper('sentenceCase', (str: string) => {
+    return capitalize(toKebabCase(str).replace(/-/g, ' '));
+  });
 
   // Pluralization helpers
   Handlebars.registerHelper('pluralize', (str: string) => pluralize(str));

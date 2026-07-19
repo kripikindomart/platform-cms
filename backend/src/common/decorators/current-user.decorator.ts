@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { User } from '../../database/schema/tenant/users.schema';
+import { User } from '../../database/schema/public/users.schema';
 
 /**
  * Decorator to get current authenticated user from request

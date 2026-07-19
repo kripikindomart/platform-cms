@@ -19,6 +19,15 @@ export class TenantResponseDto {
   @ApiProperty({ description: 'Tenant domain', required: false })
   domain?: string | null;
 
+  @ApiProperty({ description: 'Logo URL', required: false })
+  logo_url?: string | null;
+
+  @ApiProperty({ description: 'Primary brand color', required: false })
+  primary_color?: string | null;
+
+  @ApiProperty({ description: 'Secondary brand color', required: false })
+  secondary_color?: string | null;
+
   @ApiProperty({ description: 'Subscription tier', required: false })
   subscription_tier?: string | null;
 
@@ -46,6 +55,9 @@ export class TenantResponseDto {
     this.slug = tenant.slug;
     this.schema_name = tenant.schema_name;
     this.domain = tenant.domain;
+    this.logo_url = tenant.logo_url;
+    this.primary_color = tenant.primary_color;
+    this.secondary_color = tenant.secondary_color;
     this.subscription_tier = tenant.subscription_tier;
     this.is_active = tenant.is_active;
     this.created_at = tenant.created_at;

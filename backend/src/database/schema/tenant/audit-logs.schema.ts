@@ -7,7 +7,7 @@ import {
   timestamp,
   index,
 } from 'drizzle-orm/pg-core';
-import { users } from './users.schema';
+import { users } from '../public/users.schema';
 
 export const auditLogs = pgTable(
   'audit_logs',

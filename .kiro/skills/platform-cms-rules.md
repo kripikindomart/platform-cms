@@ -24,6 +24,28 @@
 
 ---
 
+### Rule 0.2: WORKFLOW PRIORITAS PERTAMA - BUAT ISSUE DULU!
+
+**MANDATORY WORKFLOW SEBELUM CODING**:
+
+```
+1. BUAT GITHUB ISSUE DULU (WAJIB!)
+2. READ documentation (jika perlu context tambahan)
+3. GET approval/confirmation (jika perlu)
+4. START coding
+5. TEST functionality
+6. CLOSE issue dengan checklist lengkap
+```
+
+**CRITICAL RULE**:
+- [X] JANGAN coding tanpa issue
+- [X] JANGAN skip issue creation
+- [OK] SELALU buat issue dulu sebelum implementasi
+
+**Lihat detail workflow**: Part 1 - Rule 1.1
+
+---
+
 ## CRITICAL RULES
 
 ### Rule 0: USE BASH/LINUX COMMANDS (Git Bash Environment)
@@ -860,6 +882,112 @@ function DataComponent() {
   return <DataTable data={data} />;
 }
 ```
+
+### Rule 3.5: Form Design Pattern - Modal vs Separate Page
+
+**CRITICAL RULE**: Tentukan form placement berdasarkan kompleksitas input
+
+**Modal/Dialog Form** (Simple Forms):
+- ≤ 5 input fields
+- No file uploads (atau max 1 simple upload)
+- No complex validation
+- No multi-step wizard
+- Quick actions (activate, deactivate, assign role, etc)
+
+**Separate Page Form** (Complex Forms):
+- > 5 input fields
+- Multiple file uploads
+- Complex validation logic
+- Multi-step forms
+- Rich text editors
+- Nested or dynamic fields
+- Preview functionality
+
+**Examples**:
+
+[OK] **Modal/Dialog** - Simple Forms:
+```typescript
+// Create User (basic): name, email, password, role - 4 fields
+// Assign Role: user selector, role dropdown - 2 fields
+// Quick Edit: single field update
+```
+
+[OK] **Separate Page** - Complex Forms:
+```typescript
+// Create Tenant: name, slug, description, logo, colors, settings - 7+ fields
+// Edit Profile: personal info, avatar, preferences, bio, links - 8+ fields
+// Content Editor: title, body (rich text), images, SEO, categories - 10+ fields
+```
+
+**Implementation**:
+
+**Modal/Dialog Pattern**:
+```typescript
+// In same file as list page
+const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+return (
+  <>
+    <Button onClick={() => setShowCreateDialog(true)}>Create</Button>
+    
+    <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create New Item</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          {/* Simple fields */}
+          <Input name="name" />
+          <Select name="role" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  </>
+);
+```
+
+**Separate Page Pattern**:
+```typescript
+// Separate route: /resource/create
+'use client';
+
+export default function CreateResourcePage() {
+  const form = useForm();
+  
+  return (
+    <div className="container">
+      <PageHeader title="Create Resource" />
+      
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Multiple sections */}
+        <Card>
+          <CardHeader>Basic Info</CardHeader>
+          <CardContent>
+            {/* 5+ fields */}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>Advanced Settings</CardHeader>
+          <CardContent>
+            {/* More fields */}
+          </CardContent>
+        </Card>
+      </form>
+    </div>
+  );
+}
+```
+
+**Route Structure**:
+```
+/resource/               # List page
+/resource/create         # Create form (complex)
+/resource/[id]          # Detail page
+/resource/[id]/edit     # Edit form (complex)
+```
+
+**When in doubt**: If form takes > 30 seconds to fill, use separate page.
 
 ---
 

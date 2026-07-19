@@ -18,15 +18,10 @@ import { CliMetadataModule } from './core/cli-metadata/cli-metadata.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PassportModule } from '@nestjs/passport';
 import { TenantGuard } from './common/guards/tenant.guard';
-import { CategoriesModule } from './modules/categories/categories.module';
-import { TagsModule } from './modules/tags/tags.module';
-import { MenusModule } from './modules/menus/menus.module';
+import { MenusModule } from './modules/menuses/menuses.module';
 import { MenuItemsModule } from './modules/menu-items/menu-items.module';
-
-
-
-
-
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { UploadModule } from './modules/upload/upload.module';
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true,
@@ -38,7 +33,7 @@ import { MenuItemsModule } from './modules/menu-items/menu-items.module';
       {
         ttl: 900000, // 15 minutes in milliseconds
         limit: 100, // 100 requests per 15 minutes
-      },
+      }
     ]),
     // Make PassportModule available globally
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -53,11 +48,10 @@ import { MenuItemsModule } from './modules/menu-items/menu-items.module';
     PermissionsModule,
     RolesModule,
     CliMetadataModule,
-    CategoriesModule,
-    TagsModule,
     MenusModule,
-    MenuItemsModule
-  ],
+    MenuItemsModule,
+    DashboardModule,
+    UploadModule],
   controllers: [],
   providers: [
     // Global Throttler Guard
@@ -74,7 +68,7 @@ import { MenuItemsModule } from './modules/menu-items/menu-items.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
-    },
+    }
   ],
 })
 export class AppModule {}

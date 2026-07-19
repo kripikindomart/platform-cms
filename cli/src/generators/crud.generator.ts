@@ -1011,20 +1011,17 @@ export class CrudGenerator extends ModuleGenerator {
 
       // Find workspace root
       let workspaceRoot = this.options.outputPath || process.cwd();
-      if (!workspaceRoot.includes('backend')) {
-        workspaceRoot = path.join(workspaceRoot, 'backend');
+      
+      // Normalize path to get workspace root
+      workspaceRoot = path.normalize(workspaceRoot);
+      
+      // If in cli folder, go up one level
+      if (workspaceRoot.endsWith('cli') || workspaceRoot.endsWith(path.join('cli', path.sep))) {
+        workspaceRoot = path.join(workspaceRoot, '..');
       }
 
       // Menu migrations directory
-      let migrationsDir = path.join(workspaceRoot, 'src', 'database', 'migrations');
-      
-      // Check if migrations directory exists, if not, try parent directory
-      try {
-        await fs.access(migrationsDir);
-      } catch {
-        workspaceRoot = path.join(workspaceRoot, '..');
-        migrationsDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'migrations');
-      }
+      const migrationsDir = path.join(workspaceRoot, 'backend', 'src', 'database', 'migrations');
 
       // Create menus directory if not exists
       const menusDir = path.join(migrationsDir, 'menus');
@@ -1046,7 +1043,7 @@ export class CrudGenerator extends ModuleGenerator {
       };
 
       // Render menu template
-      const menuContent = await renderTemplate('backend/module/menu-item.sql', templateData);
+      const menuContent = await renderTemplate('backend/module/menu-item.sql.hbs', templateData);
 
       // Write menu SQL file
       const fileName = `${kebabCase(name)}-menu.sql`;

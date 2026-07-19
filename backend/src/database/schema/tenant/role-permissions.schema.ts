@@ -8,7 +8,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { roles } from './roles.schema';
 import { permissions } from './permissions.schema';
-import { users } from './users.schema';
+import { users } from '../public/users.schema';
 
 export const rolePermissions = pgTable(
   'role_permissions',

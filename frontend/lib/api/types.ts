@@ -22,12 +22,22 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  phone?: string | null;
+  avatar_url?: string | null;
   is_active: boolean;
   is_verified: boolean;
-  tenant_id: number;
+  last_login_at?: string | null;
+  last_login_ip?: string | null;
+  must_change_password: boolean;
+  password_changed_at?: string | null;
   created_at: string;
   updated_at: string;
+  created_by?: number | null;
+  updated_by?: number | null;
+  deleted_at?: string | null;
+  deleted_by?: number | null;
   roles?: Role[];
+  tenants?: TenantAssignment[];
 }
 
 export interface CreateUserDTO {
@@ -49,25 +59,29 @@ export interface UpdateUserDTO {
 export interface Role {
   id: number;
   name: string;
-  slug: string;
+  display_name: string;
   description?: string;
   is_system: boolean;
-  tenant_id: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
+  created_by?: number;
+  updated_by?: number;
+  deleted_at?: string;
+  deleted_by?: number;
   permissions?: Permission[];
 }
 
 export interface CreateRoleDTO {
   name: string;
-  slug: string;
+  display_name: string;
   description?: string;
   permission_ids?: number[];
 }
 
 export interface UpdateRoleDTO {
   name?: string;
-  slug?: string;
+  display_name?: string;
   description?: string;
   permission_ids?: number[];
 }
@@ -82,6 +96,18 @@ export interface Permission {
   description?: string;
   created_at: string;
   updated_at: string;
+}
+
+// Tenant Assignment types
+export interface TenantAssignment {
+  id: number;
+  slug: string;
+  name: string;
+  logo_url?: string | null;
+  is_active: boolean;
+  role_name: string;
+  role_display_name: string;
+  user_role_assigned_at: string;
 }
 
 // Auth types
@@ -107,6 +133,43 @@ export interface AuthResponse {
     name: string;
     is_verified: boolean;
   };
+  redirect?: {
+    shouldAutoRedirect: boolean;
+    tenantId: number | null;
+    tenantSlug: string | null;
+  };
+}
+
+export interface UserPreferences {
+  id: number;
+  user_id: number;
+  is_single_tenant_mode: boolean;
+  default_tenant_id: number | null;
+  skip_org_selection: boolean;
+  show_org_switcher: boolean;
+  theme: string;
+  language: string;
+  timezone: string;
+  email_notifications: boolean;
+  push_notifications: boolean;
+  notification_settings?: any;
+  additional_settings?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateUserPreferencesDTO {
+  is_single_tenant_mode?: boolean;
+  default_tenant_id?: number | null;
+  skip_org_selection?: boolean;
+  show_org_switcher?: boolean;
+  theme?: string;
+  language?: string;
+  timezone?: string;
+  email_notifications?: boolean;
+  push_notifications?: boolean;
+  notification_settings?: any;
+  additional_settings?: any;
 }
 
 // Tenant types

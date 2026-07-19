@@ -387,7 +387,10 @@ export default function TenantsPage() {
             Export
           </Button>
 
-          <Button className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all">
+          <Button 
+            onClick={() => push('/tenants/create')}
+            className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Create Tenant
           </Button>

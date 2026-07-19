@@ -18,7 +18,7 @@ export function useRoles() {
 
   const fetchRoles = async (params?: {
     page?: number;
-    per_page?: number;
+    limit?: number;
     search?: string;
   }) => {
     try {
@@ -26,7 +26,12 @@ export function useRoles() {
       setError(null);
       const response = await rolesService.getAll(params);
       setRoles(response.data);
-      setPagination(response.meta);
+      setPagination({
+        page: response.page,
+        perPage: response.limit,
+        total: response.total,
+        totalPages: response.totalPages,
+      });
     } catch (err) {
       setError(err as Error);
       toast.error('Gagal memuat data roles');
@@ -69,7 +74,7 @@ export function useRoles() {
       await rolesService.delete(id);
       toast.success('Role berhasil dihapus');
       // Refresh list
-      await fetchRoles({ page: pagination.page, per_page: pagination.perPage });
+      await fetchRoles({ page: pagination.page, limit: pagination.perPage });
     } catch (err) {
       toast.error('Gagal menghapus role');
       throw err;

@@ -3,11 +3,15 @@ import {
   UnauthorizedException,
   BadRequestException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { eq, and, sql } from 'drizzle-orm';
 import { hash, compare } from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { UserPreferencesService } from '../users/user-preferences.service';
 import { RedisService } from '../../core/cache/redis.service';
 import { AuditService } from '../../core/audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
@@ -19,6 +23,7 @@ import {
   MessageResponseDto,
 } from './dto/auth-response.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import * as publicSchema from '../../database/schema/public';
 
 @Injectable()
 export class AuthService {
@@ -27,10 +32,12 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly userPreferencesService: UserPreferencesService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
+    @Inject('DRIZZLE') private readonly db: NodePgDatabase<any>,
   ) {
     this.bcryptRounds = 12;
   }
@@ -77,29 +84,21 @@ export class AuthService {
   }
 
   /**
-   * Login user
+   * Login user (no tenant selection required)
+   * User selects tenant AFTER authentication
    */
   async login(
     dto: LoginDto,
     ipAddress: string,
     userAgent: string,
-    tenantId: number,
   ): Promise<LoginResponseDto> {
-    // Find user by email
+    console.log(`[AUTH] Login attempt for: ${dto.email}`);
+    
+    // Find user by email in PUBLIC schema
     const user = await this.usersService.findByEmail(dto.email);
 
     if (!user) {
-      this.logger.warn(`Failed login attempt for email: ${dto.email}`);
-      
-      // Audit failed login
-      // TODO: Fix audit FK constraint issue with tenant schema
-      // await this.auditService.logAuth({
-      //   action: 'login_failed',
-      //   email: dto.email,
-      //   ipAddress,
-      //   userAgent,
-      //   description: `Failed login attempt for ${dto.email}`,
-      // });
+      this.logger.warn(`Failed login attempt - user not found: ${dto.email}`);
       
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
@@ -116,21 +115,13 @@ export class AuthService {
     }
 
     // Verify password
+    console.log('[AUTH] Verifying password for:', dto.email);
+    
     const isPasswordValid = await compare(dto.password, user.password_hash);
+    console.log('[AUTH] Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
       this.logger.warn(`Failed login attempt for user: ${user.id}`);
-      
-      // Audit failed login
-      // TODO: Fix audit FK constraint issue with tenant schema
-      // await this.auditService.logAuth({
-      //   userId: user.id,
-      //   action: 'login_failed',
-      //   email: user.email,
-      //   ipAddress,
-      //   userAgent,
-      //   description: `Failed login attempt - invalid password for ${user.email}`,
-      // });
       
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
@@ -138,11 +129,12 @@ export class AuthService {
       });
     }
 
-    // Generate JWT token
+    // Generate JWT token WITHOUT tenant context
+    // User will select tenant after login
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
-      tenantId,
+      tenantId: null, // No tenant selected yet
     };
 
     const token = this.jwtService.sign(payload);
@@ -153,20 +145,16 @@ export class AuthService {
     // Update last login
     await this.usersService.updateLastLogin(user.id, ipAddress);
 
+    // Get user preferences for single-tenant mode
+    const defaultTenant = await this.userPreferencesService.getDefaultTenant(user.id);
+
     this.logger.log(`User logged in: ${user.email} (ID: ${user.id})`);
 
-    // Audit successful login
-    // TODO: Fix audit FK constraint issue with tenant schema
-    // await this.auditService.logAuth({
-    //   userId: user.id,
-    //   action: 'login',
-    //   email: user.email,
-    //   ipAddress,
-    //   userAgent,
-    //   description: `User ${user.email} logged in successfully`,
-    // });
-
-    return new LoginResponseDto(token, user);
+    return new LoginResponseDto(token, user, {
+      shouldAutoRedirect: defaultTenant.shouldAutoRedirect,
+      tenantId: defaultTenant.tenantId,
+      tenantSlug: defaultTenant.tenantSlug,
+    });
   }
 
   /**

@@ -20,3 +20,4 @@ export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableC
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
 export { Textarea } from './textarea';
 export { Tooltip } from './tooltip';
+export { PortalLink } from './portal-link';

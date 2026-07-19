@@ -194,6 +194,40 @@ export class RolesRepository extends BaseRepository<Role> {
   }
 
   /**
+   * Assign roles to user
+   */
+  async assignRolesToUser(userId: number, roleIds: number[], assignedBy: number): Promise<number> {
+    return this.withTenantSchema(async () => {
+      // Get existing role assignments
+      const existing = await this.db
+        .select({ role_id: tenantSchema.userRoles.role_id })
+        .from(tenantSchema.userRoles)
+        .where(eq(tenantSchema.userRoles.user_id, userId));
+
+      const existingIds = new Set(existing.map((r) => r.role_id));
+
+      // Filter out duplicates
+      const newRoleIds = roleIds.filter((id) => !existingIds.has(id));
+
+      if (newRoleIds.length === 0) {
+        return 0; // No new roles to assign
+      }
+
+      // Insert new user-role mappings
+      const values = newRoleIds.map((roleId) => ({
+        user_id: userId,
+        role_id: roleId,
+        assigned_by: assignedBy,
+        assigned_at: new Date(),
+      }));
+
+      await this.db.insert(tenantSchema.userRoles).values(values);
+
+      return newRoleIds.length;
+    });
+  }
+
+  /**
    * Get user roles with permissions
    */
   async getUserRolesWithPermissions(userId: number): Promise<Role[]> {
@@ -203,16 +237,17 @@ export class RolesRepository extends BaseRepository<Role> {
       // Use raw SQL with explicit schema to avoid search_path issues
       const query = sql`
         SELECT 
-          r.id,
-          r.name,
-          r.slug,
-          r.description,
-          r.is_system,
-          r.created_at,
-          r.updated_at,
-          r.created_by,
-          r.updated_by,
-          r.deleted_at,
+          r.id, 
+          r.name, 
+          r.display_name, 
+          r.description, 
+          r.is_system, 
+          r.is_active, 
+          r.created_at, 
+          r.updated_at, 
+          r.created_by, 
+          r.updated_by, 
+          r.deleted_at, 
           r.deleted_by
         FROM ${sql.raw(`"${schemaName}".user_roles`)} ur
         INNER JOIN ${sql.raw(`"${schemaName}".roles`)} r ON ur.role_id = r.id
@@ -227,12 +262,11 @@ export class RolesRepository extends BaseRepository<Role> {
       for (const role of roles) {
         const permQuery = sql`
           SELECT 
-            p.id,
-            p.name,
-            p.slug,
-            p.resource,
-            p.action,
-            p.description,
+            p.id, 
+            p.resource, 
+            p.action, 
+            p.scope, 
+            p.description, 
             p.created_at
           FROM ${sql.raw(`"${schemaName}".role_permissions`)} rp
           INNER JOIN ${sql.raw(`"${schemaName}".permissions`)} p ON rp.permission_id = p.id
@@ -242,8 +276,12 @@ export class RolesRepository extends BaseRepository<Role> {
         const permResults = await this.db.execute(permQuery);
         const permissions = permResults.rows as any[];
 
-        // Permissions already have name and slug from DB
-        role.permissions = permissions;
+        // Compute name and slug from resource + action
+        role.permissions = permissions.map((p: any) => ({
+          ...p,
+          name: `${p.resource}.${p.action}`,
+          slug: `${p.resource}.${p.action}`,
+        }));
       }
 
       return roles;

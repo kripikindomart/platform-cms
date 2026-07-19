@@ -76,19 +76,28 @@ export function deleteCommand(): Command {
         try {
           const content = await fs.readFile(appModulePath, 'utf-8');
 
-          // Remove import statement
+          // Remove import statement - handle both single line and multi-line imports
           const importRegex = new RegExp(
-            `import\\s*{\\s*${moduleName}Module\\s*}\\s*from\\s*['"].*${moduleFileName}\\.module['"];?\\n?`,
+            `import\\s*{[^}]*${moduleName}Module[^}]*}\\s*from\\s*['"].*${moduleFileName}\\.module['"];?\\s*\\n?`,
             'g',
           );
           let updatedContent = content.replace(importRegex, '');
 
-          // Remove from imports array
-          const moduleRegex = new RegExp(`\\s*,?\\s*${moduleName}Module\\s*,?`, 'g');
-          updatedContent = updatedContent.replace(moduleRegex, '');
+          // Remove from imports array - more precise matching
+          // Match the module name followed by optional comma and whitespace
+          const moduleInArrayRegex = new RegExp(
+            `(\\s*${moduleName}Module\\s*,?\\s*(?=\\n|\\]))|(,\\s*${moduleName}Module\\s*(?=\\n|\\]))`,
+            'g',
+          );
+          updatedContent = updatedContent.replace(moduleInArrayRegex, '');
 
-          // Clean up double commas
+          // Clean up any remaining issues:
+          // 1. Double commas
           updatedContent = updatedContent.replace(/,(\s*),/g, ',');
+          // 2. Comma before closing bracket
+          updatedContent = updatedContent.replace(/,(\s*)\]/g, '$1]');
+          // 3. Multiple newlines
+          updatedContent = updatedContent.replace(/\n{3,}/g, '\n\n');
 
           await fs.writeFile(appModulePath, updatedContent, 'utf-8');
           logger.success(`✓ Removed from app.module.ts`);
@@ -261,6 +270,45 @@ export function deleteCommand(): Command {
           }
         } catch (error) {
           logger.warn(`⚠ Could not delete permission migration: ${(error as Error).message}`);
+        }
+
+        // 5c. Delete menu migration
+        logger.info(`\n5c. Deleting menu migration...`);
+        try {
+          const menusDir = path.join(workspaceRoot, 'backend/src/database/migrations/menus');
+          const menuFile = `${toKebabCase(name)}-menu.sql`;
+          const menuFilePath = path.join(menusDir, menuFile);
+          
+          try {
+            await fs.unlink(menuFilePath);
+            logger.success(`✓ Deleted menu migration: ${menuFile}`);
+          } catch (e) {
+            logger.info(`  No menu migration found`);
+          }
+        } catch (error) {
+          logger.warn(`⚠ Could not delete menu migration: ${(error as Error).message}`);
+        }
+
+        // 5d. Delete menu items from database
+        if (!options.keepDb) {
+          logger.info(`\n5d. Deleting menu items from database...`);
+          try {
+            await deleteMenuItemsFromDatabase(name, workspaceRoot);
+          } catch (error) {
+            logger.warn(`⚠ Could not delete menu items: ${(error as Error).message}`);
+            logger.info(`  You can manually run: DELETE FROM menu_items WHERE module_name = '${toKebabCase(name)}';`);
+          }
+        }
+
+        // 5e. Delete permissions from database
+        if (!options.keepDb) {
+          logger.info(`\n5e. Deleting permissions from database...`);
+          try {
+            await deletePermissionsFromDatabase(name, workspaceRoot);
+          } catch (error) {
+            logger.warn(`⚠ Could not delete permissions: ${(error as Error).message}`);
+            logger.info(`  You can manually run: DELETE FROM permissions WHERE resource = '${name}';`);
+          }
         }
 
         // 6. Delete database table (DROP TABLE)
@@ -543,6 +591,104 @@ async function softDeleteModuleMetadata(moduleName: string, workspaceRoot: strin
       logger.info(`  Metadata for ${moduleName} not found (might be already deleted)`);
     } else {
       logger.success(`✓ Updated metadata for: ${moduleName}`);
+    }
+  } catch (error: any) {
+    throw error;
+  }
+}
+
+/**
+ * Delete menu items from database (soft delete)
+ */
+async function deleteMenuItemsFromDatabase(moduleName: string, workspaceRoot: string): Promise<void> {
+  const envPath = path.join(workspaceRoot, 'backend', '.env');
+  const envContent = await fs.readFile(envPath, 'utf-8');
+  
+  const getEnvValue = (key: string): string => {
+    const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'));
+    return match ? match[1].trim() : '';
+  };
+  
+  const dbHost = getEnvValue('DB_HOST') || 'localhost';
+  const dbPort = getEnvValue('DB_PORT') || '5432';
+  const dbName = getEnvValue('DB_NAME') || 'platform_cms';
+  const dbUser = getEnvValue('DB_USER') || 'postgres';
+  const dbPassword = getEnvValue('DB_PASSWORD') || 'postgres';
+  const defaultTenant = getEnvValue('DEFAULT_TENANT_SLUG') || 'tenant_demo_company';
+  
+  // Soft delete menu items
+  const moduleSlug = toKebabCase(moduleName);
+  const updateSQL = `
+    SET search_path TO ${defaultTenant}, public;
+    UPDATE menu_items 
+    SET deleted_at = NOW(), deleted_by = NULL 
+    WHERE module_name = '${moduleSlug}' AND deleted_at IS NULL;
+  `;
+  
+  const psqlCommand = `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -c "${updateSQL}"`;
+  
+  const env = { ...process.env, PGPASSWORD: dbPassword };
+  
+  try {
+    const { stdout } = await execAsync(psqlCommand, { env });
+    
+    // Extract update count
+    const match = stdout.match(/UPDATE (\d+)/);
+    const count = match ? parseInt(match[1]) : 0;
+    
+    if (count > 0) {
+      logger.success(`✓ Soft-deleted ${count} menu item(s) for module: ${moduleSlug}`);
+    } else {
+      logger.info(`  No menu items found for module: ${moduleSlug}`);
+    }
+  } catch (error: any) {
+    throw error;
+  }
+}
+
+/**
+ * Delete permissions from database (soft delete)
+ */
+async function deletePermissionsFromDatabase(moduleName: string, workspaceRoot: string): Promise<void> {
+  const envPath = path.join(workspaceRoot, 'backend', '.env');
+  const envContent = await fs.readFile(envPath, 'utf-8');
+  
+  const getEnvValue = (key: string): string => {
+    const match = envContent.match(new RegExp(`^${key}=(.*)$`, 'm'));
+    return match ? match[1].trim() : '';
+  };
+  
+  const dbHost = getEnvValue('DB_HOST') || 'localhost';
+  const dbPort = getEnvValue('DB_PORT') || '5432';
+  const dbName = getEnvValue('DB_NAME') || 'platform_cms';
+  const dbUser = getEnvValue('DB_USER') || 'postgres';
+  const dbPassword = getEnvValue('DB_PASSWORD') || 'postgres';
+  const defaultTenant = getEnvValue('DEFAULT_TENANT_SLUG') || 'tenant_demo_company';
+  
+  // Soft delete permissions
+  const resource = moduleName;
+  const updateSQL = `
+    SET search_path TO ${defaultTenant}, public;
+    UPDATE permissions 
+    SET deleted_at = NOW(), deleted_by = NULL 
+    WHERE resource = '${resource}' AND deleted_at IS NULL;
+  `;
+  
+  const psqlCommand = `psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -c "${updateSQL}"`;
+  
+  const env = { ...process.env, PGPASSWORD: dbPassword };
+  
+  try {
+    const { stdout } = await execAsync(psqlCommand, { env });
+    
+    // Extract update count
+    const match = stdout.match(/UPDATE (\d+)/);
+    const count = match ? parseInt(match[1]) : 0;
+    
+    if (count > 0) {
+      logger.success(`✓ Soft-deleted ${count} permission(s) for resource: ${resource}`);
+    } else {
+      logger.info(`  No permissions found for resource: ${resource}`);
     }
   } catch (error: any) {
     throw error;

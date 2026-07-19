@@ -54,4 +54,10 @@ export class QueryTenantDto {
   @IsOptional()
   @IsString()
   subscription_tier?: string;
+
+  @ApiPropertyOptional({ description: 'Include soft-deleted tenants', default: false })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  includeDeleted?: boolean;
 }

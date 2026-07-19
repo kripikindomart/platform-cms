@@ -1,3 +1,10 @@
+/**
+ * IMPORTANT: Load .env BEFORE any imports
+ * This ensures process.env is populated when modules initialize
+ */
+import { config } from 'dotenv';
+config(); // Load .env immediately
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';

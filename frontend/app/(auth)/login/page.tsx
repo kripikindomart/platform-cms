@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,11 +8,12 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { authService } from '@/lib/api/services/auth.service';
+import { useAuthStore } from '@/lib/stores/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowRight, Sparkles, Shield, Zap, Hexagon } from 'lucide-react';
+import { ArrowRight, Sparkles, Shield, Zap, Hexagon, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Email tidak valid'),
@@ -24,6 +25,17 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const { login, isAuthenticated } = useAuthStore();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/organizations');
+    } else {
+      setCheckingAuth(false);
+    }
+  }, [isAuthenticated, router]);
 
   const {
     register,
@@ -36,15 +48,37 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
-      await authService.login(data);
+      const response = await authService.login(data);
+      
+      // Save to auth store
+      login(response.user, response.access_token);
+      
       toast.success('Welcome back! 🎉');
-      router.push('/portal');
+      
+      // Check for auto-redirect to specific tenant
+      if (response.redirect?.shouldAutoRedirect && response.redirect.tenantSlug) {
+        router.push(`/org/${response.redirect.tenantSlug}/portal`);
+      } else {
+        router.push('/organizations');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC]">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
+          <p className="text-neutral-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">

@@ -27,7 +27,11 @@
     "tenant:list": "ts-node src/scripts/tenant-cli.ts list",
     "tenant:info": "ts-node src/scripts/tenant-cli.ts info",
     "auth:setup": "ts-node src/scripts/setup-test-auth.ts",
-    "permissions:apply": "ts-node src/scripts/apply-module-permissions.ts"
+    "permissions:apply": "ts-node src/scripts/apply-module-permissions.ts",
+    "admin:create": "ts-node src/scripts/admin-cli.ts create",
+    "admin:list": "ts-node src/scripts/admin-cli.ts list",
+    "platform:init": "tsx scripts/init-platform-admin.ts",
+    "tenant:migrate-slugs": "tsx scripts/migrate-tenant-slugs.ts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
@@ -60,6 +64,7 @@
     "@swc/core": "^1.15.43",
     "@types/bcrypt": "^6.0.0",
     "@types/ioredis": "^4.28.10",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.1.1",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",

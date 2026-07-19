@@ -29,6 +29,31 @@ export class TenantMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {
     try {
+      // Debug logging
+      console.log(`[TenantMiddleware] Request path: ${req.path}, URL: ${req.url}, baseUrl: ${req.baseUrl}, originalUrl: ${req.originalUrl}`);
+      
+      // Skip tenant validation for certain routes
+      const skipRoutes = [
+        '/api/auth/login',
+        '/api/auth/register', 
+        '/api/users/my-tenants',
+        '/auth/login',
+        '/auth/register',
+        '/users/my-tenants'
+      ];
+      
+      const isSkipRoute = skipRoutes.some(route => 
+        req.path === route || 
+        req.originalUrl === route ||
+        req.originalUrl.startsWith(route) ||
+        req.path.startsWith(route)
+      );
+      
+      if (isSkipRoute) {
+        console.log(`[TenantMiddleware] ✓ Skipping tenant validation for: ${req.originalUrl}`);
+        return next();
+      }
+
       // 1. Extract tenant identifier dari request
       const tenantSlug = this.extractTenantSlug(req);
 

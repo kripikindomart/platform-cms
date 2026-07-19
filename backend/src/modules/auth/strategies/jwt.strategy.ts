@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 import { TenantContextService } from '../../../common/context/tenant-context.service';
 import { RedisService } from '../../../core/cache/redis.service';
-import { User } from '../../../database/schema/tenant/users.schema';
+import { User } from '../../../database/schema/public/users.schema';
 
 /**
  * JWT payload structure
@@ -13,7 +13,7 @@ import { User } from '../../../database/schema/tenant/users.schema';
 export interface JwtPayload {
   sub: number; // User ID
   email: string;
-  tenantId: number;
+  tenantId: number | null; // Null when user hasn't selected tenant yet
   iat?: number;
   exp?: number;
 }

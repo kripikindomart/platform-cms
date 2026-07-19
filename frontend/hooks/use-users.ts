@@ -1,93 +1,158 @@
+/**
+ * useUsers Hook
+ * React hook for fetching and managing users
+ */
+
 'use client';
 
-import { useState } from 'react';
-import { usersService } from '@/lib/api/services/users.service';
-import type { User, CreateUserDTO, UpdateUserDTO } from '@/lib/api/types';
+import { useState, useEffect } from 'react';
+import { usersService, User } from '@/lib/api/services/users.service';
 import { toast } from 'sonner';
 
-export function useUsers() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    perPage: 10,
+interface UseUsersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+  role?: string;
+  status?: string;
+  includeDeleted?: boolean;
+}
+
+interface UseUsersReturn {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+/**
+ * Hook to fetch users list with pagination and filters
+ */
+export function useUsers(params: UseUsersParams = {}): UseUsersReturn {
+  const [data, setData] = useState<{
+    users: User[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({
+    users: [],
     total: 0,
+    page: 1,
+    limit: 10,
     totalPages: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = async (params?: {
-    page?: number;
-    per_page?: number;
-    search?: string;
-    role_id?: number;
-    is_active?: boolean;
-  }) => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await usersService.getAll(params);
-      setUsers(response.data);
-      setPagination(response.meta);
-    } catch (err) {
-      setError(err as Error);
-      toast.error('Gagal memuat data users');
+
+      const result = await usersService.getAll(params);
+      
+      setData({
+        users: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      });
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to load users';
+      setError(errorMessage);
+      
+      // Only show toast on refetch, not initial load
+      if (data.users.length > 0) {
+        toast.error('Failed to load users', {
+          description: errorMessage,
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const createUser = async (data: CreateUserDTO) => {
-    try {
-      setLoading(true);
-      const newUser = await usersService.create(data);
-      toast.success('User berhasil dibuat');
-      return newUser;
-    } catch (err) {
-      toast.error('Gagal membuat user');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateUser = async (id: number, data: UpdateUserDTO) => {
-    try {
-      setLoading(true);
-      const updatedUser = await usersService.update(id, data);
-      toast.success('User berhasil diupdate');
-      return updatedUser;
-    } catch (err) {
-      toast.error('Gagal mengupdate user');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteUser = async (id: number) => {
-    try {
-      setLoading(true);
-      await usersService.delete(id);
-      toast.success('User berhasil dihapus');
-      // Refresh list
-      await fetchUsers({ page: pagination.page, per_page: pagination.perPage });
-    } catch (err) {
-      toast.error('Gagal menghapus user');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, [params.page, params.limit, params.search, params.sort, params.order, params.role, params.status, params.includeDeleted]);
 
   return {
-    users,
+    ...data,
     loading,
     error,
-    pagination,
-    fetchUsers,
-    createUser,
-    updateUser,
-    deleteUser,
+    refetch: fetchUsers,
+  };
+}
+
+/**
+ * Hook to fetch single user by ID
+ */
+export function useUser(id: number | string | string[] | undefined) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchUser = async () => {
+    // Validasi dan normalize ID
+    let userId: number;
+    
+    if (!id) {
+      setError('User ID is required');
+      setLoading(false);
+      return;
+    }
+    
+    // Handle array dari dynamic route
+    if (Array.isArray(id)) {
+      userId = Number(id[0]);
+    } else {
+      userId = Number(id);
+    }
+    
+    // Validasi ID adalah number yang valid
+    if (isNaN(userId) || userId <= 0) {
+      setError('Invalid user ID');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await usersService.getById(userId);
+      setUser(data);
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to load user';
+      setError(errorMessage);
+      toast.error('Failed to load user', {
+        description: errorMessage,
+        duration: 5000,
+        closeButton: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchUser();
+    }
+  }, [id]);
+
+  return {
+    user,
+    loading,
+    error,
+    refetch: fetchUser,
   };
 }

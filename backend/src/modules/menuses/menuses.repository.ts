@@ -4,9 +4,9 @@ import { TenantContextService } from '../../common/context/tenant-context.servic
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, sql, and, isNull, desc, asc, gte, lte, between } from 'drizzle-orm';
 import * as tenantSchema from '../../database/schema/tenant';
-import { menuses } from '../../database/schema/tenant/menuses.schema';
+import { menus } from '../../database/schema/tenant/menus.schema';
 
-export type Menu = typeof menuses.$inferSelect;
+export type Menu = typeof menus.$inferSelect;
 
 /**
  * Repository for Menuses
@@ -18,7 +18,7 @@ export class MenusRepository extends BaseRepository<Menu> {
     @Inject('DRIZZLE') db: NodePgDatabase<typeof tenantSchema>,
     tenantContext: TenantContextService,
   ) {
-    super(db, menuses, tenantContext);
+    super(db, menus, tenantContext);
   }
 
   /**
@@ -72,18 +72,67 @@ export class MenusRepository extends BaseRepository<Menu> {
   }
 
   // Add custom query methods here
-  // Example:
-  // async findBySlug(slug: string): Promise<Menu | null> {
-  //   return this.withTenantSchema(async () => {
-  //     const results = await this.db
-  //       .select()
-  //       .from(this.table)
-  //       .where(and(
-  //         eq(this.table.slug, slug),
-  //         isNull(this.table.deleted_at)
-  //       ))
-  //       .limit(1);
-  //     return results[0] || null;
-  //   });
-  // }
+  
+  /**
+   * Get all active menus with nested menu items
+   */
+  async findActiveMenusWithItems(): Promise<any[]> {
+    return this.withTenantSchema(async () => {
+      // Query all active menus
+      const activeMenus = await this.db
+        .select()
+        .from(menus)
+        .where(and(
+          eq(menus.is_active, true),
+          isNull(menus.deleted_at)
+        ))
+        .orderBy(asc(menus.order));
+
+      // For each menu, get its items with nested structure
+      const menusWithItems = await Promise.all(
+        activeMenus.map(async (menu) => {
+          // Get menu items - must be called within withTenantSchema context
+          const items = await this.getMenuItemsNested(menu.id);
+          return {
+            ...menu,
+            items,
+          };
+        })
+      );
+
+      return menusWithItems;
+    });
+  }
+
+  /**
+   * Get menu items with nested structure (children)
+   * NOTE: This must be called within withTenantSchema context
+   */
+  private async getMenuItemsNested(menuId: number, parentId: number | null = null): Promise<any[]> {
+    // Get schema name from tenant context
+    const schemaName = this.tenantContext.getSchemaName();
+    
+    // Query items at current level using fully qualified table name
+    const items = await this.db.execute(sql`
+      SELECT * FROM ${sql.raw(`"${schemaName}".menu_items`)}
+      WHERE menu_id = ${menuId}
+        AND ${parentId === null ? sql`parent_id IS NULL` : sql`parent_id = ${parentId}`}
+        AND is_active = true
+        AND deleted_at IS NULL
+      ORDER BY "order" ASC
+    `);
+
+    // Recursively get children for each item
+    const itemsWithChildren = await Promise.all(
+      (items.rows as any[]).map(async (item) => {
+        const children = await this.getMenuItemsNested(menuId, item.id);
+        return {
+          ...item,
+          children: children.length > 0 ? children : undefined,
+        };
+      })
+    );
+
+    return itemsWithChildren;
+  }
 }

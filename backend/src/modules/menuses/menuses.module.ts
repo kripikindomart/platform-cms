@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { MenusController } from './menus.controller';
-import { MenusService } from './menus.service';
-import { MenusRepository } from './menus.repository';
+import { MenusController } from './menuses.controller';
+import { MenusService } from './menuses.service';
+import { MenusRepository } from './menuses.repository';
 import { CommonModule } from '../../common/common.module';
 import { AuditModule } from '../../core/audit/audit.module';
 import { DatabaseModule } from '../../database/database.module';

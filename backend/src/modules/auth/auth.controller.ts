@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
@@ -20,7 +21,7 @@ import {
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { User } from '../../database/schema/tenant/users.schema';
+import { User } from '../../database/schema/public/users.schema';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { TenantContextService } from '../../common/context/tenant-context.service';
 
@@ -59,6 +60,8 @@ export class AuthController {
    * Login user
    * POST /api/auth/login
    * Rate limit: 10 requests per minute
+   * 
+   * Login without tenant selection - user chooses tenant after authentication
    */
   @Post('login')
   @Public()
@@ -71,16 +74,7 @@ export class AuthController {
     const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.get('user-agent') || 'unknown';
 
-    // Set tenant context (hardcoded for now, should come from subdomain/header)
-    const tenantId = 1;
-    this.tenantContext.setTenant({
-      id: tenantId,
-      slug: 'tenant_1',
-      name: 'Default Tenant',
-      schemaName: 'tenant_1',
-    });
-
-    return this.authService.login(dto, ipAddress, userAgent, tenantId);
+    return this.authService.login(dto, ipAddress, userAgent);
   }
 
   /**

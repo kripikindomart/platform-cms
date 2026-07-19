@@ -18,6 +18,9 @@ export const tenants = pgTable(
     slug: varchar('slug', { length: 100 }).notNull().unique(),
     domain: varchar('domain', { length: 255 }),
     schema_name: varchar('schema_name', { length: 100 }).notNull().unique(),
+    logo_url: varchar('logo_url', { length: 500 }),
+    primary_color: varchar('primary_color', { length: 7 }).default('#6366f1'),
+    secondary_color: varchar('secondary_color', { length: 7 }).default('#8b5cf6'),
     subscription_tier: varchar('subscription_tier', { length: 50 })
       .notNull()
       .default('free'),

@@ -1,4 +1,4 @@
-import { User } from '../../../database/schema/tenant/users.schema';
+import { User } from '../../../database/schema/public/users.schema';
 
 /**
  * User info untuk response (exclude sensitive data)
@@ -35,12 +35,26 @@ export class LoginResponseDto {
   token_type: string;
   expires_in: number;
   user: UserResponseDto;
+  redirect?: {
+    shouldAutoRedirect: boolean;
+    tenantId: number | null;
+    tenantSlug: string | null;
+  };
 
-  constructor(token: string, user: User) {
+  constructor(
+    token: string,
+    user: User,
+    redirect?: {
+      shouldAutoRedirect: boolean;
+      tenantId: number | null;
+      tenantSlug: string | null;
+    },
+  ) {
     this.access_token = token;
     this.token_type = 'Bearer';
     this.expires_in = 86400; // 24 hours
     this.user = new UserResponseDto(user);
+    this.redirect = redirect;
   }
 }
 

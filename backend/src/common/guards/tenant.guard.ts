@@ -1,4 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, NotFoundException, ForbiddenException, BadRequestException, Scope } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { TenantContextService } from '../context/tenant-context.service';
 import { TenantsRepository } from '../../modules/tenants/tenants.repository';
@@ -15,12 +16,40 @@ import { TenantsRepository } from '../../modules/tenants/tenants.repository';
 @Injectable({ scope: Scope.REQUEST })
 export class TenantGuard implements CanActivate {
   constructor(
+    private readonly reflector: Reflector,
     private readonly tenantContext: TenantContextService,
     private readonly tenantsRepository: TenantsRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
+
+    // Skip tenant validation for specific routes
+    const skipRoutes = [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/users/my-tenants',
+      '/api/users/me',
+      '/api/users/me/preferences',
+      '/api/upload', // Upload endpoints
+      '/auth/login',
+      '/auth/register',
+      '/users/my-tenants',
+      '/users/me',
+      '/users/me/preferences'
+    ];
+    
+    const shouldSkip = skipRoutes.some(route => 
+      request.url === route || 
+      request.path === route ||
+      request.url.startsWith(route) || 
+      request.path.startsWith(route)
+    );
+
+    if (shouldSkip) {
+      console.log(`[TenantGuard] ✓ Skipping tenant validation for: ${request.url}`);
+      return true;
+    }
 
     // Extract tenant slug
     const tenantSlug = this.extractTenantSlug(request);

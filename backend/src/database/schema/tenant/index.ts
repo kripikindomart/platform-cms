@@ -11,3 +11,4 @@ export * from './password-resets.schema';
 
 export * from './menus.schema';
 export * from './menu-items.schema';
+export * from '../../../modules/settings/entities/setting.entity';

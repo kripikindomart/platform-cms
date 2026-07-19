@@ -22,6 +22,7 @@ import { MenusModule } from './modules/menuses/menuses.module';
 import { MenuItemsModule } from './modules/menu-items/menu-items.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { SettingsModule } from './modules/settings/settings.module';
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true,
@@ -51,7 +52,9 @@ import { UploadModule } from './modules/upload/upload.module';
     MenusModule,
     MenuItemsModule,
     DashboardModule,
-    UploadModule],
+    UploadModule,
+    SettingsModule
+  ],
   controllers: [],
   providers: [
     // Global Throttler Guard

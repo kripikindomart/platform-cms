@@ -78,6 +78,45 @@ export default function CreateTenantPage() {
     },
   });
 
+  // Compress image before converting to base64
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Resize if too large (max 400px)
+          const maxSize = 400;
+          if (width > height && width > maxSize) {
+            height = (height / width) * maxSize;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width / height) * maxSize;
+            height = maxSize;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Convert to base64 with compression
+          const base64 = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(base64);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Watch name field untuk auto-generate slug
   const nameValue = watch('name');
   const isActive = watch('is_active');

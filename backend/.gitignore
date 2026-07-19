@@ -47,3 +47,19 @@ lerna-debug.log*
 *.swo
 *~
 .tmp/
+
+# Credentials & Secrets
+google-drive-credentials.json
+*-credentials.json
+*.pem
+*.key
+*.p12
+
+# Test files with sensitive data
+**/test-login.json
+**/test-*.json
+scripts/test-*.json
+
+# Uploads
+uploads/
+/uploads

@@ -11,13 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { toast } from 'sonner';
 import { usePortalRouter } from '@/hooks/use-portal-router';
 import { tenantsService } from '@/lib/api/services/tenants.service';
@@ -178,7 +171,7 @@ export default function CreateTenantPage() {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -190,22 +183,29 @@ export default function CreateTenantPage() {
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Ukuran file maksimal 2MB', {
+    // Validate file size (max 2MB before compression)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 5MB', {
         closeButton: true,
       });
       return;
     }
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setLogoPreview(base64);
-      setValue('logo_url', base64);
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Compress image before setting
+      const compressedBase64 = await compressImage(file);
+      setLogoPreview(compressedBase64);
+      setValue('logo_url', compressedBase64);
+      
+      toast.success('Logo berhasil diupload dan dikompres', {
+        closeButton: true,
+      });
+    } catch (error) {
+      console.error('Compress error:', error);
+      toast.error('Gagal memproses gambar', {
+        closeButton: true,
+      });
+    }
   };
 
   const handleRemoveLogo = () => {
@@ -214,63 +214,70 @@ export default function CreateTenantPage() {
   };
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCancel}
-          className="mb-4 gap-2"
+    <div className="min-h-screen bg-[#FAFBFC]">
+      <div className="max-w-4xl mx-auto space-y-4">
+        {/* Premium Header with Gradient Background */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-6 bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-50 rounded-2xl border border-neutral-200 shadow-lg shadow-blue-500/10"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Kembali
-        </Button>
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCancel}
+            className="mb-4 gap-2 hover:bg-white/60"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
+          </Button>
 
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-white" />
+          {/* Title with Icon */}
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-900">Create New Tenant</h1>
+              <p className="text-sm text-neutral-600 mt-0.5">
+                Buat tenant baru untuk organisasi atau perusahaan
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-neutral-900">Create New Tenant</h1>
-            <p className="text-neutral-600 mt-0.5">
-              Buat tenant baru untuk organisasi atau perusahaan
-            </p>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* Form */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informasi Dasar</CardTitle>
-              <CardDescription>
-                Informasi utama tentang tenant
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Name */}
-              <div>
-                <Label htmlFor="name">
+        {/* Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Basic Information - Premium Card */}
+            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-neutral-900 mb-1">
+                  Informasi Dasar
+                </h3>
+                <p className="text-xs text-neutral-600">
+                  Informasi utama tentang tenant
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Name */}
+                <div>
+                <Label htmlFor="name" className="text-sm font-semibold text-neutral-700">
                   Nama Tenant <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="name"
                   placeholder="Contoh: Acme Corporation"
                   {...register('name')}
-                  className="mt-1.5"
+                  className="mt-1.5 h-10"
                 />
-                <p className="text-sm text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   Nama organisasi atau perusahaan (3-255 karakter)
                 </p>
                 {errors.name && (
@@ -280,15 +287,17 @@ export default function CreateTenantPage() {
 
               {/* Slug (auto-generated, readonly) */}
               <div>
-                <Label htmlFor="slug">Slug (URL-friendly)</Label>
+                <Label htmlFor="slug" className="text-sm font-semibold text-neutral-700">
+                  Slug (URL-friendly)
+                </Label>
                 <Input
                   id="slug"
                   placeholder="acme-corporation"
                   {...register('slug')}
                   disabled
-                  className="mt-1.5 bg-neutral-50"
+                  className="mt-1.5 h-10 bg-neutral-50 border-neutral-200"
                 />
-                <p className="text-sm text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   Otomatis di-generate dari nama (hanya huruf kecil, angka, dan tanda hubung)
                 </p>
                 {errors.slug && (
@@ -298,7 +307,9 @@ export default function CreateTenantPage() {
 
               {/* Description */}
               <div>
-                <Label htmlFor="description">Deskripsi</Label>
+                <Label htmlFor="description" className="text-sm font-semibold text-neutral-700">
+                  Deskripsi
+                </Label>
                 <Textarea
                   id="description"
                   placeholder="Deskripsi singkat tentang tenant..."
@@ -306,7 +317,7 @@ export default function CreateTenantPage() {
                   {...register('description')}
                   className="mt-1.5"
                 />
-                <p className="text-sm text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-1">
                   Deskripsi opsional (maksimal 500 karakter)
                 </p>
                 {errors.description && (
@@ -315,62 +326,68 @@ export default function CreateTenantPage() {
               </div>
 
               {/* Is Active */}
-              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-neutral-200 bg-neutral-50/50 p-3 hover:bg-neutral-50 transition-colors">
                 <Checkbox
                   id="is_active"
                   checked={isActive}
                   onCheckedChange={(checked) => setValue('is_active', checked as boolean)}
+                  className="mt-0.5"
                 />
-                <div className="space-y-1 leading-none">
-                  <Label htmlFor="is_active" className="cursor-pointer">
+                <div className="space-y-0.5 leading-none">
+                  <Label htmlFor="is_active" className="cursor-pointer font-semibold text-sm text-neutral-900">
                     Tenant Aktif
                   </Label>
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-xs text-neutral-600">
                     Aktifkan tenant setelah dibuat. Tenant yang non-aktif tidak dapat diakses.
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </div>
+            </div>
 
-          {/* Branding */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Branding</CardTitle>
-              <CardDescription>
-                Logo dan warna untuk branding tenant (opsional)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            {/* Branding - Premium Card */}
+            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-neutral-900 mb-1">
+                  Branding
+                </h3>
+                <p className="text-xs text-neutral-600">
+                  Logo dan warna untuk branding tenant (opsional)
+                </p>
+              </div>
+
+              <div className="space-y-3">
               {/* Logo Upload */}
               <div>
-                <Label>Logo</Label>
-                <div className="mt-1.5 space-y-4">
+                <Label className="text-sm font-semibold text-neutral-700">Logo</Label>
+                <div className="mt-2 space-y-4">
                   {logoPreview ? (
                     <div className="relative inline-block">
                       <img
                         src={logoPreview}
                         alt="Logo preview"
-                        className="w-32 h-32 object-cover rounded-lg border-2 border-neutral-200"
+                        className="w-32 h-32 object-cover rounded-xl border-2 border-neutral-200 shadow-sm"
                       />
                       <Button
                         type="button"
                         variant="danger"
                         size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                        className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-lg"
                         onClick={handleRemoveLogo}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-300 rounded-lg cursor-pointer hover:border-neutral-400 transition-colors">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-neutral-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="w-8 h-8 text-neutral-400 mb-2" />
-                        <p className="text-sm text-neutral-600">
-                          <span className="font-semibold">Klik untuk upload</span> atau drag & drop
+                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                          <Upload className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <p className="text-sm text-neutral-700 font-medium mb-1">
+                          <span className="text-blue-600">Klik untuk upload</span> atau drag & drop
                         </p>
-                        <p className="text-xs text-neutral-500 mt-1">
+                        <p className="text-xs text-neutral-500">
                           PNG, JPG (max. 2MB)
                         </p>
                       </div>
@@ -383,31 +400,33 @@ export default function CreateTenantPage() {
                     </label>
                   )}
                 </div>
-                <p className="text-sm text-neutral-500 mt-1">
+                <p className="text-xs text-neutral-500 mt-2">
                   Upload logo tenant (opsional, max 2MB)
                 </p>
               </div>
 
               {/* Color Pickers */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Primary Color */}
                 <div>
-                  <Label htmlFor="primary_color">Warna Utama</Label>
-                  <div className="flex items-center gap-3 mt-1.5">
+                  <Label htmlFor="primary_color" className="text-sm font-semibold text-neutral-700">
+                    Warna Utama
+                  </Label>
+                  <div className="flex items-center gap-3 mt-2">
                     <Input
                       id="primary_color"
                       type="color"
                       {...register('primary_color')}
-                      className="h-10 w-20 cursor-pointer"
+                      className="h-11 w-20 cursor-pointer rounded-lg"
                     />
                     <Input
                       type="text"
                       {...register('primary_color')}
                       placeholder="#3B82F6"
-                      className="flex-1"
+                      className="flex-1 h-11"
                     />
                   </div>
-                  <p className="text-sm text-neutral-500 mt-1">Format: #RRGGBB</p>
+                  <p className="text-xs text-neutral-500 mt-1.5">Format: #RRGGBB</p>
                   {errors.primary_color && (
                     <p className="text-sm text-red-600 mt-1">{errors.primary_color.message}</p>
                   )}
@@ -415,60 +434,64 @@ export default function CreateTenantPage() {
 
                 {/* Secondary Color */}
                 <div>
-                  <Label htmlFor="secondary_color">Warna Sekunder</Label>
-                  <div className="flex items-center gap-3 mt-1.5">
+                  <Label htmlFor="secondary_color" className="text-sm font-semibold text-neutral-700">
+                    Warna Sekunder
+                  </Label>
+                  <div className="flex items-center gap-3 mt-2">
                     <Input
                       id="secondary_color"
                       type="color"
                       {...register('secondary_color')}
-                      className="h-10 w-20 cursor-pointer"
+                      className="h-11 w-20 cursor-pointer rounded-lg"
                     />
                     <Input
                       type="text"
                       {...register('secondary_color')}
                       placeholder="#06B6D4"
-                      className="flex-1"
+                      className="flex-1 h-11"
                     />
                   </div>
-                  <p className="text-sm text-neutral-500 mt-1">Format: #RRGGBB</p>
+                  <p className="text-xs text-neutral-500 mt-1.5">Format: #RRGGBB</p>
                   {errors.secondary_color && (
                     <p className="text-sm text-red-600 mt-1">{errors.secondary_color.message}</p>
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </div>
+            </div>
 
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Membuat Tenant...
-                </>
-              ) : (
-                <>
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Buat Tenant
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </motion.div>
+            {/* Form Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+                className="h-11 px-6"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="h-11 px-6 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Membuat Tenant...
+                  </>
+                ) : (
+                  <>
+                    <Building2 className="w-4 h-4 mr-2" />
+                    Buat Tenant
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
     </div>
   );
 }

@@ -77,7 +77,7 @@ export class TenantsService {
         success: true,
         tenant: new TenantResponseDto(tenant),
         schemaCreated: true,
-        tablesCreated: 11,
+        tablesCreated: 14,
         rolesSeeded,
         permissionsSeeded,
         message: `Tenant '${tenant.name}' berhasil dibuat`,
@@ -352,7 +352,95 @@ export class TenantsService {
         CREATE INDEX IF NOT EXISTS idx_tenant_modules_is_enabled ON tenant_modules(is_enabled)
       `);
 
-      this.logger.log(`✓ Created 11 tables in ${schemaName}`);
+      // Create menus table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS menus (
+          id BIGSERIAL PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          slug VARCHAR(100) NOT NULL UNIQUE,
+          icon VARCHAR(50),
+          "order" INTEGER NOT NULL DEFAULT 0,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          created_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+          updated_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+          deleted_at TIMESTAMP WITH TIME ZONE,
+          deleted_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL
+        )
+      `);
+
+      await this.db.execute(sql`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_menus_slug ON menus(slug)
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_menus_order ON menus("order")
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_menus_deleted_at ON menus(deleted_at)
+      `);
+
+      // Create menu_items table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS menu_items (
+          id BIGSERIAL PRIMARY KEY,
+          menu_id BIGINT NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+          parent_id BIGINT REFERENCES menu_items(id) ON DELETE CASCADE,
+          module_name VARCHAR(100) NOT NULL,
+          label VARCHAR(100) NOT NULL,
+          url VARCHAR(255) NOT NULL,
+          icon VARCHAR(50),
+          "order" INTEGER NOT NULL DEFAULT 0,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          required_permission VARCHAR(100),
+          metadata TEXT,
+          created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          created_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+          updated_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+          deleted_at TIMESTAMP WITH TIME ZONE,
+          deleted_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL
+        )
+      `);
+
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_menu_items_menu_id ON menu_items(menu_id)
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_menu_items_parent_id ON menu_items(parent_id)
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_menu_items_order ON menu_items("order")
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_menu_items_deleted_at ON menu_items(deleted_at)
+      `);
+
+      // Create upload_settings table
+      await this.db.execute(sql`
+        CREATE TABLE IF NOT EXISTS upload_settings (
+          id BIGSERIAL PRIMARY KEY,
+          category VARCHAR(50) NOT NULL UNIQUE CHECK (category IN ('image', 'document', 'video', 'audio', 'other')),
+          url_format VARCHAR(100) NOT NULL CHECK (url_format IN ('direct_view', 'thumbnail', 'download', 'embed_view')),
+          thumbnail_size INTEGER CHECK (thumbnail_size >= 100 AND thumbnail_size <= 2000),
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          created_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+          updated_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+          deleted_at TIMESTAMP WITH TIME ZONE,
+          deleted_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL
+        )
+      `);
+
+      await this.db.execute(sql`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_upload_settings_category ON upload_settings(category)
+      `);
+      await this.db.execute(sql`
+        CREATE INDEX IF NOT EXISTS idx_upload_settings_is_active ON upload_settings(is_active)
+      `);
+
+      this.logger.log(`✓ Created 14 tables in ${schemaName}`);
     } finally {
       // Reset search_path
       await this.db.execute(sql.raw(`RESET search_path`));
@@ -407,6 +495,137 @@ export class TenantsService {
         INSERT INTO permissions (resource, action, scope, created_at)
         VALUES (${perm.resource}, ${perm.action}, ${perm.scope}, NOW())
         ON CONFLICT (resource, action, scope) DO NOTHING
+      `);
+    }
+
+    // Seed upload_settings permissions
+    const uploadSettingsPermissions = [
+      {
+        resource: 'upload-settings',
+        action: 'read',
+        scope: 'tenant',
+        description: 'Permission to view and list upload-settings',
+      },
+      {
+        resource: 'upload-settings',
+        action: 'create',
+        scope: 'tenant',
+        description: 'Permission to create new upload-settings',
+      },
+      {
+        resource: 'upload-settings',
+        action: 'update',
+        scope: 'tenant',
+        description: 'Permission to update existing upload-settings',
+      },
+      {
+        resource: 'upload-settings',
+        action: 'delete',
+        scope: 'tenant',
+        description: 'Permission to delete upload-settings',
+      },
+    ];
+
+    for (const perm of uploadSettingsPermissions) {
+      await this.db.execute(sql`
+        INSERT INTO permissions (resource, action, scope, description, created_at)
+        VALUES (${perm.resource}, ${perm.action}, ${perm.scope}, ${perm.description}, NOW())
+        ON CONFLICT (resource, action, scope) DO NOTHING
+      `);
+    }
+
+    // Assign all permissions to admin role
+    const adminRoleResult = await this.db.execute(sql`
+      SELECT id FROM roles WHERE name = 'admin' LIMIT 1
+    `);
+    const adminRoleRows = adminRoleResult.rows || adminRoleResult;
+    const adminRole = Array.isArray(adminRoleRows) ? adminRoleRows[0] : null;
+
+    if (adminRole) {
+      const allPermissionsResult = await this.db.execute(sql`
+        SELECT id FROM permissions
+      `);
+      const allPermissions = allPermissionsResult.rows || allPermissionsResult;
+
+      for (const perm of allPermissions) {
+        await this.db.execute(sql`
+          INSERT INTO role_permissions (role_id, permission_id, assigned_at)
+          VALUES (${adminRole.id}, ${perm.id}, NOW())
+          ON CONFLICT (role_id, permission_id) DO NOTHING
+        `);
+      }
+    }
+
+    // Seed main menu
+    const mainMenuResult = await this.db.execute(sql`
+      INSERT INTO menus (name, slug, icon, "order", is_active, created_at, updated_at)
+      VALUES ('Main Menu', 'main-menu', 'LayoutDashboard', 1, true, NOW(), NOW())
+      ON CONFLICT (slug) DO NOTHING
+      RETURNING id
+    `);
+    const mainMenuRows = mainMenuResult.rows || mainMenuResult;
+    const mainMenu = Array.isArray(mainMenuRows) ? mainMenuRows[0] : null;
+
+    // Seed upload_settings menu item
+    if (mainMenu) {
+      await this.db.execute(sql`
+        INSERT INTO menu_items 
+        (menu_id, module_name, label, url, icon, required_permission, "order", is_active, created_at, updated_at)
+        VALUES (
+          ${mainMenu.id}, 
+          'upload-settings', 
+          'Upload Settings', 
+          '/portal/upload-settings', 
+          'Settings', 
+          'upload-settings.read.tenant', 
+          1, 
+          true, 
+          NOW(), 
+          NOW()
+        )
+        ON CONFLICT DO NOTHING
+      `);
+    }
+
+    // Seed default upload_settings
+    const defaultUploadSettings = [
+      {
+        category: 'image',
+        url_format: 'direct_view',
+        thumbnail_size: 300,
+        is_active: true,
+      },
+      {
+        category: 'document',
+        url_format: 'download',
+        thumbnail_size: null,
+        is_active: true,
+      },
+      {
+        category: 'video',
+        url_format: 'embed_view',
+        thumbnail_size: null,
+        is_active: true,
+      },
+      {
+        category: 'audio',
+        url_format: 'download',
+        thumbnail_size: null,
+        is_active: true,
+      },
+      {
+        category: 'other',
+        url_format: 'download',
+        thumbnail_size: null,
+        is_active: true,
+      },
+    ];
+
+    for (const setting of defaultUploadSettings) {
+      await this.db.execute(sql`
+        INSERT INTO upload_settings (category, url_format, thumbnail_size, is_active, created_at, updated_at)
+        VALUES (${setting.category}, ${setting.url_format}, ${setting.thumbnail_size}, ${setting.is_active}, NOW(), NOW())
+        ON CONFLICT (category) DO NOTHING
       `);
     }
 

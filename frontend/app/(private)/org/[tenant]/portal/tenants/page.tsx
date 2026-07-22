@@ -18,7 +18,8 @@ import {
   RotateCcw,
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,18 @@ export default function TenantsPage() {
   const params = useParams();
   const currentTenantSlug = params.tenant as string; // e.g., "platform-admin"
   
+  // Get initial tab from URL query param or default to 'active'
+  const [activeTab, setActiveTab] = useState<'active' | 'trash' | 'backups'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'trash' || tabParam === 'backups') {
+        return tabParam;
+      }
+    }
+    return 'active';
+  });
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -68,13 +81,44 @@ export default function TenantsPage() {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false);
   const [togglingStatusId, setTogglingStatusId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'active' | 'trash'>('active');
   const [hardDeletingId, setHardDeletingId] = useState<number | null>(null);
+  const [showSoftDeleteDialog, setShowSoftDeleteDialog] = useState(false);
+  const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
+  const [softDeletingId, setSoftDeletingId] = useState<number | null>(null);
+  const [backupSchema, setBackupSchema] = useState(true); // Default: backup schema
+  const [schemaBackups, setSchemaBackups] = useState<any[]>([]);
+  const [loadingBackups, setLoadingBackups] = useState(false);
+  const [showDeleteBackupDialog, setShowDeleteBackupDialog] = useState(false);
+  const [backupToDelete, setBackupToDelete] = useState<{id: number; schemaName: string} | null>(null);
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab: 'active' | 'trash' | 'backups') => {
+    setActiveTab(newTab);
+    setSelectedTenants([]); // Clear selections
+    
+    // Update URL without reload
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', newTab);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   const { tenants, total, totalPages, loading, fetchTenants } = useTenants();
 
   // Local state untuk optimistic updates
   const [localTenants, setLocalTenants] = useState<Tenant[]>(tenants);
+
+  // Find current tenant ID from slug
+  const currentTenantId = useMemo(() => {
+    const currentTenant = localTenants.find(t => t.slug === currentTenantSlug);
+    return currentTenant?.id;
+  }, [localTenants, currentTenantSlug]);
+
+  // Helper to check if tenant is current
+  const isCurrentTenant = (tenantId: number) => {
+    return tenantId === currentTenantId;
+  };
 
   // Sync dengan tenants dari hook
   useEffect(() => {
@@ -86,16 +130,18 @@ export default function TenantsPage() {
       page, 
       limit, 
       search: searchQuery,
-      includeDeleted: true // Include soft-deleted untuk tab trash
+      includeDeleted: true // Always fetch all tenants, filter in frontend by tab
     });
   }, [page, limit, searchQuery, fetchTenants]);
 
   // Filter tenants based on tab
   const filteredByTab = useMemo(() => {
     if (activeTab === 'trash') {
+      // Show only soft-deleted tenants (deleted_at is not null)
       return localTenants.filter(t => t.deleted_at !== null && t.deleted_at !== undefined);
     }
-    return localTenants.filter(t => !t.deleted_at);
+    // Show only active tenants (deleted_at is null or undefined)
+    return localTenants.filter(t => t.deleted_at === null || t.deleted_at === undefined);
   }, [localTenants, activeTab]);
 
   // Calculate real total based on filtered data
@@ -140,9 +186,36 @@ export default function TenantsPage() {
   }, [filteredByTab, total]);
 
   const handleRefresh = () => {
-    fetchTenants({ page, limit, search: searchQuery });
+    fetchTenants({ page, limit, search: searchQuery, includeDeleted: true });
     setSelectedTenants([]);
+    
+    // Fetch backups if on backups tab
+    if (activeTab === 'backups') {
+      fetchSchemaBackups();
+    }
   };
+
+  const fetchSchemaBackups = async () => {
+    try {
+      setLoadingBackups(true);
+      const backups = await tenantsService.getSchemaBackups();
+      setSchemaBackups(backups);
+    } catch (error: any) {
+      toast.error('Gagal memuat schema backups', {
+        description: error?.message,
+        duration: 3000,
+      });
+    } finally {
+      setLoadingBackups(false);
+    }
+  };
+
+  // Fetch backups when switching to backups tab
+  useEffect(() => {
+    if (activeTab === 'backups') {
+      fetchSchemaBackups();
+    }
+  }, [activeTab]);
 
   const handleToggleStatus = async (tenant: Tenant) => {
     setTogglingStatusId(tenant.id);
@@ -193,7 +266,7 @@ export default function TenantsPage() {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       // Filter out current tenant from selection
-      const selectableTenants = filteredByTab.filter(t => t.slug !== currentTenantSlug);
+      const selectableTenants = filteredByTab.filter(t => !isCurrentTenant(t.id));
       setSelectedTenants(selectableTenants.map(t => t.id));
     } else {
       setSelectedTenants([]);
@@ -261,11 +334,32 @@ export default function TenantsPage() {
     
     try {
       setBulkActionLoading(true);
-      await tenantsService.bulkDelete(selectedTenants);
-      toast.success(`${selectedTenants.length} tenant berhasil dihapus`, {
-        duration: 4000,
-        closeButton: true,
-      });
+      const result = await tenantsService.bulkDelete(selectedTenants);
+      
+      if (result.failed === 0) {
+        // All success
+        toast.success(`${result.success} tenant berhasil dihapus`, {
+          duration: 4000,
+          closeButton: true,
+        });
+      } else if (result.success === 0) {
+        // All failed
+        const errorMsg = result.errors[0]?.message || 'Unknown error';
+        toast.error('Gagal menghapus semua tenant', {
+          description: errorMsg,
+          duration: 5000,
+          closeButton: true,
+        });
+      } else {
+        // Partial success
+        const failedMessages = result.errors.slice(0, 2).map(e => e.message).join(', ');
+        toast.warning(`${result.success} berhasil, ${result.failed} gagal`, {
+          description: failedMessages,
+          duration: 5000,
+          closeButton: true,
+        });
+      }
+      
       setSelectedTenants([]);
       handleRefresh();
     } catch (error: any) {
@@ -321,14 +415,26 @@ export default function TenantsPage() {
 
   const handleHardDelete = async (id: number) => {
     try {
-      await tenantsService.hardDelete(id);
-      toast.success('Tenant berhasil dihapus permanen', {
-        description: 'Data tenant telah dihapus dari database',
-        duration: 4000,
-        closeButton: true,
-      });
+      await tenantsService.hardDelete(id, backupSchema);
+      
+      if (backupSchema) {
+        toast.success('Tenant berhasil dihapus permanen', {
+          description: 'Schema telah di-backup dan akan dihapus otomatis setelah 15 hari',
+          duration: 5000,
+          closeButton: true,
+        });
+      } else {
+        toast.success('Tenant dan schema berhasil dihapus permanen', {
+          description: 'Semua data telah dihapus dari database',
+          duration: 4000,
+          closeButton: true,
+        });
+      }
+      
       handleRefresh();
       setShowHardDeleteDialog(false);
+      setHardDeletingId(null);
+      setBackupSchema(true); // Reset to default
     } catch (error: any) {
       toast.error('Gagal menghapus permanen tenant', {
         description: error?.message,
@@ -338,9 +444,78 @@ export default function TenantsPage() {
     }
   };
 
-  // Helper: Check if this is the current tenant
-  const isCurrentTenant = (tenant: Tenant) => {
-    return tenant.slug === currentTenantSlug;
+  const handleSoftDelete = async () => {
+    if (!tenantToDelete || softDeletingId !== null) return; // Prevent double execution
+
+    const tenantId = tenantToDelete.id;
+    const tenantName = tenantToDelete.name;
+    
+    setShowSoftDeleteDialog(false);
+    setSoftDeletingId(tenantId);
+    setTenantToDelete(null);
+
+    try {
+      await tenantsService.delete(tenantId);
+      toast.success('Tenant berhasil dihapus', {
+        description: `Tenant "${tenantName}" telah dipindahkan ke trash`,
+        duration: 4000,
+        closeButton: true,
+      });
+      handleRefresh();
+    } catch (error: any) {
+      // Check if tenant already deleted (409 Conflict)
+      const errorCode = error?.response?.data?.code;
+      if (error?.response?.status === 409 && errorCode === 'TENANT_ALREADY_DELETED') {
+        toast.info('Tenant sudah dihapus sebelumnya', {
+          description: 'Data akan di-refresh',
+          duration: 3000,
+        });
+        handleRefresh();
+      } else if (errorCode === 'TENANT_NOT_FOUND') {
+        toast.info('Tenant tidak ditemukan', {
+          description: 'Mungkin sudah dihapus oleh user lain',
+          duration: 3000,
+        });
+        handleRefresh();
+      } else {
+        toast.error('Gagal menghapus tenant', {
+          description: error?.response?.data?.message || error?.message,
+          duration: 5000,
+          closeButton: true,
+        });
+      }
+    } finally {
+      setSoftDeletingId(null);
+    }
+  };
+
+  const handleDeleteSchemaBackup = async (backupId: number, schemaName: string) => {
+    setBackupToDelete({ id: backupId, schemaName });
+    setShowDeleteBackupDialog(true);
+  };
+
+  const confirmDeleteSchemaBackup = async () => {
+    if (!backupToDelete) return;
+
+    setShowDeleteBackupDialog(false);
+
+    try {
+      await tenantsService.deleteSchemaBackup(backupToDelete.id);
+      toast.success('Schema backup berhasil dihapus permanen', {
+        description: `Schema "${backupToDelete.schemaName}" telah dihapus dari database`,
+        duration: 4000,
+        closeButton: true,
+      });
+      fetchSchemaBackups();
+    } catch (error: any) {
+      toast.error('Gagal menghapus schema backup', {
+        description: error?.message,
+        duration: 5000,
+        closeButton: true,
+      });
+    } finally {
+      setBackupToDelete(null);
+    }
   };
 
   const isAllSelected = filteredByTab.length > 0 && selectedTenants.length === filteredByTab.length;
@@ -436,8 +611,8 @@ export default function TenantsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as 'active' | 'trash' | 'backups')} className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="active" className="gap-2">
               <CheckCircle2 className="w-4 h-4" />
               Active Tenants
@@ -446,8 +621,14 @@ export default function TenantsPage() {
               <Trash2 className="w-4 h-4" />
               Trash
             </TabsTrigger>
+            <TabsTrigger value="backups" className="gap-2">
+              <RotateCcw className="w-4 h-4" />
+              Schema Backups
+            </TabsTrigger>
           </TabsList>
 
+          {/* Active & Trash Tabs - Show tenant lists */}
+          {(activeTab === 'active' || activeTab === 'trash') && (
           <TabsContent value={activeTab} className="mt-6 space-y-4">
             {/* Bulk Actions Bar */}
             <AnimatePresence>
@@ -623,17 +804,36 @@ export default function TenantsPage() {
                         <Checkbox
                           checked={selectedTenants.includes(tenant.id)}
                           onCheckedChange={(checked) => handleSelectTenant(tenant.id, checked as boolean)}
-                          disabled={isCurrentTenant(tenant)}
+                          disabled={isCurrentTenant(tenant.id)}
                         />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-semibold">
+                          {tenant.logo_url ? (
+                            <img 
+                              src={tenant.logo_url} 
+                              alt={`${tenant.name} logo`}
+                              className="w-10 h-10 rounded-xl object-cover border border-neutral-200"
+                              onError={(e) => {
+                                // Fallback ke initial jika logo gagal load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-semibold ${tenant.logo_url ? 'hidden' : ''}`}>
                             {tenant.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-semibold text-neutral-900">
-                              {tenant.name}
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-neutral-900">
+                                {tenant.name}
+                              </span>
+                              {isCurrentTenant(tenant.id) && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                                  Current
+                                </span>
+                              )}
                             </div>
                             <div className="text-sm text-neutral-500">
                               ID: {tenant.id}
@@ -654,14 +854,14 @@ export default function TenantsPage() {
                             <Switch
                               checked={tenant.is_active}
                               onCheckedChange={() => handleToggleStatus(tenant)}
-                              disabled={togglingStatusId === tenant.id || isCurrentTenant(tenant)}
+                              disabled={togglingStatusId === tenant.id || isCurrentTenant(tenant.id)}
                             />
                             <span className={`text-sm font-medium ${
                               tenant.is_active ? 'text-green-600' : 'text-neutral-400'
                             }`}>
                               {tenant.is_active ? 'Active' : 'Inactive'}
                             </span>
-                            {isCurrentTenant(tenant) && (
+                            {isCurrentTenant(tenant.id) && (
                               <span className="text-xs text-blue-600 italic whitespace-nowrap">(Current)</span>
                             )}
                           </div>
@@ -714,21 +914,21 @@ export default function TenantsPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="text-red-600"
-                                disabled={isCurrentTenant(tenant)}
+                                disabled={isCurrentTenant(tenant.id) || softDeletingId === tenant.id}
                                 onClick={() => {
-                                  if (!isCurrentTenant(tenant)) {
-                                    // Handle delete action (placeholder - will be implemented later)
-                                    toast.error('Delete function belum diimplementasikan', {
-                                      closeButton: true,
-                                    });
+                                  if (!isCurrentTenant(tenant.id)) {
+                                    setTenantToDelete(tenant);
+                                    setShowSoftDeleteDialog(true);
                                   }
                                 }}
                               >
-                                {isCurrentTenant(tenant) ? (
+                                {isCurrentTenant(tenant.id) ? (
                                   <>
                                     <span className="line-through">Delete</span>
                                     <span className="ml-2 text-xs text-neutral-400">(Tenant aktif)</span>
                                   </>
+                                ) : softDeletingId === tenant.id ? (
+                                  'Deleting...'
                                 ) : (
                                   'Delete'
                                 )}
@@ -822,6 +1022,150 @@ export default function TenantsPage() {
               </div>
             )}
           </TabsContent>
+          )}
+
+          {/* Schema Backups Tab */}
+          {activeTab === 'backups' && (
+          <TabsContent value="backups" className="mt-6 space-y-4">
+            {loadingBackups ? (
+              <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : schemaBackups.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 flex items-center justify-center">
+                  <RotateCcw className="w-8 h-8 text-neutral-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                  Tidak Ada Schema Backup
+                </h3>
+                <p className="text-neutral-600">
+                  Schema backup akan muncul di sini setelah Anda menghapus permanen tenant dengan opsi backup.
+                  <br />
+                  Backup akan otomatis dihapus setelah 15 hari.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-neutral-50 border-b border-neutral-100">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                          Tenant Info
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                          Schema Name
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                          Size / Tables
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                          Backup Date
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                          Expires In
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {schemaBackups.map((backup) => (
+                        <motion.tr
+                          key={backup.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="hover:bg-neutral-50 transition-colors"
+                        >
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="font-semibold text-neutral-900">
+                                {backup.tenant_name}
+                              </div>
+                              <div className="text-sm text-neutral-500">
+                                Tenant ID: {backup.tenant_id}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <code className="px-2 py-1 bg-neutral-100 rounded text-sm font-mono text-neutral-700">
+                              {backup.schema_name}
+                            </code>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm">
+                              <div className="text-neutral-900 font-medium">
+                                {backup.backup_size || 'N/A'}
+                              </div>
+                              <div className="text-neutral-500">
+                                {backup.table_count} tables
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-neutral-600">
+                            {new Date(backup.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="px-6 py-4">
+                            {backup.is_expired ? (
+                              <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                                Expired
+                              </span>
+                            ) : backup.days_remaining <= 3 ? (
+                              <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
+                                {backup.days_remaining} days
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                {backup.days_remaining} days
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteSchemaBackup(backup.id, backup.schema_name)}
+                              className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete Now
+                            </Button>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Info Footer */}
+                <div className="px-6 py-4 bg-blue-50 border-t border-blue-100">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Informasi Schema Backups:</p>
+                      <ul className="space-y-1 text-blue-700">
+                        <li>• Schema backup dibuat otomatis saat hard delete tenant dengan opsi backup</li>
+                        <li>• Backup akan otomatis dihapus setelah <strong>15 hari</strong></li>
+                        <li>• Anda dapat menghapus backup lebih awal dengan tombol "Delete Now"</li>
+                        <li>• Expired backups akan dihapus otomatis oleh sistem cleanup job</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          )}
         </Tabs>
       </motion.div>
 
@@ -846,26 +1190,150 @@ export default function TenantsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Soft Delete Confirmation Dialog */}
+      <AlertDialog open={showSoftDeleteDialog} onOpenChange={setShowSoftDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              Konfirmasi Hapus Tenant
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-3 px-6 py-4">
+            <p className="text-sm text-neutral-600">
+              Apakah Anda yakin ingin menghapus tenant <strong>"{tenantToDelete?.name}"</strong>?
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+              <p className="text-sm text-amber-800 font-medium">
+                Informasi:
+              </p>
+              <p className="text-sm text-amber-700">
+                • Tenant akan dipindahkan ke tab Trash
+                <br />
+                • Data masih tersimpan dan dapat dipulihkan
+                <br />
+                • Users tidak dapat mengakses tenant ini
+                <br />
+                • Gunakan "Restore" untuk mengaktifkan kembali
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={softDeletingId !== null}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSoftDelete}
+              disabled={softDeletingId !== null}
+              className="bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50"
+            >
+              {softDeletingId !== null ? 'Menghapus...' : 'Ya, Pindahkan ke Trash'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Hard Delete Confirmation Dialog */}
       <AlertDialog open={showHardDeleteDialog} onOpenChange={setShowHardDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600">⚠️ Hapus Permanen?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p className="font-semibold">Tindakan ini tidak dapat dibatalkan!</p>
-              <p>
-                Tenant ini akan <span className="font-semibold text-red-600">dihapus secara permanen</span> dari database. 
-                Semua data terkait tenant akan hilang dan tidak dapat dipulihkan.
-              </p>
-              <p className="text-sm bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
-                💡 <strong>Saran:</strong> Gunakan "Restore" jika Anda hanya ingin mengaktifkan kembali tenant ini.
-              </p>
-            </AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Hapus Permanen?
+            </AlertDialogTitle>
           </AlertDialogHeader>
+          <div className="space-y-4 px-6 py-4">
+            <p className="font-semibold text-red-600 text-sm">Tindakan ini tidak dapat dibatalkan!</p>
+            <p className="text-sm text-neutral-600">
+              Tenant ini akan <span className="font-semibold text-red-600">dihapus secara permanen</span> dari database. 
+            </p>
+            
+            {/* Schema Backup Option */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="backup-schema"
+                  checked={backupSchema}
+                  onCheckedChange={(checked) => setBackupSchema(checked as boolean)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <label 
+                    htmlFor="backup-schema" 
+                    className="text-sm font-medium text-blue-900 cursor-pointer block mb-1"
+                  >
+                    Backup schema database (Rekomendasi)
+                  </label>
+                  <p className="text-xs text-blue-700">
+                    Schema akan di-backup selama <strong>15 hari</strong> sebelum dihapus otomatis. 
+                    Anda dapat menghapusnya lebih awal dari tab "Schema Backups".
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+              <p className="text-sm text-red-800 font-medium">
+                Peringatan:
+              </p>
+              <p className="text-sm text-red-700">
+                {backupSchema 
+                  ? 'Tenant record akan dihapus, tapi schema database akan di-backup selama 15 hari.'
+                  : 'Tenant record DAN schema database akan dihapus permanen. Semua data akan hilang selamanya!'
+                }
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+              <p className="text-sm text-amber-800 font-medium">
+                Alternatif:
+              </p>
+              <p className="text-sm text-amber-700">
+                Gunakan <strong>"Restore"</strong> dari tab Trash jika Anda ingin mengaktifkan kembali tenant ini.
+              </p>
+            </div>
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setBackupSchema(true); // Reset
+              setHardDeletingId(null);
+            }}>
+              Batal
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => hardDeletingId && handleHardDelete(hardDeletingId)}
+              className="bg-red-600 hover:bg-red-700 font-semibold"
+            >
+              {backupSchema ? 'Hapus & Backup Schema' : 'Hapus Permanen Semua'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Schema Backup Confirmation Dialog */}
+      <AlertDialog open={showDeleteBackupDialog} onOpenChange={setShowDeleteBackupDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Hapus Schema Backup?
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-3 px-6 py-4">
+            <p className="font-semibold text-red-600 text-sm">Tindakan ini tidak dapat dibatalkan!</p>
+            <p className="text-sm text-neutral-600">
+              Schema backup <code className="px-2 py-1 bg-neutral-100 rounded text-sm font-mono">{backupToDelete?.schemaName}</code> akan dihapus permanen dari database.
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700">
+                Database schema dan semua tabel di dalamnya akan di-drop secara permanen. Data tidak dapat dipulihkan setelah dihapus.
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBackupToDelete(null)}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSchemaBackup}
               className="bg-red-600 hover:bg-red-700 font-semibold"
             >
               Ya, Hapus Permanen

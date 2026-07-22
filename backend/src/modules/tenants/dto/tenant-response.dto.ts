@@ -34,6 +34,9 @@ export class TenantResponseDto {
   @ApiProperty({ description: 'Is tenant active' })
   is_active!: boolean;
 
+  @ApiProperty({ description: 'Tenant configuration (JSON)', required: false })
+  config?: Record<string, any> | null;
+
   @ApiProperty({ description: 'Creation timestamp' })
   created_at!: Date;
 
@@ -60,6 +63,18 @@ export class TenantResponseDto {
     this.secondary_color = tenant.secondary_color;
     this.subscription_tier = tenant.subscription_tier;
     this.is_active = tenant.is_active;
+    
+    // Parse config if it's a string
+    if (typeof tenant.config === 'string') {
+      try {
+        this.config = JSON.parse(tenant.config);
+      } catch {
+        this.config = null;
+      }
+    } else {
+      this.config = tenant.config;
+    }
+    
     this.created_at = tenant.created_at;
     this.updated_at = tenant.updated_at;
     this.deleted_at = tenant.deleted_at;

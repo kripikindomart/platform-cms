@@ -28,7 +28,11 @@ interface TenantAccess {
   role_display_name: string;
 }
 
-export function Header() {
+interface HeaderProps {
+  sidebarCollapsed?: boolean;
+}
+
+export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const router = useRouter();
   const { push } = usePortalRouter();
   const { user, logout } = useAuthStore();
@@ -98,7 +102,10 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 border-b border-neutral-100 bg-white/80 backdrop-blur-xl fixed top-0 right-0 left-[280px] z-10">
+    <header 
+      className="h-16 border-b border-neutral-100 bg-white/80 backdrop-blur-xl fixed top-0 right-0 z-10 transition-all duration-300"
+      style={{ left: sidebarCollapsed ? '80px' : '280px' }}
+    >
       <div className="h-full px-6 flex items-center justify-between">
         {/* Search */}
         <div className="flex-1 max-w-xl">

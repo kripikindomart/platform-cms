@@ -21,7 +21,10 @@ import {
   X as XIcon,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Palette,
+  AlertTriangle,
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +57,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import BrandingSettings from './components/settings/branding-settings';
+import GeneralSettings from './components/settings/general-settings';
+import DangerZoneSettings from './components/settings/danger-zone-settings';
+import AddUsersModal from './components/add-users-modal';
 
 export default function TenantDetailPage() {
   const params = useParams();
@@ -73,6 +80,7 @@ export default function TenantDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [usersPage, setUsersPage] = useState(1);
   const [usersLimit, setUsersLimit] = useState(10);
+  const [showAddUsersModal, setShowAddUsersModal] = useState(false);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersSearch, setUsersSearch] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
@@ -81,35 +89,23 @@ export default function TenantDetailPage() {
   const [showBulkRemoveDialog, setShowBulkRemoveDialog] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingTenant, setDeletingTenant] = useState(false);
+  const { push } = usePortalRouter();
 
   // Fetch current user ID
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        console.log('[TENANT DETAIL] Fetching current user from API...');
         const currentUser = await authService.me();
-        console.log('[TENANT DETAIL] Current user fetched from API:', currentUser);
-        console.log('[TENANT DETAIL] Setting currentUserId to:', currentUser.id);
         setCurrentUserId(currentUser.id);
         setCurrentUserEmail(currentUser.email);
       } catch (error: any) {
-        console.error('[TENANT DETAIL] API call failed:', error);
-        console.error('[TENANT DETAIL] Error details:', {
-          message: error?.message,
-          status: error?.status,
-          response: error?.response,
-        });
-        
         // Fallback: decode JWT token client-side
-        console.log('[TENANT DETAIL] Trying JWT fallback...');
         const userIdFromToken = getCurrentUserIdFromToken();
         if (userIdFromToken) {
-          console.log('[TENANT DETAIL] Current user ID from JWT token:', userIdFromToken);
           setCurrentUserId(userIdFromToken);
           // Email not available from token, but ID is enough for protection
-        } else {
-          console.warn('[TENANT DETAIL] Could not fetch current user - protection features disabled');
-          console.warn('[TENANT DETAIL] This means switches and checkboxes will NOT be protected!');
         }
       }
     };
@@ -290,7 +286,6 @@ export default function TenantDetailPage() {
   // Helper: Check if this is the currently logged-in user
   const isCurrentUser = (user: any) => {
     if (!currentUserId) {
-      console.log('[TENANT DETAIL] WARNING: currentUserId is null, protection DISABLED for user:', user.email);
       return false; // If we don't know current user yet, don't protect
     }
     
@@ -298,13 +293,6 @@ export default function TenantDetailPage() {
     const userId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
     const isCurrent = userId === currentUserId;
     
-    console.log('[TENANT DETAIL] Checking user:', {
-      userId: user.id,
-      userIdParsed: userId,
-      userEmail: user.email,
-      currentUserId: currentUserId,
-      isCurrent: isCurrent
-    });
     return isCurrent;
   };
 
@@ -411,6 +399,34 @@ export default function TenantDetailPage() {
     }
   };
 
+  // Handle soft delete tenant
+  const handleDeleteTenant = async () => {
+    if (!tenant) return;
+
+    setShowDeleteDialog(false);
+    setDeletingTenant(true);
+
+    try {
+      await tenantsService.delete(tenant.id);
+      
+      toast.success('Tenant berhasil dihapus', {
+        description: `Tenant "${tenant.name}" telah dipindahkan ke trash`,
+        duration: 4000,
+      });
+
+      // Redirect to tenants list
+      push('/tenants');
+    } catch (error: any) {
+      toast.error('Gagal menghapus tenant', {
+        description: error?.message || 'Terjadi kesalahan saat menghapus tenant',
+        duration: 5000,
+        closeButton: true,
+      });
+    } finally {
+      setDeletingTenant(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -460,7 +476,19 @@ export default function TenantDetailPage() {
           </PortalLink>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold text-xl">
+            {tenant.logo_url ? (
+              <img 
+                src={tenant.logo_url} 
+                alt={`${tenant.name} logo`}
+                className="w-12 h-12 rounded-2xl object-cover border border-neutral-200"
+                onError={(e) => {
+                  // Fallback to initial if logo fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white font-bold text-xl ${tenant.logo_url ? 'hidden' : ''}`}>
               {tenant.name.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -486,12 +514,57 @@ export default function TenantDetailPage() {
               Edit
             </Button>
           </PortalLink>
-          <Button variant="outline" className="gap-2 text-red-600 hover:text-red-700">
+          <Button 
+            variant="outline" 
+            className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={deletingTenant}
+          >
             <Trash2 className="w-4 h-4" />
-            Delete
+            {deletingTenant ? 'Deleting...' : 'Delete'}
           </Button>
         </div>
       </motion.div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Konfirmasi Hapus Tenant
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-3 px-6 py-4">
+            <div className="text-sm text-neutral-600">
+              Apakah Anda yakin ingin menghapus tenant <strong>"{tenant.name}"</strong>?
+            </div>
+            <div className="text-sm text-neutral-600">
+              Tenant akan dipindahkan ke trash dan dapat dipulihkan kembali. 
+              Data tenant masih tersimpan di database.
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-800 font-medium">
+                ⚠️ Perhatian:
+              </p>
+              <ul className="text-sm text-amber-700 list-disc list-inside mt-1 space-y-1">
+                <li>Tenant tidak dapat diakses setelah dihapus</li>
+                <li>Users tidak dapat login ke tenant ini</li>
+                <li>Dapat dipulihkan dari tab Trash</li>
+              </ul>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTenant}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Ya, Hapus Tenant
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Quick Stats */}
       <motion.div
@@ -714,6 +787,14 @@ export default function TenantDetailPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <Button
+                  onClick={() => setShowAddUsersModal(true)}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah User
+                </Button>
               </div>
             </div>
 
@@ -1014,15 +1095,47 @@ export default function TenantDetailPage() {
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings" className="mt-6">
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-12 text-center">
-              <Settings className="w-16 h-16 mx-auto text-neutral-300 mb-4" />
-              <h3 className="text-lg font-semibold text-neutral-900 mb-2">
-                Tenant Settings
-              </h3>
-              <p className="text-neutral-600">
-                Pengaturan dan konfigurasi tenant akan ditampilkan di sini
-              </p>
+          <TabsContent value="settings" className="mt-6 space-y-6">
+            {/* Branding Settings */}
+            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                  <Palette className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-900">Branding</h3>
+                  <p className="text-sm text-neutral-600">Logo, colors, dan tampilan visual</p>
+                </div>
+              </div>
+              {tenant && <BrandingSettings tenant={tenant} onUpdate={fetchTenantDetail} />}
+            </div>
+
+            {/* General Settings */}
+            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <Settings className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-900">Pengaturan Umum</h3>
+                  <p className="text-sm text-neutral-600">Timezone, bahasa, dan preferensi lainnya</p>
+                </div>
+              </div>
+              {tenant && <GeneralSettings tenant={tenant} onUpdate={fetchTenantDetail} />}
+            </div>
+
+            {/* Danger Zone */}
+            <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center shadow-lg">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-red-900">Danger Zone</h3>
+                  <p className="text-sm text-red-700">Tindakan yang tidak dapat dibatalkan</p>
+                </div>
+              </div>
+              {tenant && <DangerZoneSettings tenant={tenant} />}
             </div>
           </TabsContent>
         </Tabs>
@@ -1048,6 +1161,18 @@ export default function TenantDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Users Modal */}
+      <AddUsersModal
+        isOpen={showAddUsersModal}
+        onClose={() => setShowAddUsersModal(false)}
+        tenantId={Number(tenantId)}
+        onSuccess={() => {
+          // Refresh users data tanpa reload page
+          fetchTenantUsers(false);
+          fetchTenantDetail(); // Update stats juga
+        }}
+      />
     </div>
   );
 }

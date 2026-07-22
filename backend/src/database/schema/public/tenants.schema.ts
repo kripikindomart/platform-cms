@@ -29,6 +29,7 @@ export const tenants = pgTable(
     }),
     config: text('config'), // JSONB stored as text
     is_active: boolean('is_active').notNull().default(true),
+    is_platform_admin: boolean('is_platform_admin').notNull().default(false), // Platform admin tenant flag
 
     // Audit fields
     created_at: timestamp('created_at', { withTimezone: true })

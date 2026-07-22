@@ -2,7 +2,9 @@ import { Injectable, ConflictException, Logger, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
 import { TenantsRepository } from './tenants.repository';
+import { TenantSchemaBackupsRepository } from './tenant-schema-backups.repository';
 import { TenantSchemaService } from '../../database/tenant-schema.service';
+import { TenantContextService } from '../../common/context/tenant-context.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { QueryTenantDto } from './dto/query-tenant.dto';
@@ -16,7 +18,9 @@ export class TenantsService {
 
   constructor(
     private readonly tenantsRepository: TenantsRepository,
+    private readonly tenantSchemaBackupsRepository: TenantSchemaBackupsRepository,
     private readonly tenantSchemaService: TenantSchemaService,
+    private readonly tenantContext: TenantContextService,
     @Inject('DRIZZLE')
     private readonly db: NodePgDatabase<typeof publicSchema>,
   ) {}
@@ -584,13 +588,55 @@ export class TenantsService {
     };
 
     if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.slug !== undefined) updateData.slug = dto.slug;
+    if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.domain !== undefined) updateData.domain = dto.domain;
     if (dto.subscription_tier !== undefined) updateData.subscription_tier = dto.subscription_tier;
     if (dto.is_active !== undefined) updateData.is_active = dto.is_active;
+    
+    // Branding fields
+    if (dto.logo_url !== undefined) updateData.logo_url = dto.logo_url;
+    if (dto.primary_color !== undefined) updateData.primary_color = dto.primary_color;
+    if (dto.secondary_color !== undefined) updateData.secondary_color = dto.secondary_color;
 
     const tenant = await this.tenantsRepository.update(id, updateData);
 
     this.logger.log(`✅ Tenant updated successfully: ${tenant.name} (ID: ${tenant.id})`);
+
+    return new TenantResponseDto(tenant);
+  }
+
+  /**
+   * Update tenant config
+   */
+  async updateConfig(id: number, config: Record<string, any>, userId: number): Promise<TenantResponseDto> {
+    this.logger.log(`Updating tenant config ID ${id} by user ${userId}`);
+
+    // Check if tenant exists
+    const existing = await this.tenantsRepository.findById(id);
+    if (!existing) {
+      throw new ConflictException({
+        code: 'TENANT_NOT_FOUND',
+        message: `Tenant dengan ID ${id} tidak ditemukan`,
+      });
+    }
+
+    // Merge with existing config
+    const currentConfig = (typeof existing.config === 'object' && existing.config !== null) 
+      ? (existing.config as Record<string, any>) 
+      : {};
+    const newConfig = {
+      ...currentConfig,
+      ...config,
+    };
+
+    // Update tenant
+    const tenant = await this.tenantsRepository.update(id, {
+      config: JSON.stringify(newConfig), // Convert to JSON string for database
+      updated_at: new Date(),
+    });
+
+    this.logger.log(`✅ Tenant config updated successfully: ${tenant.name} (ID: ${tenant.id})`);
 
     return new TenantResponseDto(tenant);
   }
@@ -601,12 +647,29 @@ export class TenantsService {
   async delete(id: number, userId: number): Promise<void> {
     this.logger.log(`Deleting tenant ID ${id} by user ${userId}`);
 
-    // Check if tenant exists
-    const existing = await this.tenantsRepository.findById(id);
+    // Check if tenant exists (including already deleted)
+    const existing = await this.tenantsRepository.findById(id, true);
     if (!existing) {
       throw new ConflictException({
         code: 'TENANT_NOT_FOUND',
         message: `Tenant dengan ID ${id} tidak ditemukan`,
+      });
+    }
+
+    // Check if already soft deleted
+    if (existing.deleted_at) {
+      throw new ConflictException({
+        code: 'TENANT_ALREADY_DELETED',
+        message: `Tenant dengan ID ${id} sudah dihapus sebelumnya`,
+      });
+    }
+
+    // Prevent deleting the current tenant context
+    const currentTenant = this.tenantContext.getTenant();
+    if (currentTenant && currentTenant.id === id) {
+      throw new ConflictException({
+        code: 'CANNOT_DELETE_CURRENT_TENANT',
+        message: `Tidak dapat menghapus tenant yang sedang aktif. Silakan switch ke tenant lain terlebih dahulu.`,
       });
     }
 
@@ -636,10 +699,10 @@ export class TenantsService {
   }
 
   /**
-   * Permanently delete tenant
+   * Permanently delete tenant (with option to backup schema)
    */
-  async hardDelete(id: number): Promise<void> {
-    this.logger.log(`Permanently deleting tenant ID ${id}`);
+  async hardDelete(id: number, userId: number, backupSchema: boolean = true): Promise<void> {
+    this.logger.log(`Permanently deleting tenant ID ${id} (backup: ${backupSchema})`);
 
     // Check if tenant exists (including soft deleted)
     const existing = await this.tenantsRepository.findById(id, true);
@@ -650,10 +713,135 @@ export class TenantsService {
       });
     }
 
-    // Hard delete tenant
+    const schemaName = existing.schema_name;
+
+    if (backupSchema && schemaName) {
+      // Check if schema exists
+      const schemaExists = await this.tenantSchemaService.schemaExists(schemaName);
+      
+      if (schemaExists) {
+        // Get schema info
+        const schemaInfo = await this.tenantSchemaService.getSchemaInfo(schemaName);
+        
+        // Create backup record (15 days retention)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 15);
+        
+        await this.tenantSchemaBackupsRepository.create({
+          tenant_id: existing.id,
+          tenant_name: existing.name,
+          tenant_slug: existing.slug,
+          schema_name: schemaName,
+          backup_reason: 'tenant_hard_delete',
+          backup_size: schemaInfo.size,
+          table_count: schemaInfo.tableCount,
+          expires_at: expiresAt,
+          created_at: new Date(),
+          created_by: userId,
+          metadata: {
+            subscription_tier: existing.subscription_tier,
+            deleted_at: existing.deleted_at,
+            original_tenant_id: existing.id,
+          },
+        });
+
+        this.logger.log(`✓ Schema backup created: ${schemaName} (expires in 15 days)`);
+      }
+    } else if (!backupSchema && schemaName) {
+      // Drop schema immediately without backup
+      const schemaExists = await this.tenantSchemaService.schemaExists(schemaName);
+      if (schemaExists) {
+        await this.tenantSchemaService.dropTenantSchema(schemaName);
+        this.logger.log(`✓ Schema dropped immediately: ${schemaName}`);
+      }
+    }
+
+    // Hard delete tenant record
     await this.tenantsRepository.hardDelete(id);
 
     this.logger.log(`✅ Tenant permanently deleted: ID ${id}`);
+  }
+
+  /**
+   * Get all schema backups
+   */
+  async getSchemaBackups(): Promise<any[]> {
+    const backups = await this.tenantSchemaBackupsRepository.findAll();
+    
+    return backups.map(backup => {
+      const now = new Date();
+      const daysRemaining = Math.ceil(
+        (backup.expires_at.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      return {
+        ...backup,
+        days_remaining: daysRemaining,
+        is_expired: daysRemaining <= 0,
+      };
+    });
+  }
+
+  /**
+   * Delete schema backup permanently (drops schema and deletes backup record)
+   */
+  async deleteSchemaBackup(backupId: number, userId: number): Promise<void> {
+    this.logger.log(`Deleting schema backup ID ${backupId}`);
+
+    const backup = await this.tenantSchemaBackupsRepository.findById(backupId);
+    if (!backup) {
+      throw new ConflictException({
+        code: 'BACKUP_NOT_FOUND',
+        message: `Schema backup dengan ID ${backupId} tidak ditemukan`,
+      });
+    }
+
+    // Drop schema if exists
+    const schemaExists = await this.tenantSchemaService.schemaExists(backup.schema_name);
+    if (schemaExists) {
+      await this.tenantSchemaService.dropTenantSchema(backup.schema_name);
+      this.logger.log(`✓ Schema dropped: ${backup.schema_name}`);
+    }
+
+    // Delete backup record
+    await this.tenantSchemaBackupsRepository.hardDelete(backupId);
+
+    this.logger.log(`✅ Schema backup deleted permanently: ID ${backupId}`);
+  }
+
+  /**
+   * Cleanup expired schema backups (runs via cron)
+   */
+  async cleanupExpiredSchemaBackups(): Promise<{ deleted: number; failed: number }> {
+    this.logger.log('Running expired schema backups cleanup...');
+
+    const expiredBackups = await this.tenantSchemaBackupsRepository.findExpired();
+    
+    let deleted = 0;
+    let failed = 0;
+
+    for (const backup of expiredBackups) {
+      try {
+        // Drop schema if exists
+        const schemaExists = await this.tenantSchemaService.schemaExists(backup.schema_name);
+        if (schemaExists) {
+          await this.tenantSchemaService.dropTenantSchema(backup.schema_name);
+        }
+
+        // Delete backup record
+        await this.tenantSchemaBackupsRepository.hardDelete(backup.id);
+        
+        deleted++;
+        this.logger.log(`✓ Expired backup cleaned: ${backup.schema_name}`);
+      } catch (error) {
+        failed++;
+        this.logger.error(`✗ Failed to cleanup backup ${backup.id}:`, error);
+      }
+    }
+
+    this.logger.log(`✅ Cleanup complete: ${deleted} deleted, ${failed} failed`);
+
+    return { deleted, failed };
   }
 
   /**
@@ -733,11 +921,10 @@ export class TenantsService {
    */
   async bulkAddUsers(
     tenantId: number,
-    userIds: number[],
-    defaultRoleId: number | undefined,
+    dto: { user_ids: number[]; default_role_id?: number; user_role_mapping?: Array<{ user_id: number; role_id: number }> },
     assignedBy: number,
-  ): Promise<{ success: number; failed: number; message: string }> {
-    this.logger.log(`Bulk adding ${userIds.length} users to tenant ${tenantId}`);
+  ): Promise<{ success: number; failed: number; errors: any[] }> {
+    this.logger.log(`Bulk adding ${dto.user_ids.length} users to tenant ${tenantId}`);
 
     // Check if tenant exists
     const tenant = await this.tenantsRepository.findById(tenantId);
@@ -756,10 +943,11 @@ export class TenantsService {
     try {
       let successCount = 0;
       let failedCount = 0;
+      const errors: any[] = [];
 
       // Get default role if not provided
-      let roleId = defaultRoleId;
-      if (!roleId) {
+      let defaultRoleId = dto.default_role_id;
+      if (!defaultRoleId && !dto.user_role_mapping) {
         // Use 'user' role as default
         const roleResult = await this.db.execute(sql`
           SELECT id FROM roles WHERE name = 'user' LIMIT 1
@@ -772,12 +960,23 @@ export class TenantsService {
           });
         }
         
-        roleId = (roleResult.rows[0] as any).id;
+        defaultRoleId = (roleResult.rows[0] as any).id;
       }
 
       // Process each user
-      for (const userId of userIds) {
+      for (const userId of dto.user_ids) {
         try {
+          // Find role for this user
+          let roleId = defaultRoleId;
+          if (dto.user_role_mapping) {
+            const mapping = dto.user_role_mapping.find(m => m.user_id === userId);
+            if (mapping) roleId = mapping.role_id;
+          }
+
+          if (!roleId) {
+            throw new Error('Role ID required');
+          }
+
           // Check if user already assigned
           const existingResult = await this.db.execute(sql`
             SELECT id FROM user_roles 
@@ -787,6 +986,10 @@ export class TenantsService {
           if (existingResult.rows.length > 0) {
             this.logger.warn(`User ${userId} sudah memiliki role di tenant ${tenantId}`);
             failedCount++;
+            errors.push({
+              user_id: userId,
+              message: 'User already has this role in tenant',
+            });
             continue;
           }
 
@@ -798,9 +1001,13 @@ export class TenantsService {
 
           successCount++;
           this.logger.log(`✓ User ${userId} added to tenant ${tenantId}`);
-        } catch (error) {
+        } catch (error: any) {
           this.logger.error(`Failed to add user ${userId}:`, error);
           failedCount++;
+          errors.push({
+            user_id: userId,
+            message: error.message || 'Unknown error',
+          });
         }
       }
 
@@ -811,12 +1018,72 @@ export class TenantsService {
       return {
         success: successCount,
         failed: failedCount,
-        message: `${successCount} user berhasil ditambahkan ke tenant ${tenant.name}`,
+        errors,
       };
     } finally {
       // Reset search path
       await this.db.execute(sql.raw(`RESET search_path`));
     }
+  }
+
+  /**
+   * Get users not in tenant (available to add)
+   */
+  async getAvailableUsers(tenantId: number, search?: string): Promise<any[]> {
+    this.logger.log(`Getting available users for tenant ${tenantId}`);
+
+    // Get tenant
+    const tenant = await this.tenantsRepository.findById(tenantId);
+    if (!tenant) {
+      throw new ConflictException({
+        code: 'TENANT_NOT_FOUND',
+        message: `Tenant dengan ID ${tenantId} tidak ditemukan`,
+      });
+    }
+
+    // Get users already in tenant
+    const existingUsersResult = await this.db.execute(sql.raw(`
+      SELECT DISTINCT user_id 
+      FROM ${tenant.schema_name}.user_roles
+    `));
+
+    const existingUserIds = existingUsersResult.rows.map((row: any) => row.user_id);
+
+    // Build query for available users
+    let query = sql`
+      SELECT id, email, name, created_at
+      FROM public.users
+      WHERE deleted_at IS NULL
+    `;
+
+    // Exclude users already in tenant
+    if (existingUserIds.length > 0) {
+      query = sql`
+        SELECT id, email, name, created_at
+        FROM public.users
+        WHERE deleted_at IS NULL
+        AND id NOT IN (${sql.join(existingUserIds.map(id => sql`${id}`), sql`, `)})
+      `;
+    }
+
+    // Add search filter
+    if (search) {
+      query = sql`
+        ${query}
+        AND (
+          email ILIKE ${`%${search}%`} OR
+          name ILIKE ${`%${search}%`}
+        )
+      `;
+    }
+
+    query = sql`${query} ORDER BY name ASC LIMIT 100`;
+
+    const result = await this.db.execute(query);
+
+    this.logger.log(`✅ Found ${result.rows.length} available users`);
+
+    return result.rows as any[];
   }
 
   /**
@@ -977,58 +1244,109 @@ export class TenantsService {
 
     const schemaName = tenant.schema_name;
 
+    // Check if schema exists
+    const schemaExistsResult = await this.db.execute(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.schemata 
+        WHERE schema_name = ${schemaName}
+      ) as exists
+    `);
+
+    const schemaExists = (schemaExistsResult.rows[0] as any)?.exists;
+
+    // If schema doesn't exist, return tenant with zero stats
+    if (!schemaExists) {
+      this.logger.warn(`Schema ${schemaName} does not exist yet. Returning zero stats.`);
+      return {
+        tenant: new TenantResponseDto(tenant),
+        stats: {
+          users: 0,
+          roles: 0,
+          permissions: 0,
+          modules: 0,
+          activity: 0,
+        },
+        provisioned: false,
+      };
+    }
+
     // Set search path to tenant schema
     await this.db.execute(sql.raw(`SET search_path TO "${schemaName}", public`));
 
     try {
-      // Check if user_roles has deleted_at column
-      const columnExistsResult = await this.db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.columns 
-          WHERE table_schema = ${schemaName}
-          AND table_name = 'user_roles'
-          AND column_name = 'deleted_at'
-        ) as exists
-      `);
+      let usersCount = 0;
+      let rolesCount = 0;
+      let permissionsCount = 0;
+      let modulesCount = 0;
+      let activityCount = 0;
 
-      const hasSoftDelete = (columnExistsResult.rows[0] as any)?.exists;
+      // Get users count (only active) - handle if table doesn't exist
+      try {
+        // Check if user_roles table exists
+        const tableExistsResult = await this.db.execute(sql`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = ${schemaName}
+            AND table_name = 'user_roles'
+          ) as exists
+        `);
 
-      // Get users count (only active)
-      const whereClause = hasSoftDelete 
-        ? sql`WHERE deleted_at IS NULL`
-        : sql``;
+        if ((tableExistsResult.rows[0] as any)?.exists) {
+          // Check if has deleted_at column
+          const columnExistsResult = await this.db.execute(sql`
+            SELECT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_schema = ${schemaName}
+              AND table_name = 'user_roles'
+              AND column_name = 'deleted_at'
+            ) as exists
+          `);
 
-      const usersResult = await this.db.execute(sql`
-        SELECT COUNT(DISTINCT user_id) as count FROM user_roles ${whereClause}
-      `);
-      const usersCount = Number((usersResult.rows[0] as any)?.count || 0);
+          const hasSoftDelete = (columnExistsResult.rows[0] as any)?.exists;
+          const whereClause = hasSoftDelete 
+            ? sql`WHERE deleted_at IS NULL`
+            : sql``;
+
+          const usersResult = await this.db.execute(sql`
+            SELECT COUNT(DISTINCT user_id) as count FROM user_roles ${whereClause}
+          `);
+          usersCount = Number((usersResult.rows[0] as any)?.count || 0);
+        }
+      } catch (error) {
+        this.logger.warn(`Could not get users count for ${schemaName}: ${error instanceof Error ? error.message : String(error)}`);
+      }
 
       // Get roles count
-      const rolesResult = await this.db.execute(sql`
-        SELECT COUNT(*) as count FROM roles WHERE deleted_at IS NULL
-      `);
-      const rolesCount = Number((rolesResult.rows[0] as any)?.count || 0);
+      try {
+        const rolesResult = await this.db.execute(sql`
+          SELECT COUNT(*) as count FROM roles WHERE deleted_at IS NULL
+        `);
+        rolesCount = Number((rolesResult.rows[0] as any)?.count || 0);
+      } catch (error) {
+        this.logger.warn(`Could not get roles count for ${schemaName}`);
+      }
 
       // Get permissions count
-      const permissionsResult = await this.db.execute(sql`
-        SELECT COUNT(*) as count FROM permissions
-      `);
-      const permissionsCount = Number((permissionsResult.rows[0] as any)?.count || 0);
+      try {
+        const permissionsResult = await this.db.execute(sql`
+          SELECT COUNT(*) as count FROM permissions
+        `);
+        permissionsCount = Number((permissionsResult.rows[0] as any)?.count || 0);
+      } catch (error) {
+        this.logger.warn(`Could not get permissions count for ${schemaName}`);
+      }
 
-      // Get modules count (from tenant_modules table if exists)
-      let modulesCount = 0;
+      // Get modules count
       try {
         const modulesResult = await this.db.execute(sql`
           SELECT COUNT(*) as count FROM tenant_modules WHERE is_enabled = true
         `);
         modulesCount = Number((modulesResult.rows[0] as any)?.count || 0);
       } catch (error) {
-        // Table might not exist yet
-        this.logger.warn(`tenant_modules table not found for ${schemaName}`);
+        this.logger.warn(`Could not get modules count for ${schemaName}`);
       }
 
       // Get recent activity count (last 7 days)
-      let activityCount = 0;
       try {
         const activityResult = await this.db.execute(sql`
           SELECT COUNT(*) as count 
@@ -1037,7 +1355,7 @@ export class TenantsService {
         `);
         activityCount = Number((activityResult.rows[0] as any)?.count || 0);
       } catch (error) {
-        this.logger.warn(`audit_logs table not found for ${schemaName}`);
+        this.logger.warn(`Could not get activity count for ${schemaName}`);
       }
 
       return {
@@ -1049,6 +1367,7 @@ export class TenantsService {
           modules: modulesCount,
           activity: activityCount,
         },
+        provisioned: true,
       };
     } finally {
       // Reset search path

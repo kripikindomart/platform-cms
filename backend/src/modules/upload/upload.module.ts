@@ -11,9 +11,10 @@ import { StorageFactoryService } from './storage-factory.service';
 import { GoogleDriveProvider } from './providers/google-drive.provider';
 import { S3Provider } from './providers/s3.provider';
 import { LocalStorageProvider } from './providers/local.provider';
+import { UploadSettingsModule } from '../upload-settings/upload-settings.module';
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, UploadSettingsModule],
   controllers: [UploadController],
   providers: [
     UploadService,

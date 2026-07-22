@@ -4,16 +4,15 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
-import { Building2, ArrowLeft, Loader2, Upload, X } from 'lucide-react';
+import { ArrowLeft, Building2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { usePortalRouter } from '@/hooks/use-portal-router';
 import { tenantsService } from '@/lib/api/services/tenants.service';
+import { uploadService } from '@/lib/api/services/upload.service';
+import { usePortalRouter } from '@/hooks/use-portal-router';
+import { PortalLink } from '@/components/ui/portal-link';
 import { generateSlug } from '@/lib/utils/slug';
 
 // Validation schema
@@ -26,11 +25,6 @@ const formSchema = z.object({
     .string()
     .min(1, 'Slug wajib diisi')
     .regex(/^[a-z0-9-]+$/, 'Slug hanya boleh huruf kecil, angka, dan tanda hubung'),
-  description: z
-    .string()
-    .max(500, 'Deskripsi maksimal 500 karakter')
-    .optional()
-    .or(z.literal('')),
   is_active: z.boolean(),
   logo_url: z.string().optional().or(z.literal('')),
   primary_color: z
@@ -45,453 +39,357 @@ const formSchema = z.object({
     .or(z.literal('')),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type TenantFormData = z.infer<typeof formSchema>;
 
 export default function CreateTenantPage() {
-  const { push, router } = usePortalRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { push } = usePortalRouter();
+  const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isDirty },
-  } = useForm<FormData>({
+  const form = useForm<TenantFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       slug: '',
-      description: '',
       is_active: true,
       logo_url: '',
-      primary_color: '#3B82F6', // Default blue
-      secondary_color: '#06B6D4', // Default cyan
+      primary_color: '#3B82F6',
+      secondary_color: '#06B6D4',
     },
   });
 
-  // Compress image before converting to base64
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Resize if too large (max 400px)
-          const maxSize = 400;
-          if (width > height && width > maxSize) {
-            height = (height / width) * maxSize;
-            width = maxSize;
-          } else if (height > maxSize) {
-            width = (width / height) * maxSize;
-            height = maxSize;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Convert to base64 with compression
-          const base64 = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(base64);
-        };
-        img.onerror = reject;
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  // Auto-generate slug dari name
+  const watchName = form.watch('name');
+  useEffect(() => {
+    if (watchName) {
+      const slug = generateSlug(watchName);
+      form.setValue('slug', slug, { shouldValidate: true });
+    }
+  }, [watchName, form]);
+
+  // Handle logo upload
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ukuran file terlalu besar', {
+        description: 'Maksimal ukuran file adalah 2MB',
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      toast.error('Format file tidak didukung', {
+        description: 'Hanya file JPG dan PNG yang diizinkan',
+      });
+      return;
+    }
+
+    setLogoFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // Watch name field untuk auto-generate slug
-  const nameValue = watch('name');
-  const isActive = watch('is_active');
+  // Remove logo
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    form.setValue('logo_url', '');
+  };
 
-  useEffect(() => {
-    if (nameValue) {
-      const generatedSlug = generateSlug(nameValue);
-      setValue('slug', generatedSlug);
-    }
-  }, [nameValue, setValue]);
-
-  const onSubmit = async (data: FormData) => {
+  // Submit form
+  const onSubmit = async (data: TenantFormData) => {
+    let uploadedFileId: string | null = null;
+    
     try {
-      setIsSubmitting(true);
+      setLoading(true);
 
-      // Clean up empty optional fields
-      const cleanData = {
+      // 1. Upload logo jika ada file
+      let logoUrl: string | undefined = undefined;
+      if (logoFile) {
+        toast.info('Uploading logo to Google Drive...', { duration: 2000 });
+        
+        try {
+          const uploadResult = await uploadService.uploadFile(logoFile);
+          uploadedFileId = uploadResult.fileId; // Save for cleanup if tenant creation fails
+          
+          // Backend already returns the full URL
+          logoUrl = uploadResult.url;
+          
+          toast.success('Logo uploaded successfully', { duration: 2000 });
+        } catch (uploadError: any) {
+          throw new Error(uploadError.message || 'Gagal upload logo ke Google Drive');
+        }
+      }
+
+      // 2. Create tenant dengan logo URL
+      // Only send fields that backend accepts (no description field in DTO)
+      const submitData: any = {
         name: data.name,
         slug: data.slug,
-        ...(data.description && { description: data.description }),
         is_active: data.is_active,
-        ...(data.logo_url && { logo_url: data.logo_url }),
-        ...(data.primary_color && { primary_color: data.primary_color }),
-        ...(data.secondary_color && { secondary_color: data.secondary_color }),
       };
+      
+      // Only add optional fields if they have values
+      if (logoUrl) {
+        submitData.logo_url = logoUrl;
+      }
+      
+      if (data.primary_color && data.primary_color !== '') {
+        submitData.primary_color = data.primary_color;
+      }
+      
+      if (data.secondary_color && data.secondary_color !== '') {
+        submitData.secondary_color = data.secondary_color;
+      }
 
-      const newTenant = await tenantsService.create(cleanData);
+      const result = await tenantsService.provision(submitData);
 
       toast.success('Tenant berhasil dibuat', {
-        description: `Tenant "${newTenant.name}" telah dibuat`,
+        description: `Tenant "${result.tenant.name}" telah berhasil dibuat dengan schema dan tables`,
         duration: 4000,
-        closeButton: true,
       });
 
-      // Redirect to tenant detail page
-      push(`/tenants/${newTenant.id}`);
+      // Redirect to detail page
+      push(`/tenants/${result.tenant.id}`);
     } catch (error: any) {
-      console.error('Create tenant error:', error);
-      
-      const errorMessage = error?.response?.data?.message || error?.message || 'Terjadi kesalahan';
+      // Cleanup: Delete uploaded logo if tenant creation failed
+      if (uploadedFileId) {
+        try {
+          await uploadService.deleteFile(uploadedFileId);
+          toast.info('Logo yang di-upload sudah dibersihkan', { duration: 3000 });
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded logo:', cleanupError);
+        }
+      }
       
       toast.error('Gagal membuat tenant', {
-        description: errorMessage,
+        description: error?.message || 'Terjadi kesalahan saat membuat tenant',
         duration: 5000,
         closeButton: true,
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
-  };
-
-  const handleCancel = () => {
-    if (isDirty) {
-      if (confirm('Yakin ingin membatalkan? Perubahan yang belum disimpan akan hilang.')) {
-        router.back();
-      }
-    } else {
-      router.back();
-    }
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('File harus berupa gambar', {
-        closeButton: true,
-      });
-      return;
-    }
-
-    // Validate file size (max 2MB before compression)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ukuran file maksimal 5MB', {
-        closeButton: true,
-      });
-      return;
-    }
-
-    try {
-      // Compress image before setting
-      const compressedBase64 = await compressImage(file);
-      setLogoPreview(compressedBase64);
-      setValue('logo_url', compressedBase64);
-      
-      toast.success('Logo berhasil diupload dan dikompres', {
-        closeButton: true,
-      });
-    } catch (error) {
-      console.error('Compress error:', error);
-      toast.error('Gagal memproses gambar', {
-        closeButton: true,
-      });
-    }
-  };
-
-  const handleRemoveLogo = () => {
-    setLogoPreview('');
-    setValue('logo_url', '');
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
-      <div className="max-w-4xl mx-auto space-y-4">
-        {/* Premium Header with Gradient Background */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-6 bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-50 rounded-2xl border border-neutral-200 shadow-lg shadow-blue-500/10"
-        >
-          {/* Back Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            className="mb-4 gap-2 hover:bg-white/60"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
-          </Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <PortalLink href="/tenants">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </Button>
+          </PortalLink>
 
-          {/* Title with Icon */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Create New Tenant</h1>
-              <p className="text-sm text-neutral-600 mt-0.5">
-                Buat tenant baru untuk organisasi atau perusahaan
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Create New Tenant</h1>
+            <p className="text-neutral-600 mt-1">Buat tenant baru untuk organisasi</p>
           </div>
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Form */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Basic Information - Premium Card */}
-            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="mb-4">
-                <h3 className="text-base font-bold text-neutral-900 mb-1">
-                  Informasi Dasar
-                </h3>
-                <p className="text-xs text-neutral-600">
-                  Informasi utama tentang tenant
-                </p>
+      {/* Form */}
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm">
+          {/* Basic Information */}
+          <div className="p-6 border-b border-neutral-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Building2 className="w-5 h-5 text-white" />
               </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900">Informasi Dasar</h3>
+                <p className="text-sm text-neutral-600">Nama dan identifikasi tenant</p>
+              </div>
+            </div>
 
-              <div className="space-y-3">
-                {/* Name */}
-                <div>
-                <Label htmlFor="name" className="text-sm font-semibold text-neutral-700">
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Nama Tenant <span className="text-red-500">*</span>
-                </Label>
+                </label>
                 <Input
-                  id="name"
-                  placeholder="Contoh: Acme Corporation"
-                  {...register('name')}
-                  className="mt-1.5 h-10"
+                  {...form.register('name')}
+                  placeholder="Contoh: ACME Corporation"
+                  className={form.formState.errors.name ? 'border-red-500' : ''}
                 />
-                <p className="text-xs text-neutral-500 mt-1">
-                  Nama organisasi atau perusahaan (3-255 karakter)
-                </p>
-                {errors.name && (
-                  <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
                 )}
               </div>
 
-              {/* Slug (auto-generated, readonly) */}
+              {/* Slug */}
               <div>
-                <Label htmlFor="slug" className="text-sm font-semibold text-neutral-700">
-                  Slug (URL-friendly)
-                </Label>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Slug <span className="text-red-500">*</span>
+                </label>
                 <Input
-                  id="slug"
+                  {...form.register('slug')}
                   placeholder="acme-corporation"
-                  {...register('slug')}
                   disabled
-                  className="mt-1.5 h-10 bg-neutral-50 border-neutral-200"
+                  className="bg-neutral-50 cursor-not-allowed"
                 />
                 <p className="text-xs text-neutral-500 mt-1">
-                  Otomatis di-generate dari nama (hanya huruf kecil, angka, dan tanda hubung)
+                  Slug akan otomatis di-generate dari nama tenant
                 </p>
-                {errors.slug && (
-                  <p className="text-sm text-red-600 mt-1">{errors.slug.message}</p>
-                )}
-              </div>
-
-              {/* Description */}
-              <div>
-                <Label htmlFor="description" className="text-sm font-semibold text-neutral-700">
-                  Deskripsi
-                </Label>
-                <Textarea
-                  id="description"
-                  placeholder="Deskripsi singkat tentang tenant..."
-                  rows={3}
-                  {...register('description')}
-                  className="mt-1.5"
-                />
-                <p className="text-xs text-neutral-500 mt-1">
-                  Deskripsi opsional (maksimal 500 karakter)
-                </p>
-                {errors.description && (
-                  <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
+                {form.formState.errors.slug && (
+                  <p className="text-sm text-red-600 mt-1">{form.formState.errors.slug.message}</p>
                 )}
               </div>
 
               {/* Is Active */}
-              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-neutral-200 bg-neutral-50/50 p-3 hover:bg-neutral-50 transition-colors">
+              <div className="flex items-center gap-3 p-4 bg-neutral-50 rounded-xl">
                 <Checkbox
-                  id="is_active"
-                  checked={isActive}
-                  onCheckedChange={(checked) => setValue('is_active', checked as boolean)}
-                  className="mt-0.5"
+                  checked={form.watch('is_active')}
+                  onCheckedChange={(checked) => form.setValue('is_active', checked as boolean)}
                 />
-                <div className="space-y-0.5 leading-none">
-                  <Label htmlFor="is_active" className="cursor-pointer font-semibold text-sm text-neutral-900">
-                    Tenant Aktif
-                  </Label>
+                <div>
+                  <label className="text-sm font-medium text-neutral-900">Aktifkan Tenant</label>
                   <p className="text-xs text-neutral-600">
-                    Aktifkan tenant setelah dibuat. Tenant yang non-aktif tidak dapat diakses.
+                    Tenant yang aktif dapat diakses oleh users
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Branding */}
+          <div className="p-6 border-b border-neutral-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <Upload className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900">Branding</h3>
+                <p className="text-sm text-neutral-600">Logo dan warna tenant</p>
               </div>
             </div>
 
-            {/* Branding - Premium Card */}
-            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="mb-4">
-                <h3 className="text-base font-bold text-neutral-900 mb-1">
-                  Branding
-                </h3>
-                <p className="text-xs text-neutral-600">
-                  Logo dan warna untuk branding tenant (opsional)
-                </p>
-              </div>
-
-              <div className="space-y-3">
+            <div className="space-y-6">
               {/* Logo Upload */}
               <div>
-                <Label className="text-sm font-semibold text-neutral-700">Logo</Label>
-                <div className="mt-2 space-y-4">
-                  {logoPreview ? (
-                    <div className="relative inline-block">
-                      <img
-                        src={logoPreview}
-                        alt="Logo preview"
-                        className="w-32 h-32 object-cover rounded-xl border-2 border-neutral-200 shadow-sm"
-                      />
-                      <Button
-                        type="button"
-                        variant="danger"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-lg"
-                        onClick={handleRemoveLogo}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-neutral-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all group">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
-                          <Upload className="w-6 h-6 text-blue-500" />
-                        </div>
-                        <p className="text-sm text-neutral-700 font-medium mb-1">
-                          <span className="text-blue-600">Klik untuk upload</span> atau drag & drop
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          PNG, JPG (max. 2MB)
-                        </p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                      />
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Logo</label>
+                {logoPreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="w-32 h-32 object-contain border border-neutral-200 rounded-xl p-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-neutral-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label htmlFor="logo-upload" className="cursor-pointer">
+                      <Upload className="w-12 h-12 mx-auto text-neutral-400 mb-3" />
+                      <p className="text-sm font-medium text-neutral-700">
+                        Click untuk upload logo
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-1">JPG atau PNG, max 2MB</p>
                     </label>
-                  )}
-                </div>
-                <p className="text-xs text-neutral-500 mt-2">
-                  Upload logo tenant (opsional, max 2MB)
-                </p>
+                  </div>
+                )}
               </div>
 
-              {/* Color Pickers */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Colors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Primary Color */}
                 <div>
-                  <Label htmlFor="primary_color" className="text-sm font-semibold text-neutral-700">
-                    Warna Utama
-                  </Label>
-                  <div className="flex items-center gap-3 mt-2">
-                    <Input
-                      id="primary_color"
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Primary Color
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
                       type="color"
-                      {...register('primary_color')}
-                      className="h-11 w-20 cursor-pointer rounded-lg"
+                      {...form.register('primary_color')}
+                      className="w-16 h-10 rounded-lg border border-neutral-300 cursor-pointer"
                     />
                     <Input
-                      type="text"
-                      {...register('primary_color')}
+                      {...form.register('primary_color')}
                       placeholder="#3B82F6"
-                      className="flex-1 h-11"
+                      className="flex-1"
                     />
                   </div>
-                  <p className="text-xs text-neutral-500 mt-1.5">Format: #RRGGBB</p>
-                  {errors.primary_color && (
-                    <p className="text-sm text-red-600 mt-1">{errors.primary_color.message}</p>
+                  {form.formState.errors.primary_color && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {form.formState.errors.primary_color.message}
+                    </p>
                   )}
                 </div>
 
                 {/* Secondary Color */}
                 <div>
-                  <Label htmlFor="secondary_color" className="text-sm font-semibold text-neutral-700">
-                    Warna Sekunder
-                  </Label>
-                  <div className="flex items-center gap-3 mt-2">
-                    <Input
-                      id="secondary_color"
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Secondary Color
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
                       type="color"
-                      {...register('secondary_color')}
-                      className="h-11 w-20 cursor-pointer rounded-lg"
+                      {...form.register('secondary_color')}
+                      className="w-16 h-10 rounded-lg border border-neutral-300 cursor-pointer"
                     />
                     <Input
-                      type="text"
-                      {...register('secondary_color')}
+                      {...form.register('secondary_color')}
                       placeholder="#06B6D4"
-                      className="flex-1 h-11"
+                      className="flex-1"
                     />
                   </div>
-                  <p className="text-xs text-neutral-500 mt-1.5">Format: #RRGGBB</p>
-                  {errors.secondary_color && (
-                    <p className="text-sm text-red-600 mt-1">{errors.secondary_color.message}</p>
+                  {form.formState.errors.secondary_color && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {form.formState.errors.secondary_color.message}
+                    </p>
                   )}
                 </div>
               </div>
-              </div>
             </div>
+          </div>
 
-            {/* Form Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isSubmitting}
-                className="h-11 px-6"
-              >
-                Batal
-              </Button>
+          {/* Form Actions */}
+          <div className="p-6 bg-neutral-50 rounded-b-2xl">
+            <div className="flex items-center justify-end gap-3">
+              <PortalLink href="/tenants">
+                <Button type="button" variant="outline" disabled={loading}>
+                  Batal
+                </Button>
+              </PortalLink>
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="h-11 px-6 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all"
+                disabled={loading || !form.formState.isValid}
+                className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Membuat Tenant...
-                  </>
-                ) : (
-                  <>
-                    <Building2 className="w-4 h-4 mr-2" />
-                    Buat Tenant
-                  </>
-                )}
+                {loading ? 'Membuat...' : 'Buat Tenant'}
               </Button>
             </div>
-          </form>
-        </motion.div>
-      </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

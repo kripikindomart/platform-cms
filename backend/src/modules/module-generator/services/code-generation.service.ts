@@ -102,9 +102,10 @@ export class CodeGenerationService {
       const entityFile = await this.generateEntityFile(context);
       filesCreated.push(entityFile);
 
-      // 7. Generate Migration
+      // 7. Generate Migration and run it against the tenant schema
       const migrationFile = await this.generateMigrationFile(context);
       filesCreated.push(migrationFile);
+      await this.runMigration(migrationFile, context.tenantSchema);
 
       // 8. Generate Frontend Pages
       const frontendFiles = await this.generateFrontendPages(context);
@@ -310,6 +311,24 @@ export class CodeGenerationService {
     const filePath = path.join('migrations', `${timestamp}-create-${context.tableName}.sql`);
     await this.fileSystemService.writeFile(filePath, content);
     return filePath;
+  }
+
+  /**
+   * Execute the generated migration SQL against the tenant schema so the
+   * table actually exists right after generation, instead of leaving the
+   * module non-functional until someone manually runs the .sql file.
+   */
+  private async runMigration(migrationFilePath: string, tenantSchema: string): Promise<void> {
+    const migrationSql = await this.fileSystemService.readFile(migrationFilePath);
+
+    this.logger.log(`Running migration for tenant schema: ${tenantSchema}`);
+    await this.db.execute(sql.raw(`SET search_path TO "${tenantSchema}", public`));
+    try {
+      await this.db.execute(sql.raw(migrationSql));
+      this.logger.log(`  ✓ Migration applied in ${tenantSchema}`);
+    } finally {
+      await this.db.execute(sql.raw('SET search_path TO public'));
+    }
   }
 
   /**
@@ -576,25 +595,16 @@ export class CodeGenerationService {
    * Delete permissions for a module from all tenants
    */
   private async deletePermissions(moduleName: string): Promise<void> {
-    // Permission actions: view_, create_, update_, delete_
-    const permissionPrefixes = [
-      `view_${moduleName}`,
-      `create_${moduleName}`,
-      `update_${moduleName}`,
-      `delete_${moduleName}`,
-    ];
-    
     // Get all tenant schemas
     const tenantSchemas = await this.getTenantSchemas();
-    
+
     for (const schema of tenantSchemas) {
       try {
-        for (const permission of permissionPrefixes) {
-          await this.db.execute(sql.raw(`
-            DELETE FROM ${schema}.permissions 
-            WHERE action = '${permission}'
-          `));
-        }
+        await this.db.execute(sql`
+          DELETE FROM ${sql.raw(schema)}.permissions
+          WHERE resource = ${moduleName}
+            AND action IN ('view', 'create', 'update', 'delete')
+        `);
         this.logger.log(`  ✓ Deleted permissions from ${schema}`);
       } catch (error: any) {
         this.logger.warn(`  ⚠ Could not delete permissions from ${schema}: ${error.message}`);
@@ -628,24 +638,33 @@ export class CodeGenerationService {
   async createPermissions(moduleName: string, tenantSchema: string): Promise<number> {
     this.logger.log(`Creating permissions for module: ${moduleName} (tenant: ${tenantSchema})`);
     
+    // NOTE: action must be a plain CASL verb (view/create/update/delete),
+    // NOT a compound "view_{moduleName}" string. CaslAbilityFactory.mapActionToCasl()
+    // only recognizes plain verbs (see core/casl/casl-ability.factory.ts) - a
+    // compound action silently fails to map to any CaslAction and the
+    // permission is dropped from the built ability entirely, so every
+    // non-superadmin request gets a false "Unauthorized" even though the
+    // permission row exists in the DB. resource (moduleName) is what
+    // distinguishes modules, matching the same convention used by every
+    // other permission in this codebase (see scripts/init-platform-admin.ts).
     const permissions = [
       {
-        action: `view_${moduleName}`,
+        action: 'view',
         resource: moduleName,
         description: `View ${moduleName} records`,
       },
       {
-        action: `create_${moduleName}`,
+        action: 'create',
         resource: moduleName,
         description: `Create new ${moduleName} records`,
       },
       {
-        action: `update_${moduleName}`,
+        action: 'update',
         resource: moduleName,
         description: `Update ${moduleName} records`,
       },
       {
-        action: `delete_${moduleName}`,
+        action: 'delete',
         resource: moduleName,
         description: `Delete ${moduleName} records`,
       },

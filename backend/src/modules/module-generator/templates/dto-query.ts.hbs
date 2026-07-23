@@ -28,11 +28,11 @@ export class Query{{capitalize className}}Dto {
   @IsString()
   search?: string;
 
-  @ApiProperty({ required: false, default: 'id'{{#if sortableFields.length}}, enum: [{{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}]{{/if}} })
+  @ApiProperty({ required: false, default: 'id'{{#if sortableFields.length}}, enum: ['id', {{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}]{{/if}} })
   @IsOptional()
   @IsString()
   {{#if sortableFields.length}}
-  @IsIn([{{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}])
+  @IsIn(['id', {{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}])
   {{/if}}
   sort?: string = 'id';
 

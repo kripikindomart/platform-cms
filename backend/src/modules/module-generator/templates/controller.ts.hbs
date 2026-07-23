@@ -37,7 +37,7 @@ export class {{capitalize className}}Controller {
    */
   @Get()
   @ApiOperation({ summary: 'Get all {{displayName}}' })
-  @CheckPolicies((ability) => ability.can('read', '{{capitalize className}}'))
+  @CheckPolicies((ability) => ability.can('read', '{{moduleName}}'))
   async findAll(@Query() query: Query{{capitalize className}}Dto) {
     return this.{{moduleName}}Service.findAll(query);
   }
@@ -47,7 +47,7 @@ export class {{capitalize className}}Controller {
    */
   @Get(':id')
   @ApiOperation({ summary: 'Get {{displayName}} by ID' })
-  @CheckPolicies((ability) => ability.can('read', '{{capitalize className}}'))
+  @CheckPolicies((ability) => ability.can('read', '{{moduleName}}'))
   async findById(@Param('id', ParseIntPipe) id: number) {
     return this.{{moduleName}}Service.findById(id);
   }
@@ -57,7 +57,7 @@ export class {{capitalize className}}Controller {
    */
   @Post()
   @ApiOperation({ summary: 'Create new {{displayName}}' })
-  @CheckPolicies((ability) => ability.can('create', '{{capitalize className}}'))
+  @CheckPolicies((ability) => ability.can('create', '{{moduleName}}'))
   async create(@Body() dto: Create{{capitalize className}}Dto) {
     return this.{{moduleName}}Service.create(dto);
   }
@@ -67,7 +67,7 @@ export class {{capitalize className}}Controller {
    */
   @Patch(':id')
   @ApiOperation({ summary: 'Update {{displayName}}' })
-  @CheckPolicies((ability) => ability.can('update', '{{capitalize className}}'))
+  @CheckPolicies((ability) => ability.can('update', '{{moduleName}}'))
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: Update{{capitalize className}}Dto,
@@ -80,7 +80,7 @@ export class {{capitalize className}}Controller {
    */
   @Delete(':id')
   @ApiOperation({ summary: 'Delete {{displayName}}' })
-  @CheckPolicies((ability) => ability.can('delete', '{{capitalize className}}'))
+  @CheckPolicies((ability) => ability.can('delete', '{{moduleName}}'))
   async delete(@Param('id', ParseIntPipe) id: number) {
     return this.{{moduleName}}Service.delete(id);
   }

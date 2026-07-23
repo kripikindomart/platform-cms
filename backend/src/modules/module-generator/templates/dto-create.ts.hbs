@@ -1,0 +1,42 @@
+import { IsString, IsNumber, IsBoolean, IsOptional, IsNotEmpty, IsEmail, IsUrl } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+
+/**
+ * Create {{displayName}} DTO
+ * @generated
+ */
+export class Create{{capitalize className}}Dto {
+{{#each fields}}
+  @ApiProperty({
+    description: '{{label}}',
+    {{#if isRequired}}required: true,{{else}}required: false,{{/if}}
+    {{#if (eq type 'string')}}type: String,{{/if}}
+    {{#if (eq type 'number')}}type: Number,{{/if}}
+    {{#if (eq type 'boolean')}}type: Boolean,{{/if}}
+    {{#if defaultValue}}default: {{defaultValue}},{{/if}}
+  })
+  {{#unless isRequired}}
+  @IsOptional()
+  {{/unless}}
+  {{#if isRequired}}
+  @IsNotEmpty()
+  {{/if}}
+  {{#if (eq type 'string')}}
+  @IsString()
+  {{/if}}
+  {{#if (eq type 'number')}}
+  @IsNumber()
+  {{/if}}
+  {{#if (eq type 'boolean')}}
+  @IsBoolean()
+  {{/if}}
+  {{#if (eq type 'email')}}
+  @IsEmail()
+  {{/if}}
+  {{#if (eq type 'url')}}
+  @IsUrl()
+  {{/if}}
+  {{camelCase}}{{#unless isRequired}}?{{/unless}}: {{tsType}};
+
+{{/each}}
+}

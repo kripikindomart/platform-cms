@@ -31,7 +31,13 @@
     "admin:create": "ts-node src/scripts/admin-cli.ts create",
     "admin:list": "ts-node src/scripts/admin-cli.ts list",
     "platform:init": "tsx scripts/init-platform-admin.ts",
-    "tenant:migrate-slugs": "tsx scripts/migrate-tenant-slugs.ts"
+    "tenant:migrate-slugs": "tsx scripts/migrate-tenant-slugs.ts",
+    "migration:run": "tsx scripts/run-migration.ts",
+    "db:verify": "tsx scripts/verify-visual-modules.ts",
+    "db:check": "tsx scripts/check-db-column.ts",
+    "db:add-ui-config": "tsx scripts/add-ui-config-column.ts",
+    "cleanup:blog": "tsx scripts/cleanup-blog-menu-permissions.ts",
+    "create:blog-menu": "tsx scripts/create-blog-menu-permissions.ts"
   },
   "dependencies": {
     "@casl/ability": "^7.0.1",
@@ -47,6 +53,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.2",
+    "handlebars": "^4.7.9",
     "helmet": "^8.2.0",
     "ioredis": "^5.11.1",
     "passport": "^0.7.0",
@@ -63,6 +70,7 @@
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.43",
     "@types/bcrypt": "^6.0.0",
+    "@types/handlebars": "^4.0.40",
     "@types/ioredis": "^4.28.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.1.1",

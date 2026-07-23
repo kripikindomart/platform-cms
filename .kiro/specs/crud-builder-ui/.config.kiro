@@ -1,0 +1,9 @@
+{
+  "name": "crud-builder-ui",
+  "description": "Visual CRUD Builder dengan UI untuk generate module tanpa CLI",
+  "version": "1.0.0",
+  "status": "draft",
+  "created": "2026-07-22",
+  "updated": "2026-07-22",
+  "phases": ["requirements", "design", "implementation"]
+}

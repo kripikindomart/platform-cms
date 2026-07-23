@@ -125,7 +125,7 @@ export function UploadSettingsTable({
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger>
                           <Button variant="ghost" size="sm">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
@@ -158,10 +158,7 @@ export function UploadSettingsTable({
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            totalItems={total}
-            itemsPerPage={limit}
             onPageChange={onPageChange}
-            onItemsPerPageChange={onLimitChange}
           />
         </div>
       </div>

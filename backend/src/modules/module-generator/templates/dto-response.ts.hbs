@@ -1,0 +1,45 @@
+import { ApiProperty } from '@nestjs/swagger';
+
+/**
+ * {{displayName}} Response DTO
+ * @generated
+ */
+export class {{capitalize className}}ResponseDto {
+  @ApiProperty()
+  id!: number;
+
+{{#each fields}}
+  @ApiProperty()
+  {{camelCase}}{{#unless isRequired}}?{{/unless}}: {{tsType}};
+
+{{/each}}
+  {{#if hasAudit}}
+  @ApiProperty()
+  created_at!: Date;
+
+  @ApiProperty({ required: false })
+  updated_at?: Date;
+  {{/if}}
+
+  {{#if hasSoftDelete}}
+  @ApiProperty({ required: false })
+  deleted_at?: Date;
+  {{/if}}
+}
+
+/**
+ * Paginated {{displayName}} Response
+ * @generated
+ */
+export class Paginated{{capitalize className}}ResponseDto {
+  @ApiProperty({ type: [{{capitalize className}}ResponseDto] })
+  data!: {{capitalize className}}ResponseDto[];
+
+  @ApiProperty()
+  meta!: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}

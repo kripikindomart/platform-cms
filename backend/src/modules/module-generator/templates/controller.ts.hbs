@@ -1,0 +1,87 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { {{capitalize className}}Service } from './{{moduleName}}.service';
+import { Create{{capitalize className}}Dto } from './dto/create-{{moduleName}}.dto';
+import { Update{{capitalize className}}Dto } from './dto/update-{{moduleName}}.dto';
+import { Query{{capitalize className}}Dto } from './dto/query-{{moduleName}}.dto';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { CaslGuard } from '@/core/casl/casl.guard';
+import { CheckPolicies } from '@/common/decorators/check-policies.decorator';
+
+/**
+ * {{displayName}} Controller
+ * {{#if description}}{{description}}{{else}}Auto-generated CRUD controller{{/if}}
+ * 
+ * @generated
+ */
+@ApiTags('{{displayName}}')
+@ApiBearerAuth()
+@Controller('{{moduleName}}')
+@UseGuards(JwtAuthGuard, CaslGuard)
+export class {{capitalize className}}Controller {
+  constructor(private readonly {{moduleName}}Service: {{capitalize className}}Service) {}
+
+  /**
+   * Get all {{displayName}}
+   */
+  @Get()
+  @ApiOperation({ summary: 'Get all {{displayName}}' })
+  @CheckPolicies((ability) => ability.can('read', '{{capitalize className}}'))
+  async findAll(@Query() query: Query{{capitalize className}}Dto) {
+    return this.{{moduleName}}Service.findAll(query);
+  }
+
+  /**
+   * Get {{displayName}} by ID
+   */
+  @Get(':id')
+  @ApiOperation({ summary: 'Get {{displayName}} by ID' })
+  @CheckPolicies((ability) => ability.can('read', '{{capitalize className}}'))
+  async findById(@Param('id', ParseIntPipe) id: number) {
+    return this.{{moduleName}}Service.findById(id);
+  }
+
+  /**
+   * Create new {{displayName}}
+   */
+  @Post()
+  @ApiOperation({ summary: 'Create new {{displayName}}' })
+  @CheckPolicies((ability) => ability.can('create', '{{capitalize className}}'))
+  async create(@Body() dto: Create{{capitalize className}}Dto) {
+    return this.{{moduleName}}Service.create(dto);
+  }
+
+  /**
+   * Update {{displayName}}
+   */
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update {{displayName}}' })
+  @CheckPolicies((ability) => ability.can('update', '{{capitalize className}}'))
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Update{{capitalize className}}Dto,
+  ) {
+    return this.{{moduleName}}Service.update(id, dto);
+  }
+
+  /**
+   * Delete {{displayName}}
+   */
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete {{displayName}}' })
+  @CheckPolicies((ability) => ability.can('delete', '{{capitalize className}}'))
+  async delete(@Param('id', ParseIntPipe) id: number) {
+    return this.{{moduleName}}Service.delete(id);
+  }
+}

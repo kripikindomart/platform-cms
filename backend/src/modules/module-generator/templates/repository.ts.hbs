@@ -1,0 +1,181 @@
+import { Injectable, Inject } from '@nestjs/common';
+import { eq, and, isNull, desc, asc, sql } from 'drizzle-orm';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import * as tenantSchema from '@/database/schema/tenant';
+import { TenantContextService } from '@/common/context/tenant-context.service';
+import { {{tableName}} } from '@/database/schema/tenant/{{tableName}}.schema';
+import { Create{{capitalize className}}Dto } from './dto/create-{{moduleName}}.dto';
+import { Update{{capitalize className}}Dto } from './dto/update-{{moduleName}}.dto';
+import { Query{{capitalize className}}Dto } from './dto/query-{{moduleName}}.dto';
+
+/**
+ * {{displayName}} Repository
+ * Database access layer untuk {{displayName}}
+ * 
+ * @generated
+ */
+@Injectable()
+export class {{capitalize className}}Repository {
+  constructor(
+    @Inject('DRIZZLE')
+    private readonly db: NodePgDatabase<typeof tenantSchema>,
+    private readonly tenantContext: TenantContextService,
+  ) {}
+
+  /**
+   * Execute query in tenant schema context
+   */
+  private async withTenantSchema<T>(callback: () => Promise<T>): Promise<T> {
+    const schemaName = this.tenantContext.getSchemaName();
+    await this.db.execute(sql.raw(`SET search_path TO ${schemaName}, public`));
+    try {
+      return await callback();
+    } finally {
+      await this.db.execute(sql.raw('SET search_path TO public'));
+    }
+  }
+
+  /**
+   * Find all {{displayName}} dengan pagination & filtering
+   */
+  async findAll(query: Query{{capitalize className}}Dto) {
+    const { page = 1, limit = 10, search, sort = 'id', order = 'desc' } = query;
+    const offset = (page - 1) * limit;
+
+    return this.withTenantSchema(async () => {
+      // Build WHERE conditions
+      const conditions = [
+        {{#if hasSoftDelete}}
+        isNull({{tableName}}.deleted_at),
+        {{/if}}
+      ];
+
+      // Search
+      {{#if searchableFields.length}}
+      if (search) {
+        conditions.push(
+          sql`(
+            {{#each searchableFields}}
+            ${ {{../tableName}}.{{this}} } ILIKE ${`%${search}%`}{{#unless @last}} OR{{/unless}}
+            {{/each}}
+          )`
+        );
+      }
+      {{/if}}
+
+      // Count total
+      const [{ count }] = await this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from({{tableName}})
+        .where(and(...conditions));
+
+      // Get data
+      const data = await this.db
+        .select()
+        .from({{tableName}})
+        .where(and(...conditions))
+        .orderBy(order === 'asc' ? asc(({{tableName}} as any)[sort]) : desc(({{tableName}} as any)[sort]))
+        .limit(limit)
+        .offset(offset);
+
+      return {
+        data,
+        meta: {
+          total: count,
+          page,
+          limit,
+          totalPages: Math.ceil(count / limit),
+        },
+      };
+    });
+  }
+
+  /**
+   * Find {{displayName}} by ID
+   */
+  async findById(id: number) {
+    return this.withTenantSchema(async () => {
+      const [item] = await this.db
+        .select()
+        .from({{tableName}})
+        .where(
+          and(
+            eq({{tableName}}.id, id),
+            {{#if hasSoftDelete}}
+            isNull({{tableName}}.deleted_at),
+            {{/if}}
+          )
+        );
+
+      return item || null;
+    });
+  }
+
+  /**
+   * Create new {{displayName}}
+   */
+  async create(dto: Create{{capitalize className}}Dto) {
+    return this.withTenantSchema(async () => {
+      const [created] = await this.db
+        .insert({{tableName}})
+        .values({
+          {{#each fields}}
+          {{camelCase}}: dto.{{camelCase}},
+          {{/each}}
+          {{#if hasAudit}}
+          created_at: new Date(),
+          {{/if}}
+        })
+        .returning();
+
+      return created;
+    });
+  }
+
+  /**
+   * Update {{displayName}}
+   */
+  async update(id: number, dto: Update{{capitalize className}}Dto) {
+    return this.withTenantSchema(async () => {
+      const [updated] = await this.db
+        .update({{tableName}})
+        .set({
+          ...dto,
+          {{#if hasAudit}}
+          updated_at: new Date(),
+          {{/if}}
+        })
+        .where(eq({{tableName}}.id, id))
+        .returning();
+
+      return updated;
+    });
+  }
+
+  {{#if hasSoftDelete}}
+  /**
+   * Soft delete {{displayName}}
+   */
+  async softDelete(id: number) {
+    return this.withTenantSchema(async () => {
+      await this.db
+        .update({{tableName}})
+        .set({
+          deleted_at: new Date(),
+        })
+        .where(eq({{tableName}}.id, id));
+    });
+  }
+  {{else}}
+  /**
+   * Hard delete {{displayName}}
+   */
+  async delete(id: number) {
+    return this.withTenantSchema(async () => {
+      await this.db
+        .delete({{tableName}})
+        .where(eq({{tableName}}.id, id));
+    });
+  }
+  {{/if}}
+}

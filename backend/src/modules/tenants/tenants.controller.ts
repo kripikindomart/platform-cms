@@ -17,6 +17,7 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { QueryTenantDto } from './dto/query-tenant.dto';
 import { TenantResponseDto } from './dto/tenant-response.dto';
+import { BulkAddUsersDto } from './dto/bulk-add-users.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CaslGuard } from '../../core/casl/casl.guard';
 import { CheckPolicies } from '../../common/decorators/check-policies.decorator';
@@ -35,6 +36,30 @@ export class TenantsController {
   async getCurrentTenant(@CurrentUser() user: any): Promise<{ tenant: TenantResponseDto }> {
     const tenant = await this.tenantsService.findById(user.tenantId);
     return { tenant };
+  }
+
+  @Get('schema-backups')
+  @CheckPolicies((ability) => ability.can('read', 'tenants'))
+  @ApiOperation({ summary: 'Get all schema backups' })
+  @ApiResponse({ status: 200, description: 'List of schema backups' })
+  async getSchemaBackups() {
+    return this.tenantsService.getSchemaBackups();
+  }
+
+  @Delete('schema-backups/:backupId')
+  @CheckPolicies((ability) => ability.can('delete', 'tenants'))
+  @ApiOperation({ summary: 'Delete schema backup permanently (drops schema)' })
+  @ApiResponse({ status: 200, description: 'Schema backup deleted' })
+  async deleteSchemaBackup(
+    @Param('backupId', ParseIntPipe) backupId: number,
+    @CurrentUser() user: any,
+  ) {
+    await this.tenantsService.deleteSchemaBackup(backupId, user.id);
+    
+    return {
+      success: true,
+      message: 'Schema backup berhasil dihapus permanen',
+    };
   }
 
   @Get('by-slug/:slug')
@@ -161,13 +186,31 @@ export class TenantsController {
     return this.tenantsService.update(id, dto, user.id);
   }
 
+  @Patch(':id/config')
+  @CheckPolicies((ability) => ability.can('update', 'tenants'))
+  @ApiOperation({ summary: 'Update tenant config' })
+  @ApiResponse({ status: 200, description: 'Tenant config updated', type: TenantResponseDto })
+  @ApiResponse({ status: 404, description: 'Tenant not found' })
+  async updateConfig(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('config') config: Record<string, any>,
+    @CurrentUser() user: any,
+  ): Promise<TenantResponseDto> {
+    return this.tenantsService.updateConfig(id, config, user.id);
+  }
+
   @Delete(':id')
   @CheckPolicies((ability) => ability.can('delete', 'tenants'))
   @ApiOperation({ summary: 'Soft delete tenant' })
   @ApiResponse({ status: 200, description: 'Tenant deleted' })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
-  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any): Promise<void> {
+  async delete(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     await this.tenantsService.delete(id, user.id);
+    
+    return {
+      success: true,
+      message: 'Tenant berhasil dihapus',
+    };
   }
 
   @Post(':id/restore')
@@ -181,11 +224,24 @@ export class TenantsController {
 
   @Delete(':id/hard')
   @CheckPolicies((ability) => ability.can('delete', 'tenants'))
-  @ApiOperation({ summary: 'Permanently delete tenant' })
+  @ApiOperation({ summary: 'Permanently delete tenant with optional schema backup' })
   @ApiResponse({ status: 200, description: 'Tenant permanently deleted' })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
-  async hardDelete(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    await this.tenantsService.hardDelete(id);
+  async hardDelete(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('backupSchema') backupSchema: string = 'true',
+    @CurrentUser() user: any,
+  ) {
+    const shouldBackup = backupSchema === 'true';
+    await this.tenantsService.hardDelete(id, user.id, shouldBackup);
+    
+    return {
+      success: true,
+      message: shouldBackup 
+        ? 'Tenant berhasil dihapus permanen, schema telah di-backup (15 hari)'
+        : 'Tenant dan schema berhasil dihapus permanen',
+      backup_created: shouldBackup,
+    };
   }
 
   @Post(':id/assign-user')
@@ -213,15 +269,21 @@ export class TenantsController {
   @ApiResponse({ status: 404, description: 'Tenant not found' })
   async bulkAddUsers(
     @Param('id', ParseIntPipe) tenantId: number,
-    @Body() body: { user_ids: number[]; default_role_id?: number },
+    @Body() dto: BulkAddUsersDto,
     @CurrentUser() user: any,
-  ) {
-    return this.tenantsService.bulkAddUsers(
-      tenantId,
-      body.user_ids,
-      body.default_role_id,
-      user.id,
-    );
+  ): Promise<{ success: number; failed: number; errors: any[] }> {
+    return this.tenantsService.bulkAddUsers(tenantId, dto, user.id);
+  }
+
+  @Get(':id/available-users')
+  @CheckPolicies((ability) => ability.can('read', 'tenants'))
+  @ApiOperation({ summary: 'Get users not in tenant (available to add)' })
+  @ApiResponse({ status: 200, description: 'Available users retrieved' })
+  async getAvailableUsers(
+    @Param('id', ParseIntPipe) tenantId: number,
+    @Query('search') search?: string,
+  ): Promise<any[]> {
+    return this.tenantsService.getAvailableUsers(tenantId, search);
   }
 
   @Post(':id/modules/:moduleId/enable')

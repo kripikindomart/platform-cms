@@ -17,6 +17,7 @@ export default function PrivateLayout({
   const { isAuthenticated, checkAuth } = useAuthStore();
   const { tenantSlug } = useTenant(); // Auto-detect tenant from URL
   const [isChecking, setIsChecking] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // Check authentication on mount
@@ -49,12 +50,14 @@ export default function PrivateLayout({
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-      <AdminSidebar />
-      <div className="flex-1 flex flex-col pl-[280px] pt-16">
-        <Header />
+      <AdminSidebar onCollapseChange={setSidebarCollapsed} />
+      <div 
+        className="flex-1 flex flex-col pt-16 transition-all duration-300"
+        style={{ paddingLeft: sidebarCollapsed ? '80px' : '280px' }}
+      >
+        <Header sidebarCollapsed={sidebarCollapsed} />
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
   );
 }
-

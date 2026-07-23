@@ -37,7 +37,11 @@ interface Menu {
   items: MenuItem[];
 }
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  onCollapseChange?: (collapsed: boolean) => void;
+}
+
+export function AdminSidebar({ onCollapseChange }: AdminSidebarProps = {}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
@@ -51,6 +55,11 @@ export function AdminSidebar() {
   useEffect(() => {
     loadMenus();
   }, []);
+
+  // Notify parent when collapsed state changes
+  useEffect(() => {
+    onCollapseChange?.(collapsed);
+  }, [collapsed, onCollapseChange]);
 
   const loadMenus = async () => {
     try {
@@ -122,42 +131,62 @@ export function AdminSidebar() {
   const renderMenuItem = (item: MenuItem, level = 0) => {
     const Icon = getIcon(item.icon);
     const hasChildren = item.children && item.children.length > 0;
+    const itemIsActive = isActive(item.url);
+    const childActive = hasChildren ? hasActiveChild(item.children!) : false;
 
-    if (hasChildren) {
+    if (hasChildren && item.children) {
       return (
         <div key={item.id}>
-          <button
-            onClick={() => toggleMenu(item.label)}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group',
-              level > 0 && 'ml-4',
-              hasActiveChild(item.children!)
-                ? 'bg-neutral-50 text-neutral-900'
-                : 'hover:bg-neutral-50 text-neutral-700'
-            )}
-          >
-            <Icon
+          {/* In collapsed mode, parent should navigate to first child */}
+          {collapsed ? (
+            <Link
+              href={item.children[0].url}
               className={cn(
-                'w-5 h-5 flex-shrink-0',
-                hasActiveChild(item.children!)
-                  ? 'text-indigo-600'
-                  : 'text-neutral-500 group-hover:text-neutral-700'
+                'w-full flex items-center rounded-xl transition-all group justify-center p-2',
+                (itemIsActive || childActive)
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'hover:bg-neutral-50 text-neutral-700'
               )}
-            />
-            {!collapsed && (
-              <>
-                <span className="font-medium text-sm flex-1 text-left">
-                  {item.label}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'w-4 h-4 text-neutral-400 transition-transform',
-                    openMenus.includes(item.label) && 'rotate-180'
-                  )}
-                />
-              </>
-            )}
-          </button>
+            >
+              <Icon
+                className={cn(
+                  'w-5 h-5 flex-shrink-0',
+                  (itemIsActive || childActive)
+                    ? 'text-indigo-600'
+                    : 'text-neutral-500 group-hover:text-neutral-700'
+                )}
+              />
+            </Link>
+          ) : (
+            <button
+              onClick={() => toggleMenu(item.label)}
+              className={cn(
+                'w-full flex items-center rounded-xl transition-all group gap-3 px-3 py-2.5',
+                level > 0 && 'ml-4',
+                (itemIsActive || childActive)
+                  ? 'bg-neutral-50 text-neutral-900'
+                  : 'hover:bg-neutral-50 text-neutral-700'
+              )}
+            >
+              <Icon
+                className={cn(
+                  'w-5 h-5 flex-shrink-0',
+                  (itemIsActive || childActive)
+                    ? 'text-indigo-600'
+                    : 'text-neutral-500 group-hover:text-neutral-700'
+                )}
+              />
+              <span className="font-medium text-sm flex-1 text-left">
+                {item.label}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'w-4 h-4 text-neutral-400 transition-transform',
+                  openMenus.includes(item.label) && 'rotate-180'
+                )}
+              />
+            </button>
+          )}
 
           {!collapsed && (
             <AnimatePresence>
@@ -168,7 +197,7 @@ export function AdminSidebar() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  {item.children!.map((child) => renderMenuItem(child, level + 1))}
+                  {item.children.map((child) => renderMenuItem(child, level + 1))}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -182,9 +211,10 @@ export function AdminSidebar() {
         key={item.id}
         href={item.url}
         className={cn(
-          'flex items-center gap-3 px-3 py-2 rounded-lg transition-all group text-sm',
-          level > 0 && 'ml-4',
-          isActive(item.url)
+          'flex items-center rounded-lg transition-all group text-sm',
+          collapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2',
+          level > 0 && !collapsed && 'ml-4',
+          itemIsActive
             ? 'bg-indigo-50 text-indigo-700 font-medium'
             : 'hover:bg-neutral-50 text-neutral-600'
         )}
@@ -295,7 +325,7 @@ export function AdminSidebar() {
 
       {/* Collapsed Logo */}
       {collapsed && (
-        <div className="h-16 px-4 flex items-center justify-center border-b border-neutral-100 flex-shrink-0">
+        <div className="h-16 flex items-center justify-center border-b border-neutral-100 flex-shrink-0">
           {tenantConfig.logo_url ? (
             <img 
               src={tenantConfig.logo_url} 
@@ -310,10 +340,16 @@ export function AdminSidebar() {
         </div>
       )}
 
-      {/* Toggle Button - Higher z-index to be above menu items */}
+      {/* Toggle Button - Fixed positioning with highest z-index */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-6 w-6 h-6 bg-white border border-neutral-200 rounded-full flex items-center justify-center hover:bg-neutral-50 transition-colors z-50 shadow-md"
+        className="fixed w-6 h-6 bg-white border border-neutral-200 rounded-full flex items-center justify-center hover:bg-neutral-50 transition-all shadow-lg hover:shadow-xl"
+        style={{ 
+          zIndex: 1000,
+          top: '24px',
+          left: collapsed ? '68px' : '268px',
+          transition: 'left 0.3s ease-in-out'
+        }}
       >
         <ChevronRight
           className={cn(
@@ -324,47 +360,71 @@ export function AdminSidebar() {
       </button>
 
       {/* Menu Items - Scrollable */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className={cn(
+        "flex-1 overflow-y-auto overflow-x-hidden",
+        collapsed ? "px-2 py-2" : "p-4 space-y-1"
+      )}>
         {menus
           .filter((menu) => menu.is_active)
           .sort((a, b) => a.order - b.order)
-          .map((menu) => {
+          .map((menu, menuIndex) => {
             const MenuIcon = getIcon(menu.icon);
             const menuItems = buildMenuTree(menu.items.filter((item) => item.is_active));
 
             return (
-              <div key={menu.id}>
-                <button
-                  onClick={() => toggleMenu(menu.name)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group',
-                    hasActiveChild(menu.items)
-                      ? 'bg-neutral-50 text-neutral-900'
-                      : 'hover:bg-neutral-50 text-neutral-700'
-                  )}
-                >
-                  <MenuIcon
+              <div 
+                key={menu.id}
+                className={cn(!collapsed && menuIndex > 0 && "mt-1")}
+              >
+                {/* Top level menu - navigate to first item when collapsed */}
+                {collapsed ? (
+                  <Link
+                    href={menuItems.length > 0 ? menuItems[0].url : '#'}
                     className={cn(
-                      'w-5 h-5 flex-shrink-0',
+                      'w-full flex items-center rounded-xl transition-all group justify-center p-2.5 mb-1',
                       hasActiveChild(menu.items)
-                        ? 'text-indigo-600'
-                        : 'text-neutral-500 group-hover:text-neutral-700'
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'hover:bg-neutral-50 text-neutral-700'
                     )}
-                  />
-                  {!collapsed && (
-                    <>
-                      <span className="font-medium text-sm flex-1 text-left">
-                        {menu.name}
-                      </span>
-                      <ChevronDown
-                        className={cn(
-                          'w-4 h-4 text-neutral-400 transition-transform',
-                          openMenus.includes(menu.name) && 'rotate-180'
-                        )}
-                      />
-                    </>
-                  )}
-                </button>
+                  >
+                    <MenuIcon
+                      className={cn(
+                        'w-5 h-5 flex-shrink-0',
+                        hasActiveChild(menu.items)
+                          ? 'text-indigo-600'
+                          : 'text-neutral-500 group-hover:text-neutral-700'
+                      )}
+                    />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => toggleMenu(menu.name)}
+                    className={cn(
+                      'w-full flex items-center rounded-xl transition-all group gap-3 px-3 py-2.5',
+                      hasActiveChild(menu.items)
+                        ? 'bg-neutral-50 text-neutral-900'
+                        : 'hover:bg-neutral-50 text-neutral-700'
+                    )}
+                  >
+                    <MenuIcon
+                      className={cn(
+                        'w-5 h-5 flex-shrink-0',
+                        hasActiveChild(menu.items)
+                          ? 'text-indigo-600'
+                          : 'text-neutral-500 group-hover:text-neutral-700'
+                      )}
+                    />
+                    <span className="font-medium text-sm flex-1 text-left">
+                      {menu.name}
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        'w-4 h-4 text-neutral-400 transition-transform',
+                        openMenus.includes(menu.name) && 'rotate-180'
+                      )}
+                    />
+                  </button>
+                )}
 
                 {!collapsed && (
                   <AnimatePresence>

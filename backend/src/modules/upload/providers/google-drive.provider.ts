@@ -3,7 +3,7 @@
  * Upload files ke Google Drive menggunakan Service Account
  */
 
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
@@ -14,6 +14,12 @@ import {
   UploadOptions,
   UploadResult,
 } from '../interfaces/storage-provider.interface';
+import { 
+  GoogleDriveUrlFormat, 
+  UrlFormatHelper, 
+  FileTypeClassifier 
+} from '../enums/url-format.enum';
+import { UploadSettingsService } from '../../upload-settings/upload-settings.service';
 
 @Injectable()
 export class GoogleDriveProvider implements IStorageProvider, OnModuleInit {
@@ -22,7 +28,11 @@ export class GoogleDriveProvider implements IStorageProvider, OnModuleInit {
   private folderId: string | undefined;
   private initPromise: Promise<void>;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(forwardRef(() => UploadSettingsService))
+    private uploadSettingsService: UploadSettingsService,
+  ) {
     // Start initialization immediately but don't wait
     this.initPromise = this.initializeDrive();
   }
@@ -189,9 +199,17 @@ export class GoogleDriveProvider implements IStorageProvider, OnModuleInit {
       // Convert buffer ke stream
       const stream = Readable.from(options.buffer);
 
+      // Generate unique filename: timestamp-randomstring-originalname
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 8);
+      const ext = options.originalname.split('.').pop();
+      const nameWithoutExt = options.originalname.replace(/\.[^/.]+$/, '');
+      const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const uniqueFilename = `${timestamp}-${randomString}-${sanitizedName}.${ext}`;
+
       // Metadata file
       const fileMetadata: any = {
-        name: options.originalname,
+        name: uniqueFilename,
         // Try to use folder if accessible, otherwise skip
         ...(options.folder && { parents: [options.folder] }),
         ...(this.folderId && !options.folder && { parents: [this.folderId] }),
@@ -218,10 +236,16 @@ export class GoogleDriveProvider implements IStorageProvider, OnModuleInit {
         },
       });
 
-      // Get public URL
-      const publicUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
+      // Get URL format based on file type from settings
+      const urlFormat = await this.uploadSettingsService.getFormatForFile(options.mimetype);
+      const fileCategory = FileTypeClassifier.classify(options.mimetype);
+      
+      // Generate URL with appropriate format
+      const publicUrl = UrlFormatHelper.generateUrl(file.id, urlFormat);
 
-      this.logger.log(`File uploaded ke Google Drive: ${file.name} (${file.id})`);
+      this.logger.log(
+        `File uploaded ke Google Drive: ${file.name} (${file.id}) - Category: ${fileCategory}, Format: ${urlFormat}`,
+      );
 
       return {
         url: publicUrl,
@@ -233,6 +257,9 @@ export class GoogleDriveProvider implements IStorageProvider, OnModuleInit {
         metadata: {
           webViewLink: file.webViewLink,
           webContentLink: file.webContentLink,
+          originalName: options.originalname,
+          urlFormat: urlFormat, // Include format used
+          fileCategory: fileCategory, // Include classified category
         },
       };
     } catch (error) {

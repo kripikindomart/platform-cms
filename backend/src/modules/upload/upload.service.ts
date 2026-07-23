@@ -126,7 +126,8 @@ export class UploadService {
         buffer: file.buffer,
         originalname: file.originalname,
         mimetype: file.mimetype,
-        folder: folder || 'files',
+        // Only pass folder if explicitly provided, don't use default string
+        ...(folder && { folder }),
       });
 
       this.logger.log(

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -11,6 +11,8 @@ import { UserTenantsResponseDto, TenantAccessDto } from './dto/user-tenants-resp
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly rolesRepository: RolesRepository,
@@ -47,7 +49,12 @@ export class UsersService {
 
     // Check if tenant context is set
     if (!this.tenantContext.hasTenant()) {
-      throw new Error('Tenant context not set when loading user roles');
+      // If no tenant context, return user without roles
+      // This allows endpoints like upload to work without tenant context
+      this.logger.warn(`Loading user ${id} without roles (no tenant context)`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (user as any).roles = [];
+      return user;
     }
 
     // Load user roles with permissions

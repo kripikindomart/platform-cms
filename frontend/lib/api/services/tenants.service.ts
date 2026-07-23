@@ -8,6 +8,7 @@ export interface Tenant {
   id: number;
   name: string;
   slug: string;
+  description?: string | null;
   logo_url?: string | null;
   primary_color?: string | null;
   secondary_color?: string | null;
@@ -36,6 +37,8 @@ export interface CreateTenantDto {
 
 export interface UpdateTenantDto {
   name?: string;
+  slug?: string;
+  description?: string;
   logo_url?: string;
   primary_color?: string;
   secondary_color?: string;
@@ -87,7 +90,15 @@ export const tenantsService = {
   /**
    * Provision tenant (full setup with schema)
    */
-  async provision(data: CreateTenantDto): Promise<Tenant> {
+  async provision(data: CreateTenantDto): Promise<{
+    success: boolean;
+    tenant: Tenant;
+    schemaCreated: boolean;
+    tablesCreated: number;
+    rolesSeeded: number;
+    permissionsSeeded: number;
+    message: string;
+  }> {
     return await apiClient.post('/tenants/provision', data);
   },
 
@@ -96,6 +107,13 @@ export const tenantsService = {
    */
   async update(id: number, data: UpdateTenantDto): Promise<Tenant> {
     return await apiClient.patch(`/tenants/${id}`, data);
+  },
+
+  /**
+   * Update tenant config
+   */
+  async updateConfig(id: number, config: Record<string, any>): Promise<Tenant> {
+    return await apiClient.patch(`/tenants/${id}/config`, { config });
   },
 
   /**
@@ -115,8 +133,22 @@ export const tenantsService = {
   /**
    * Hard delete tenant (permanent)
    */
-  async hardDelete(id: number): Promise<void> {
-    await apiClient.delete(`/tenants/${id}/hard`);
+  async hardDelete(id: number, backupSchema: boolean = true): Promise<void> {
+    await apiClient.delete(`/tenants/${id}/hard?backupSchema=${backupSchema}`);
+  },
+
+  /**
+   * Get schema backups
+   */
+  async getSchemaBackups(): Promise<any[]> {
+    return await apiClient.get('/tenants/schema-backups');
+  },
+
+  /**
+   * Delete schema backup permanently
+   */
+  async deleteSchemaBackup(backupId: number): Promise<void> {
+    await apiClient.delete(`/tenants/schema-backups/${backupId}`);
   },
 
   /**
@@ -160,8 +192,38 @@ export const tenantsService = {
   /**
    * Bulk delete tenants
    */
-  async bulkDelete(ids: number[]): Promise<void> {
-    await Promise.all(ids.map(id => this.delete(id)));
+  async bulkDelete(ids: number[]): Promise<{ 
+    success: number; 
+    failed: number; 
+    errors: Array<{ id: number; message: string }> 
+  }> {
+    const results = await Promise.allSettled(
+      ids.map(async (id) => {
+        try {
+          await this.delete(id);
+          return { success: true, id };
+        } catch (error: any) {
+          return { 
+            success: false, 
+            id, 
+            message: error?.response?.data?.message || error?.message || 'Unknown error' 
+          };
+        }
+      })
+    );
+
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
+    const failed = results.filter(r => r.status === 'fulfilled' && !r.value.success);
+    const errors = failed.map(r => {
+      const value = (r as PromiseFulfilledResult<any>).value;
+      return { id: value.id, message: value.message };
+    });
+
+    return {
+      success: successful.length,
+      failed: failed.length,
+      errors
+    };
   },
 
   /**
@@ -241,5 +303,28 @@ export const tenantsService = {
     message: string;
   }> {
     return await apiClient.post(`/tenants/${tenantId}/users/${userId}/restore`);
+  },
+
+  /**
+   * Get users not in tenant (available to add)
+   */
+  async getAvailableUsers(tenantId: number, search?: string): Promise<any[]> {
+    const params: any = {};
+    if (search) params.search = search;
+    return await apiClient.get(`/tenants/${tenantId}/available-users`, { params });
+  },
+
+  /**
+   * Bulk add users to tenant
+   */
+  async bulkAddUsers(
+    tenantId: number,
+    data: {
+      user_ids: number[];
+      default_role_id?: number;
+      user_role_mapping?: Array<{ user_id: number; role_id: number }>;
+    }
+  ): Promise<{ success: number; failed: number; errors: any[] }> {
+    return await apiClient.post(`/tenants/${tenantId}/users/bulk-add`, data);
   },
 };

@@ -1,0 +1,66 @@
+import { apiClient } from '../client';
+
+/**
+ * {{displayName}} API Service
+ * @generated
+ */
+export interface {{className}} {
+  id: number;
+{{#each fields}}
+  {{camelCase}}: {{tsType}}{{#unless isRequired}} | null{{/unless}};
+{{/each}}
+  created_at: string;
+  updated_at: string | null;
+{{#if hasSoftDelete}}
+  deleted_at: string | null;
+{{/if}}
+}
+
+export interface {{className}}ListMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface {{className}}ListResponse {
+  data: {{className}}[];
+  meta: {{className}}ListMeta;
+}
+
+export interface Fetch{{className}}Params extends Record<string, unknown> {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
+export type Create{{className}}Payload = Omit<{{className}}, 'id' | 'created_at' | 'updated_at'{{#if hasSoftDelete}} | 'deleted_at'{{/if}}>;
+export type Update{{className}}Payload = Partial<Create{{className}}Payload>;
+
+class {{className}}Service {
+  private readonly basePath = '/{{moduleName}}';
+
+  async list(params?: Fetch{{className}}Params): Promise<{{className}}ListResponse> {
+    return apiClient.get<{{className}}ListResponse>(this.basePath, { params });
+  }
+
+  async getById(id: number): Promise<{{className}}> {
+    return apiClient.get<{{className}}>(`${this.basePath}/${id}`);
+  }
+
+  async create(data: Create{{className}}Payload): Promise<{{className}}> {
+    return apiClient.post<{{className}}>(this.basePath, data);
+  }
+
+  async update(id: number, data: Update{{className}}Payload): Promise<{{className}}> {
+    return apiClient.patch<{{className}}>(`${this.basePath}/${id}`, data);
+  }
+
+  async delete(id: number): Promise<void> {
+    return apiClient.delete(`${this.basePath}/${id}`);
+  }
+}
+
+export const {{toCamelCase moduleName}}Service = new {{className}}Service();

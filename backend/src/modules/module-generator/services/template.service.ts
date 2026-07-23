@@ -121,6 +121,20 @@ export class TemplateService {
     Handlebars.registerHelper('backtick', (str: string) => {
       return `\`${str}\``;
     });
+
+    // Helper: toCamelCase (e.g. "product_review" -> "productReview")
+    // NOTE: deliberately NOT named "camelCase" - FieldContext already exposes
+    // a `camelCase` property on each field, and Handlebars helpers take
+    // precedence over context properties of the same name. Using that name
+    // here would silently break every bare `{{camelCase}}` field reference.
+    Handlebars.registerHelper('toCamelCase', (str: string) => {
+      if (!str) return '';
+      const pascal = str
+        .split(/[-_]/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('');
+      return pascal.charAt(0).toLowerCase() + pascal.slice(1);
+    });
   }
 
   /**

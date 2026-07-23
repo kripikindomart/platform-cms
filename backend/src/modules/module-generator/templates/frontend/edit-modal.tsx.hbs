@@ -1,0 +1,166 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { {{className}}, {{toCamelCase moduleName}}Service } from '@/lib/api/services/{{moduleName}}.service';
+
+const formSchema = z.object({
+{{#each fields}}
+{{#if (eq type "boolean")}}
+  {{camelCase}}: z.boolean(),
+{{else}}
+  {{camelCase}}: z.string(){{#if isRequired}}.min(1, '{{label}} wajib diisi'){{else}}.optional(){{/if}},
+{{/if}}
+{{/each}}
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+interface Edit{{className}}ModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  item: {{className}};
+  onSuccess: () => void;
+}
+
+/**
+ * Edit {{displayName}} Modal
+ * @generated
+ */
+export function Edit{{className}}Modal({ open, onOpenChange, item, onSuccess }: Edit{{className}}ModalProps) {
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+{{#each fields}}
+{{#if (eq type "boolean")}}
+      {{camelCase}}: item.{{camelCase}} ?? false,
+{{else if (eq type "number")}}
+      {{camelCase}}: item.{{camelCase}} != null ? String(item.{{camelCase}}) : '',
+{{else}}
+      {{camelCase}}: item.{{camelCase}} ?? '',
+{{/if}}
+{{/each}}
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+{{#each fields}}
+{{#if (eq type "boolean")}}
+        {{camelCase}}: item.{{camelCase}} ?? false,
+{{else if (eq type "number")}}
+        {{camelCase}}: item.{{camelCase}} != null ? String(item.{{camelCase}}) : '',
+{{else}}
+        {{camelCase}}: item.{{camelCase}} ?? '',
+{{/if}}
+{{/each}}
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, item]);
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const payload = {
+        ...data,
+{{#each fields}}
+{{#if (eq type "number")}}
+        {{camelCase}}: data.{{camelCase}} === '' ? undefined : Number(data.{{camelCase}}),
+{{/if}}
+{{/each}}
+      };
+      await {{toCamelCase moduleName}}Service.update(item.id, payload as any);
+      toast.success('{{displayName}} berhasil diperbarui');
+      onOpenChange(false);
+      onSuccess();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal memperbarui {{displayName}}');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>Edit {{displayName}}</DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+{{#each fields}}
+            <FormField
+              control={form.control}
+              name="{{camelCase}}"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{{label}}{{#if isRequired}} *{{/if}}</FormLabel>
+                  <FormControl>
+{{#if (eq type "text")}}
+                    <Textarea rows={4} {...field} />
+{{else if (eq type "json")}}
+                    <Textarea rows={4} placeholder="{}" {...field} />
+{{else if (eq type "boolean")}}
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+{{else if (eq type "date")}}
+                    <Input type="date" {...field} value={field.value ?? ''} />
+{{else if (eq type "datetime")}}
+                    <Input type="datetime-local" {...field} value={field.value ?? ''} />
+{{else if (eq type "number")}}
+                    <Input type="number" {...field} value={field.value ?? ''} />
+{{else if (eq type "email")}}
+                    <Input type="email" {...field} />
+{{else if (eq type "url")}}
+                    <Input type="url" {...field} />
+{{else if (eq type "enum")}}
+                    <Select
+                      {...field}
+                      options={[
+{{#each enumOptions}}
+                        { value: '{{this}}', label: '{{this}}' },
+{{/each}}
+                      ]}
+                    />
+{{else}}
+                    <Input type="text" {...field} />
+{{/if}}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+{{/each}}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+              >
+                {form.formState.isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

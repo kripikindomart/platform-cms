@@ -29,6 +29,7 @@ export interface GenerationContext {
 export interface FieldContext {
   name: string; // snake_case
   camelCase: string; // camelCase for TypeScript
+  label: string; // UI display label
   type: string;
   dbType: string; // PostgreSQL type
   tsType: string; // TypeScript type
@@ -38,7 +39,9 @@ export interface FieldContext {
   scale?: number;
   isRequired: boolean;
   isUnique: boolean;
+  isVisibleInList: boolean;
   defaultValue?: string;
+  enumOptions?: string[];
   validations: any[];
 }
 
@@ -180,6 +183,7 @@ export class CodeGenerationService {
     return {
       name: field.name,
       camelCase: this.toCamelCase(field.name),
+      label: field.label || field.name,
       type: field.type,
       dbType: typeMapping.dbType,
       tsType: typeMapping.tsType,
@@ -189,7 +193,9 @@ export class CodeGenerationService {
       scale: field.scale,
       isRequired: field.isRequired ?? false,
       isUnique: field.isUnique ?? false,
+      isVisibleInList: field.isVisibleInList ?? true,
       defaultValue: field.defaultValue,
+      enumOptions: field.enumOptions,
       validations: field.validations || [],
     };
   }
@@ -203,19 +209,23 @@ export class CodeGenerationService {
     drizzleType: string;
   } {
     const mappings: Record<string, any> = {
+      // Types accepted by ModuleFieldDto.type
       string: { dbType: 'VARCHAR', tsType: 'string', drizzleType: 'varchar' },
       text: { dbType: 'TEXT', tsType: 'string', drizzleType: 'text' },
-      integer: { dbType: 'INTEGER', tsType: 'number', drizzleType: 'integer' },
-      bigint: { dbType: 'BIGINT', tsType: 'number', drizzleType: 'bigint' },
-      decimal: { dbType: 'NUMERIC', tsType: 'number', drizzleType: 'numeric' },
-      float: { dbType: 'REAL', tsType: 'number', drizzleType: 'real' },
+      number: { dbType: 'NUMERIC', tsType: 'number', drizzleType: 'numeric' },
       boolean: { dbType: 'BOOLEAN', tsType: 'boolean', drizzleType: 'boolean' },
-      date: { dbType: 'DATE', tsType: 'Date', drizzleType: 'date' },
-      datetime: { dbType: 'TIMESTAMP', tsType: 'Date', drizzleType: 'timestamp' },
+      date: { dbType: 'DATE', tsType: 'string', drizzleType: 'date' },
+      datetime: { dbType: 'TIMESTAMP', tsType: 'string', drizzleType: 'timestamp' },
       email: { dbType: 'VARCHAR', tsType: 'string', drizzleType: 'varchar' },
       url: { dbType: 'VARCHAR', tsType: 'string', drizzleType: 'varchar' },
       uuid: { dbType: 'UUID', tsType: 'string', drizzleType: 'uuid' },
       json: { dbType: 'JSONB', tsType: 'any', drizzleType: 'jsonb' },
+      enum: { dbType: 'VARCHAR', tsType: 'string', drizzleType: 'varchar' },
+      // Legacy aliases kept for backward compatibility
+      integer: { dbType: 'INTEGER', tsType: 'number', drizzleType: 'integer' },
+      bigint: { dbType: 'BIGINT', tsType: 'number', drizzleType: 'bigint' },
+      decimal: { dbType: 'NUMERIC', tsType: 'number', drizzleType: 'numeric' },
+      float: { dbType: 'REAL', tsType: 'number', drizzleType: 'real' },
     };
 
     return mappings[type] || mappings.string;
@@ -304,9 +314,78 @@ export class CodeGenerationService {
    * Generates modals or pages based on uiConfig
    */
   private async generateFrontendPages(context: GenerationContext): Promise<string[]> {
-    // TODO: Implement frontend generation with modal support
-    // For now, return empty array
-    return [];
+    const filesCreated: string[] = [];
+    const frontendRoot = path.join('..', 'frontend');
+    const portalBase = path.join(
+      frontendRoot,
+      'app',
+      '(private)',
+      'org',
+      '[tenant]',
+      'portal',
+      context.moduleName,
+    );
+
+    const uiConfig = context.uiConfig || { createFormType: 'page', editFormType: 'page' };
+
+    // 1. Frontend API service
+    const serviceContent = await this.templateService.render('frontend/service.ts.hbs', context);
+    const servicePath = path.join(frontendRoot, 'lib', 'api', 'services', `${context.moduleName}.service.ts`);
+    await this.fileSystemService.writeFile(servicePath, serviceContent);
+    filesCreated.push(servicePath);
+
+    // 2. Data hook
+    const hookContent = await this.templateService.render('frontend/hook.ts.hbs', context);
+    const hookPath = path.join(frontendRoot, 'hooks', `use-${context.moduleName}.ts`);
+    await this.fileSystemService.writeFile(hookPath, hookContent);
+    filesCreated.push(hookPath);
+
+    // 3. List page
+    const listPageContent = await this.templateService.render('frontend/list-page.tsx.hbs', context);
+    const listPagePath = path.join(portalBase, 'page.tsx');
+    await this.fileSystemService.writeFile(listPagePath, listPageContent);
+    filesCreated.push(listPagePath);
+
+    // 4. Table component
+    const tableContent = await this.templateService.render('frontend/table.tsx.hbs', context);
+    const tablePath = path.join(portalBase, 'components', `${context.moduleName}-table.tsx`);
+    await this.fileSystemService.writeFile(tablePath, tableContent);
+    filesCreated.push(tablePath);
+
+    // 5. Delete confirmation dialog
+    const deleteDialogContent = await this.templateService.render('frontend/delete-dialog.tsx.hbs', context);
+    const deleteDialogPath = path.join(portalBase, 'components', 'delete-dialog.tsx');
+    await this.fileSystemService.writeFile(deleteDialogPath, deleteDialogContent);
+    filesCreated.push(deleteDialogPath);
+
+    // 6. Create form (modal or page)
+    if (uiConfig.createFormType === 'modal') {
+      const createModalContent = await this.templateService.render('frontend/create-modal.tsx.hbs', context);
+      const createModalPath = path.join(portalBase, 'components', `create-${context.moduleName}-modal.tsx`);
+      await this.fileSystemService.writeFile(createModalPath, createModalContent);
+      filesCreated.push(createModalPath);
+    } else {
+      const createPageContent = await this.templateService.render('frontend/create-page.tsx.hbs', context);
+      const createPagePath = path.join(portalBase, 'create', 'page.tsx');
+      await this.fileSystemService.writeFile(createPagePath, createPageContent);
+      filesCreated.push(createPagePath);
+    }
+
+    // 7. Edit form (modal or page)
+    if (uiConfig.editFormType === 'modal') {
+      const editModalContent = await this.templateService.render('frontend/edit-modal.tsx.hbs', context);
+      const editModalPath = path.join(portalBase, 'components', `edit-${context.moduleName}-modal.tsx`);
+      await this.fileSystemService.writeFile(editModalPath, editModalContent);
+      filesCreated.push(editModalPath);
+    } else {
+      const editPageContent = await this.templateService.render('frontend/edit-page.tsx.hbs', context);
+      const editPagePath = path.join(portalBase, '[id]', 'edit', 'page.tsx');
+      await this.fileSystemService.writeFile(editPagePath, editPageContent);
+      filesCreated.push(editPagePath);
+    }
+
+    this.logger.log(`Generated ${filesCreated.length} frontend files`);
+    return filesCreated;
   }
 
   /**
@@ -324,10 +403,16 @@ export class CodeGenerationService {
     const pathsToDelete = [
       // Backend module folder
       path.join('src', 'modules', moduleName),
-      
+
       // Frontend pages folder
       path.join('..', 'frontend', 'app', '(private)', 'org', '[tenant]', 'portal', moduleName),
-      
+
+      // Frontend API service (lives outside the portal pages folder)
+      path.join('..', 'frontend', 'lib', 'api', 'services', `${moduleName}.service.ts`),
+
+      // Frontend data hook (lives outside the portal pages folder)
+      path.join('..', 'frontend', 'hooks', `use-${moduleName}.ts`),
+
       // Schema file
       path.join('src', 'database', 'schema', 'tenant', `${tableName}.schema.ts`),
     ];

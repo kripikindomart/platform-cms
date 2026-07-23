@@ -1,0 +1,87 @@
+import { useState, useCallback } from 'react';
+import {
+  {{toCamelCase moduleName}}Service,
+  {{className}},
+  Create{{className}}Payload,
+  Update{{className}}Payload,
+  Fetch{{className}}Params,
+} from '@/lib/api/services/{{moduleName}}.service';
+
+/**
+ * {{displayName}} data hook
+ * @generated
+ */
+interface Use{{className}}Result {
+  items: {{className}}[];
+  loading: boolean;
+  error: Error | null;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  fetch{{className}}: (params?: Fetch{{className}}Params) => Promise<void>;
+  create{{className}}: (data: Create{{className}}Payload) => Promise<{{className}}>;
+  update{{className}}: (id: number, data: Update{{className}}Payload) => Promise<{{className}}>;
+  delete{{className}}: (id: number) => Promise<void>;
+}
+
+export function use{{className}}(): Use{{className}}Result {
+  const [items, setItems] = useState<{{className}}[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
+
+  const fetch{{className}} = useCallback(async (params?: Fetch{{className}}Params) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await {{toCamelCase moduleName}}Service.list(params);
+      setItems(response.data);
+      setPagination({
+        total: response.meta.total,
+        page: response.meta.page,
+        limit: response.meta.limit,
+        totalPages: response.meta.totalPages,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Gagal memuat {{displayName}}'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const create{{className}} = useCallback(async (data: Create{{className}}Payload) => {
+    const created = await {{toCamelCase moduleName}}Service.create(data);
+    setItems((prev) => [created, ...prev]);
+    return created;
+  }, []);
+
+  const update{{className}} = useCallback(async (id: number, data: Update{{className}}Payload) => {
+    const updated = await {{toCamelCase moduleName}}Service.update(id, data);
+    setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
+    return updated;
+  }, []);
+
+  const delete{{className}} = useCallback(async (id: number) => {
+    await {{toCamelCase moduleName}}Service.delete(id);
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+
+  return {
+    items,
+    loading,
+    error,
+    pagination,
+    fetch{{className}},
+    create{{className}},
+    update{{className}},
+    delete{{className}},
+  };
+}

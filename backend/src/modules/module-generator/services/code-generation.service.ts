@@ -110,6 +110,9 @@ export class CodeGenerationService {
       const frontendFiles = await this.generateFrontendPages(context);
       filesCreated.push(...frontendFiles);
 
+      // 9. Register the new module in AppModule so its routes actually load
+      await this.registerModuleInAppModule(context);
+
       this.logger.log(`Successfully generated ${filesCreated.length} files`);
 
       return {
@@ -460,7 +463,93 @@ export class CodeGenerationService {
       this.logger.warn(`⚠ Could not delete permissions: ${error.message}`);
     }
 
+    // Unregister from AppModule (otherwise a dangling import breaks the whole build)
+    try {
+      await this.unregisterModuleFromAppModule(moduleName);
+      this.logger.log(`✓ Unregistered module from AppModule: ${moduleName}`);
+    } catch (error: any) {
+      this.logger.warn(`⚠ Could not unregister module from AppModule: ${error.message}`);
+    }
+
     this.logger.log(`✓ Rollback completed for module: ${moduleName}`);
+  }
+
+  /**
+   * Register the generated module in src/app.module.ts so its routes are
+   * actually wired up (NestJS only loads modules listed in an @Module()
+   * imports array - generating the files alone does not activate them).
+   *
+   * Idempotent: safe to call again for a module that is already registered.
+   */
+  private async registerModuleInAppModule(context: GenerationContext): Promise<void> {
+    const appModulePath = path.join('src', 'app.module.ts');
+    const content = await this.fileSystemService.readFile(appModulePath);
+
+    const moduleClassName = `${context.className}Module`;
+    const importPath = `./modules/${context.moduleName}/${context.moduleName}.module`;
+    const importStatement = `import { ${moduleClassName} } from '${importPath}';`;
+
+    if (content.includes(importStatement)) {
+      this.logger.log(`  Module ${moduleClassName} already registered in AppModule, skipping`);
+      return;
+    }
+
+    // 1. Add the import statement after the last existing import line
+    const importLines = content.match(/^import .+;$/gm);
+    if (!importLines || importLines.length === 0) {
+      throw new Error('Could not find any import statements in app.module.ts');
+    }
+    const lastImport = importLines[importLines.length - 1];
+    const lastImportIndex = content.lastIndexOf(lastImport);
+    let updated =
+      content.slice(0, lastImportIndex + lastImport.length) +
+      `\n${importStatement}` +
+      content.slice(lastImportIndex + lastImport.length);
+
+    // 2. Add the module class into the `imports: [...]` array of @Module()
+    const importsArrayCloseRegex = /(\r?\n)(\s*)\],(\r?\n\s*controllers:)/;
+    if (!importsArrayCloseRegex.test(updated)) {
+      throw new Error('Could not find the end of the imports array in app.module.ts');
+    }
+    updated = updated.replace(
+      importsArrayCloseRegex,
+      (_match, nl, indent, tail) => `${nl}${indent}  ${moduleClassName},${nl}${indent}],${tail}`,
+    );
+
+    await this.fileSystemService.writeFile(appModulePath, updated);
+    this.logger.log(`  ✓ Registered ${moduleClassName} in app.module.ts`);
+  }
+
+  /**
+   * Remove a module's import and registration from src/app.module.ts.
+   * Counterpart to registerModuleInAppModule(), used on hard delete.
+   */
+  private async unregisterModuleFromAppModule(moduleName: string): Promise<void> {
+    const appModulePath = path.join('src', 'app.module.ts');
+    const content = await this.fileSystemService.readFile(appModulePath);
+
+    const className = this.toPascalCase(moduleName);
+    const moduleClassName = `${className}Module`;
+    const importPath = `./modules/${moduleName}/${moduleName}.module`;
+    const importStatement = `import { ${moduleClassName} } from '${importPath}';`;
+
+    let updated = content
+      // Remove the import line (and its trailing newline)
+      .replace(new RegExp(`${this.escapeRegex(importStatement)}\\r?\\n?`), '')
+      // Remove the entry from the imports array (with its trailing comma and newline)
+      .replace(new RegExp(`\\s*${this.escapeRegex(moduleClassName)},\\r?\\n`), '\n');
+
+    if (updated === content) {
+      this.logger.log(`  Module ${moduleClassName} not found in AppModule, nothing to unregister`);
+      return;
+    }
+
+    await this.fileSystemService.writeFile(appModulePath, updated);
+    this.logger.log(`  ✓ Unregistered ${moduleClassName} from app.module.ts`);
+  }
+
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /**
@@ -578,15 +667,18 @@ export class CodeGenerationService {
         this.logger.warn(`  ⚠ Permissions table does not exist in ${tenantSchema}, skipping...`);
         return 0;
       }
-      
+
+      // Tenant permissions table is UNIQUE(resource, action, scope) - see
+      // TenantsService.createTenantTables(). Scope 'tenant' matches the
+      // non-cross-tenant permissions this generator creates.
       for (const permission of permissions) {
-        await this.db.execute(sql.raw(`
-          INSERT INTO ${tenantSchema}.permissions (action, resource, description, created_at)
-          VALUES ('${permission.action}', '${permission.resource}', '${permission.description}', NOW())
-          ON CONFLICT (action) DO NOTHING
-        `));
+        await this.db.execute(sql`
+          INSERT INTO ${sql.raw(tenantSchema)}.permissions (action, resource, scope, description, created_at)
+          VALUES (${permission.action}, ${permission.resource}, 'tenant', ${permission.description}, NOW())
+          ON CONFLICT (resource, action, scope) DO NOTHING
+        `);
       }
-      
+
       this.logger.log(`  ✓ Created ${permissions.length} permissions in ${tenantSchema}`);
       return permissions.length;
     } catch (error: any) {
@@ -620,45 +712,59 @@ export class CodeGenerationService {
       }
       
       // Get "Main Menu" ID (or create if doesn't exist)
-      const menuResult = await this.db.execute(sql.raw(`
-        INSERT INTO ${tenantSchema}.menus (name, slug, icon, "order", is_active, created_at, updated_at)
+      const menuResult = await this.db.execute(sql`
+        INSERT INTO ${sql.raw(tenantSchema)}.menus (name, slug, icon, "order", is_active, created_at, updated_at)
         VALUES ('Main Menu', 'main-menu', 'LayoutDashboard', 0, true, NOW(), NOW())
         ON CONFLICT (slug) DO UPDATE SET updated_at = NOW()
         RETURNING id
-      `));
-      
+      `);
+
       const mainMenuId = (menuResult.rows[0] as any).id;
-      
-      // Insert menu item
-      await this.db.execute(sql.raw(`
-        INSERT INTO ${tenantSchema}.menu_items (
-          menu_id, 
-          module_name, 
-          label, 
-          url, 
-          icon, 
-          "order", 
-          is_active,
-          required_permission,
-          created_at, 
-          updated_at
-        )
-        VALUES (
-          ${mainMenuId},
-          '${moduleName}',
-          '${displayName}',
-          '/portal/${moduleName}',
-          'FileText',
-          999,
-          true,
-          'view_${moduleName}',
-          NOW(),
-          NOW()
-        )
-        ON CONFLICT (menu_id, module_name) DO UPDATE 
-        SET label = '${displayName}', updated_at = NOW()
-      `));
-      
+
+      // menu_items has no unique constraint on (menu_id, module_name) - see
+      // TenantsService.createTenantTables() - so upsert manually instead of
+      // relying on ON CONFLICT (which would error: no matching constraint).
+      const existing = await this.db.execute(sql`
+        SELECT id FROM ${sql.raw(tenantSchema)}.menu_items
+        WHERE menu_id = ${mainMenuId} AND module_name = ${moduleName}
+        LIMIT 1
+      `);
+
+      if (existing.rows.length > 0) {
+        await this.db.execute(sql`
+          UPDATE ${sql.raw(tenantSchema)}.menu_items
+          SET label = ${displayName}, updated_at = NOW()
+          WHERE id = ${(existing.rows[0] as any).id}
+        `);
+      } else {
+        await this.db.execute(sql`
+          INSERT INTO ${sql.raw(tenantSchema)}.menu_items (
+            menu_id,
+            module_name,
+            label,
+            url,
+            icon,
+            "order",
+            is_active,
+            required_permission,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ${mainMenuId},
+            ${moduleName},
+            ${displayName},
+            ${'/portal/' + moduleName},
+            'FileText',
+            999,
+            true,
+            ${'view_' + moduleName},
+            NOW(),
+            NOW()
+          )
+        `);
+      }
+
       this.logger.log(`  ✓ Created menu item '${displayName}' in ${tenantSchema}`);
       return true;
     } catch (error: any) {

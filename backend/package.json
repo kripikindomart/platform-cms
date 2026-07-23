@@ -40,6 +40,7 @@
     "create:blog-menu": "tsx scripts/create-blog-menu-permissions.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1093.0",
     "@casl/ability": "^7.0.1",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
@@ -53,6 +54,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.2",
+    "googleapis": "^173.0.0",
     "handlebars": "^4.7.9",
     "helmet": "^8.2.0",
     "ioredis": "^5.11.1",

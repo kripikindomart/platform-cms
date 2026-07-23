@@ -11,9 +11,18 @@ import {
   IsArray,
   ValidateNested,
   IsIn,
+  IsNotIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ValidationRuleDto } from './validation-rule.dto';
+
+/**
+ * Field names reserved by the generator itself (primary key + audit/soft-delete
+ * columns hardcoded in entity.ts.hbs and dto-response.ts.hbs). A user field
+ * with one of these names would silently produce a duplicate object/class
+ * property and break the generated code's TypeScript compilation.
+ */
+export const RESERVED_FIELD_NAMES = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
 /**
  * DTO for Module Field Definition
@@ -31,6 +40,9 @@ export class ModuleFieldDto {
   @MaxLength(100)
   @Matches(/^[a-z][a-z0-9_]*$/, {
     message: 'Field name harus lowercase, start dengan huruf, dan hanya boleh underscore',
+  })
+  @IsNotIn(RESERVED_FIELD_NAMES, {
+    message: `Nama field tidak boleh salah satu dari: ${RESERVED_FIELD_NAMES.join(', ')} (kolom ini sudah dibuat otomatis oleh sistem)`,
   })
   name!: string;
 

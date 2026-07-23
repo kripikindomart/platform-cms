@@ -13,7 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select-radix';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { uploadSettingsService, UploadSetting } from '@/lib/api/services/upload-settings.service';
@@ -30,7 +30,7 @@ const urlFormatOptions = [
 
 export default function EditUploadSettingPage() {
   const params = useParams();
-  const { pushPortal } = usePortalRouter();
+  const { push } = usePortalRouter();
   const id = parseInt(params.id as string);
 
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ export default function EditUploadSettingPage() {
       });
     } catch (error) {
       toast.error('Failed to load upload setting');
-      pushPortal('upload-settings');
+      push('upload-settings');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function EditUploadSettingPage() {
       });
 
       toast.success('Upload setting updated successfully');
-      pushPortal('upload-settings');
+      push('upload-settings');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update upload setting');
     } finally {
@@ -152,7 +152,7 @@ export default function EditUploadSettingPage() {
               </Label>
               <Select
                 value={formData.url_format}
-                onValueChange={(value) =>
+                onValueChange={(value: string) =>
                   setFormData((prev) => ({ ...prev, url_format: value }))
                 }
               >
@@ -201,7 +201,6 @@ export default function EditUploadSettingPage() {
                 </p>
               </div>
               <Switch
-                id="is_active"
                 checked={formData.is_active}
                 onCheckedChange={(checked) =>
                   setFormData((prev) => ({ ...prev, is_active: checked }))

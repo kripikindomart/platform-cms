@@ -1,0 +1,46 @@
+import { IsOptional, IsInt, Min, IsString, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+
+/**
+ * Query {{displayName}} DTO
+ * For pagination, filtering, and sorting
+ * 
+ * @generated
+ */
+export class Query{{capitalize className}}Dto {
+  @ApiProperty({ required: false, default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiProperty({ required: false, default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 10;
+
+  {{#if searchableFields.length}}
+  @ApiProperty({ required: false, description: 'Search across: {{join searchableFields ", "}}' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+  {{/if}}
+
+  {{#if sortableFields.length}}
+  @ApiProperty({ required: false, enum: [{{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}] })
+  @IsOptional()
+  @IsString()
+  @IsIn([{{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}])
+  sort?: string;
+  {{/if}}
+
+  @ApiProperty({ required: false, enum: ['asc', 'desc'], default: 'desc' })
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  order?: 'asc' | 'desc' = 'desc';
+}

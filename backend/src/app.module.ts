@@ -24,6 +24,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UploadSettingsModule } from './modules/upload-settings/upload-settings.module';
+import { ModuleGeneratorModule } from './modules/module-generator/module-generator.module';
+
 @Module({
   imports: [ConfigModule.forRoot({
       isGlobal: true,
@@ -55,7 +57,8 @@ import { UploadSettingsModule } from './modules/upload-settings/upload-settings.
     DashboardModule,
     UploadModule,
     SettingsModule,
-    UploadSettingsModule
+    UploadSettingsModule,
+    ModuleGeneratorModule,
   ],
   controllers: [],
   providers: [

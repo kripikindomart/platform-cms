@@ -1,0 +1,65 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { {{capitalize className}}Repository } from './{{moduleName}}.repository';
+import { Create{{capitalize className}}Dto } from './dto/create-{{moduleName}}.dto';
+import { Update{{capitalize className}}Dto } from './dto/update-{{moduleName}}.dto';
+import { Query{{capitalize className}}Dto } from './dto/query-{{moduleName}}.dto';
+
+/**
+ * {{displayName}} Service
+ * {{#if description}}{{description}}{{else}}Auto-generated service for {{displayName}}{{/if}}
+ * 
+ * @generated
+ */
+@Injectable()
+export class {{capitalize className}}Service {
+  constructor(
+    private readonly {{moduleName}}Repository: {{capitalize className}}Repository,
+  ) {}
+
+  /**
+   * Get all {{displayName}} dengan pagination
+   */
+  async findAll(query: Query{{capitalize className}}Dto) {
+    return this.{{moduleName}}Repository.findAll(query);
+  }
+
+  /**
+   * Get {{displayName}} by ID
+   */
+  async findById(id: number) {
+    const item = await this.{{moduleName}}Repository.findById(id);
+    
+    if (!item) {
+      throw new NotFoundException(`{{displayName}} dengan ID ${id} tidak ditemukan`);
+    }
+    
+    return item;
+  }
+
+  /**
+   * Create new {{displayName}}
+   */
+  async create(dto: Create{{capitalize className}}Dto) {
+    return this.{{moduleName}}Repository.create(dto);
+  }
+
+  /**
+   * Update {{displayName}}
+   */
+  async update(id: number, dto: Update{{capitalize className}}Dto) {
+    const existing = await this.findById(id);
+    return this.{{moduleName}}Repository.update(id, dto);
+  }
+
+  /**
+   * Delete {{displayName}}{{#if hasSoftDelete}} (soft delete){{/if}}
+   */
+  async delete(id: number) {
+    const existing = await this.findById(id);
+    {{#if hasSoftDelete}}
+    return this.{{moduleName}}Repository.softDelete(id);
+    {{else}}
+    return this.{{moduleName}}Repository.delete(id);
+    {{/if}}
+  }
+}

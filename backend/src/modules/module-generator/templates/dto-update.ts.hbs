@@ -1,0 +1,10 @@
+import { PartialType } from '@nestjs/swagger';
+import { Create{{capitalize className}}Dto } from './create-{{moduleName}}.dto';
+
+/**
+ * Update {{displayName}} DTO
+ * All fields optional for partial updates
+ * 
+ * @generated
+ */
+export class Update{{capitalize className}}Dto extends PartialType(Create{{capitalize className}}Dto) {}

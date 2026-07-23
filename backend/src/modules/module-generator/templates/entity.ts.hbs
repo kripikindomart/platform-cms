@@ -1,0 +1,42 @@
+import {
+  pgTable,
+  bigserial,
+  varchar,
+  text,
+  integer,
+  bigint,
+  numeric,
+  real,
+  boolean,
+  date,
+  timestamp,
+  uuid,
+  jsonb,
+} from 'drizzle-orm/pg-core';
+
+/**
+ * {{displayName}} Schema
+ * {{#if description}}{{description}}{{else}}Auto-generated Drizzle schema{{/if}}
+ * 
+ * @generated
+ */
+export const {{tableName}} = pgTable('{{tableName}}', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+
+  {{#each fields}}
+  {{name}}: {{#if (eq drizzleType 'varchar')}}varchar('{{name}}'{{#if length}}, { length: {{length}} }{{/if}}){{/if}}{{#if (eq drizzleType 'text')}}text('{{name}}'){{/if}}{{#if (eq drizzleType 'integer')}}integer('{{name}}'){{/if}}{{#if (eq drizzleType 'bigint')}}bigint('{{name}}', { mode: 'number' }){{/if}}{{#if (eq drizzleType 'numeric')}}numeric('{{name}}'{{#if precision}}, { precision: {{precision}}, scale: {{scale}} }{{/if}}){{/if}}{{#if (eq drizzleType 'real')}}real('{{name}}'){{/if}}{{#if (eq drizzleType 'boolean')}}boolean('{{name}}'){{/if}}{{#if (eq drizzleType 'date')}}date('{{name}}'){{/if}}{{#if (eq drizzleType 'timestamp')}}timestamp('{{name}}'){{/if}}{{#if (eq drizzleType 'uuid')}}uuid('{{name}}'){{/if}}{{#if (eq drizzleType 'jsonb')}}jsonb('{{name}}'){{/if}}{{#if isRequired}}.notNull(){{/if}}{{#if defaultValue}}.default({{defaultValue}}){{/if}},
+  {{/each}}
+
+  {{#if hasAudit}}
+  created_at: timestamp('created_at').notNull().defaultNow(),
+  updated_at: timestamp('updated_at'),
+  {{/if}}
+
+  {{#if hasSoftDelete}}
+  deleted_at: timestamp('deleted_at'),
+  {{/if}}
+});
+
+// Type inference
+export type {{capitalize className}} = typeof {{tableName}}.$inferSelect;
+export type New{{capitalize className}} = typeof {{tableName}}.$inferInsert;

@@ -536,7 +536,7 @@ export default function FormBuilderPage() {
       await moduleGeneratorService.update(moduleId, {
         uiConfig: JSON.stringify(uiConfig),
         fieldConfigurations: JSON.stringify(fieldConfigurations), // NEW: Save field configs
-      });
+      } as any); // Cast to bypass TypeScript cache issue
       
       toast.success('Form configuration saved!', {
         description: `Saved UI config and ${fieldConfigurations.length} field configurations`

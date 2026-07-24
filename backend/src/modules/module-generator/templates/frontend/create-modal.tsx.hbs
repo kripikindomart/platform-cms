@@ -10,10 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup } from '@/components/ui/radio-group';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { {{toCamelCase moduleName}}Service } from '@/lib/api/services/{{moduleName}}.service';
@@ -84,46 +86,7 @@ export function Create{{className}}Modal({ open, onOpenChange, onSuccess }: Crea
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 {{#each fields}}
-            <FormField
-              control={form.control}
-              name="{{camelCase}}"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{{label}}{{#if isRequired}} *{{/if}}</FormLabel>
-                  <FormControl>
-{{#if (eq type "text")}}
-                    <Textarea rows={4} {...field} />
-{{else if (eq type "json")}}
-                    <Textarea rows={4} placeholder="{}" {...field} />
-{{else if (eq type "boolean")}}
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-{{else if (eq type "date")}}
-                    <Input type="date" {...field} value={field.value ?? ''} />
-{{else if (eq type "datetime")}}
-                    <Input type="datetime-local" {...field} value={field.value ?? ''} />
-{{else if (eq type "number")}}
-                    <Input type="number" {...field} value={field.value ?? ''} />
-{{else if (eq type "email")}}
-                    <Input type="email" {...field} />
-{{else if (eq type "url")}}
-                    <Input type="url" {...field} />
-{{else if (eq type "enum")}}
-                    <Select
-                      {...field}
-                      options={[
-{{#each enumOptions}}
-                        { value: '{{this}}', label: '{{this}}' },
-{{/each}}
-                      ]}
-                    />
-{{else}}
-                    <Input type="text" {...field} />
-{{/if}}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+{{> field-input}}
 {{/each}}
 
             <div className="flex justify-end gap-2 pt-2">

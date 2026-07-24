@@ -733,7 +733,7 @@ export class CodeGenerationService {
         const result = await this.db.execute(sql`
           INSERT INTO ${sql.raw(tenantSchema)}.permissions (action, resource, scope, description, created_at)
           VALUES (${permission.action}, ${permission.resource}, 'tenant', ${permission.description}, NOW())
-          ON CONFLICT (resource, action, scope) DO UPDATE SET updated_at = NOW()
+          ON CONFLICT (resource, action, scope) DO UPDATE SET description = EXCLUDED.description
           RETURNING id
         `);
         
@@ -762,11 +762,13 @@ export class CodeGenerationService {
    */
   private async assignPermissionsToSuperAdmin(tenantSchema: string, permissionIds: number[]): Promise<void> {
     try {
-      // Find SuperAdmin role (name = 'superadmin' or 'admin')
+      // Find SuperAdmin role (name = 'super_admin', matching CaslAbilityFactory's
+      // bypass check, or legacy 'superadmin'/'admin' names)
       const roleResult = await this.db.execute(sql`
-        SELECT id FROM ${sql.raw(tenantSchema)}.roles 
-        WHERE name IN ('superadmin', 'admin') 
+        SELECT id FROM ${sql.raw(tenantSchema)}.roles
+        WHERE name IN ('super_admin', 'superadmin', 'admin')
         AND deleted_at IS NULL
+        ORDER BY CASE name WHEN 'super_admin' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END
         LIMIT 1
       `);
 
@@ -780,7 +782,7 @@ export class CodeGenerationService {
       // Assign all permissions to SuperAdmin role
       for (const permissionId of permissionIds) {
         await this.db.execute(sql`
-          INSERT INTO ${sql.raw(tenantSchema)}.role_permissions (role_id, permission_id, created_at)
+          INSERT INTO ${sql.raw(tenantSchema)}.role_permissions (role_id, permission_id, assigned_at)
           VALUES (${superAdminRoleId}, ${permissionId}, NOW())
           ON CONFLICT (role_id, permission_id) DO NOTHING
         `);

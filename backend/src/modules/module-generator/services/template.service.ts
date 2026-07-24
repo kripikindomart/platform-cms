@@ -14,6 +14,7 @@ export class TemplateService {
     'templates',
   );
   private templateCache = new Map<string, HandlebarsTemplateDelegate>();
+  private partialsRegistered = false;
 
   constructor() {
     this.registerHelpers();
@@ -24,11 +25,41 @@ export class TemplateService {
    */
   async render(templateName: string, context: any): Promise<string> {
     try {
+      await this.ensurePartialsRegistered();
       const template = await this.loadTemplate(templateName);
       return template(context);
     } catch (error: any) {
       this.logger.error(`Failed to render template ${templateName}: ${error.message}`);
       throw new Error(`Template rendering failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Register every .hbs file under templates/frontend/partials/ as a
+   * Handlebars partial (named by filename, without extension), so multiple
+   * templates can share the same block (e.g. per-field form input
+   * rendering) instead of duplicating it and drifting out of sync.
+   */
+  private async ensurePartialsRegistered(): Promise<void> {
+    if (this.partialsRegistered) {
+      return;
+    }
+    this.partialsRegistered = true;
+
+    const partialsDir = path.join(this.templatesDir, 'frontend', 'partials');
+    let files: string[];
+    try {
+      files = await fs.readdir(partialsDir);
+    } catch {
+      return; // no partials directory - nothing to register
+    }
+
+    for (const file of files) {
+      if (!file.endsWith('.hbs')) continue;
+      const name = file.replace(/\.hbs$/, '');
+      const content = await fs.readFile(path.join(partialsDir, file), 'utf-8');
+      Handlebars.registerPartial(name, content);
+      this.logger.log(`  Registered partial: ${name}`);
     }
   }
 
@@ -122,6 +153,29 @@ export class TemplateService {
       return `\`${str}\``;
     });
 
+    // Helper: resolveInputType - Form Builder's per-field `inputType`
+    // (23 options: text/textarea/wysiwyg/select/date/etc) takes priority;
+    // falls back to a sensible default derived from the base schema `type`
+    // (string/text/number/boolean/date/...) when Form Builder wasn't used
+    // for this field. Mirrors frontend's getDefaultInputType().
+    Handlebars.registerHelper('resolveInputType', (inputType: string | undefined, type: string) => {
+      if (inputType) return inputType;
+      const defaults: Record<string, string> = {
+        string: 'text',
+        text: 'textarea',
+        number: 'number',
+        boolean: 'switch',
+        date: 'date',
+        datetime: 'datetime-local',
+        email: 'email',
+        url: 'url',
+        uuid: 'text',
+        json: 'json-editor',
+        enum: 'select',
+      };
+      return defaults[type] || 'text';
+    });
+
     // Helper: toCamelCase (e.g. "product_review" -> "productReview")
     // NOTE: deliberately NOT named "camelCase" - FieldContext already exposes
     // a `camelCase` property on each field, and Handlebars helpers take
@@ -142,6 +196,7 @@ export class TemplateService {
    */
   clearCache(): void {
     this.templateCache.clear();
+    this.partialsRegistered = false;
     this.logger.log('Template cache cleared');
   }
 }

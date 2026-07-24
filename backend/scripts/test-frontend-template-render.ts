@@ -4,16 +4,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const baseFields = [
-  { name: 'title', camelCase: 'title', label: 'Judul', type: 'string', tsType: 'string', isRequired: true, isVisibleInList: true },
-  { name: 'body', camelCase: 'body', label: 'Isi', type: 'text', tsType: 'string', isRequired: false, isVisibleInList: false },
-  { name: 'price', camelCase: 'price', label: 'Harga', type: 'number', tsType: 'number', isRequired: true, isVisibleInList: true },
-  { name: 'is_published', camelCase: 'isPublished', label: 'Terbit', type: 'boolean', tsType: 'boolean', isRequired: false, isVisibleInList: true },
-  { name: 'published_at', camelCase: 'publishedAt', label: 'Tanggal Terbit', type: 'date', tsType: 'string', isRequired: false, isVisibleInList: true },
-  { name: 'meeting_at', camelCase: 'meetingAt', label: 'Waktu Meeting', type: 'datetime', tsType: 'string', isRequired: false, isVisibleInList: false },
-  { name: 'contact_email', camelCase: 'contactEmail', label: 'Email Kontak', type: 'email', tsType: 'string', isRequired: false, isVisibleInList: false },
-  { name: 'website', camelCase: 'website', label: 'Website', type: 'url', tsType: 'string', isRequired: false, isVisibleInList: false },
-  { name: 'metadata', camelCase: 'metadata', label: 'Metadata', type: 'json', tsType: 'any', isRequired: false, isVisibleInList: false },
-  { name: 'status', camelCase: 'status', label: 'Status', type: 'enum', tsType: 'string', isRequired: true, isVisibleInList: true, enumOptions: ['draft', 'published', 'archived'] },
+  { name: 'title', camelCase: 'title', label: 'Judul', type: 'string', tsType: 'string', isRequired: true, isVisibleInList: true, isVisibleInForm: true, inputType: 'text', placeholder: 'Masukkan judul' },
+  { name: 'body', camelCase: 'body', label: 'Isi', type: 'text', tsType: 'string', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'wysiwyg', helpText: 'Konten utama' },
+  { name: 'price', camelCase: 'price', label: 'Harga', type: 'number', tsType: 'number', isRequired: true, isVisibleInList: true, isVisibleInForm: true, inputType: 'number' },
+  { name: 'rating', camelCase: 'rating', label: 'Rating', type: 'number', tsType: 'number', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'rating' },
+  { name: 'is_published', camelCase: 'isPublished', label: 'Terbit', type: 'boolean', tsType: 'boolean', isRequired: false, isVisibleInList: true, isVisibleInForm: true, inputType: 'switch' },
+  { name: 'is_featured', camelCase: 'isFeatured', label: 'Unggulan', type: 'boolean', tsType: 'boolean', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'checkbox' },
+  { name: 'published_at', camelCase: 'publishedAt', label: 'Tanggal Terbit', type: 'date', tsType: 'string', isRequired: false, isVisibleInList: true, isVisibleInForm: true, inputType: 'date' },
+  { name: 'meeting_at', camelCase: 'meetingAt', label: 'Waktu Meeting', type: 'datetime', tsType: 'string', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'datetime-local' },
+  { name: 'contact_email', camelCase: 'contactEmail', label: 'Email Kontak', type: 'email', tsType: 'string', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'email' },
+  { name: 'website', camelCase: 'website', label: 'Website', type: 'url', tsType: 'string', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'url' },
+  { name: 'metadata', camelCase: 'metadata', label: 'Metadata', type: 'json', tsType: 'any', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'json-editor' },
+  { name: 'status', camelCase: 'status', label: 'Status', type: 'enum', tsType: 'string', isRequired: true, isVisibleInList: true, isVisibleInForm: true, inputType: 'select', enumOptions: ['draft', 'published', 'archived'] },
+  { name: 'priority', camelCase: 'priority', label: 'Prioritas', type: 'string', tsType: 'string', isRequired: false, isVisibleInList: false, isVisibleInForm: true, inputType: 'radio', options: ['low', 'medium', 'high'] },
+  { name: 'internal_note', camelCase: 'internalNote', label: 'Catatan Internal', type: 'string', tsType: 'string', isRequired: false, isVisibleInList: false, isVisibleInForm: false, inputType: 'hidden' },
 ];
 
 function buildContext(createFormType: 'modal' | 'page', editFormType: 'modal' | 'page') {

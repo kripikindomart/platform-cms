@@ -172,8 +172,8 @@ export class CodeGenerationService {
         parsedFieldConfigs = typeof fieldConfigurations === 'string' 
           ? JSON.parse(fieldConfigurations) 
           : fieldConfigurations;
-      } catch (e) {
-        this.logger.warn(`Failed to parse fieldConfigurations: ${e.message}`);
+      } catch (e: any) {
+        this.logger.warn(`Failed to parse fieldConfigurations: ${e?.message || 'Unknown error'}`);
       }
     }
 

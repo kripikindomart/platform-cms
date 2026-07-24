@@ -25,7 +25,6 @@ import { UploadModule } from './modules/upload/upload.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UploadSettingsModule } from './modules/upload-settings/upload-settings.module';
 import { ModuleGeneratorModule } from './modules/module-generator/module-generator.module';
-import { NewsModule } from './modules/news/news.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -60,7 +59,6 @@ import { NewsModule } from './modules/news/news.module';
     SettingsModule,
     UploadSettingsModule,
     ModuleGeneratorModule,
-    NewsModule,
   ],
   controllers: [],
   providers: [

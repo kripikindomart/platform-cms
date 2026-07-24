@@ -9,7 +9,7 @@
                     {{#if (eq (resolveInputType inputType type) "textarea")}}
                     <Textarea rows={4} placeholder="{{placeholder}}" {...field} />
                     {{else if (eq (resolveInputType inputType type) "wysiwyg")}}
-                    <Textarea rows={8} placeholder="{{placeholder}}" {...field} />
+                    <RichTextEditor value={field.value} onChange={field.onChange} placeholder="{{placeholder}}" />
                     {{else if (eq (resolveInputType inputType type) "markdown")}}
                     <Textarea rows={8} className="font-mono text-sm" placeholder="{{placeholder}}" {...field} />
                     {{else if (eq (resolveInputType inputType type) "json-editor")}}

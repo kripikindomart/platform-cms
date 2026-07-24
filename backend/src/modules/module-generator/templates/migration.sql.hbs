@@ -31,16 +31,16 @@ CREATE TABLE IF NOT EXISTS {{tableName}} (
 
 -- Indexes
 {{#if hasSoftDelete}}
-CREATE INDEX idx_{{tableName}}_deleted_at ON {{tableName}}(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_{{tableName}}_deleted_at ON {{tableName}}(deleted_at);
 {{/if}}
 
 {{#if hasAudit}}
-CREATE INDEX idx_{{tableName}}_created_at ON {{tableName}}(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_{{tableName}}_created_at ON {{tableName}}(created_at DESC);
 {{/if}}
 
 {{#each fields}}
 {{#if isUnique}}
-CREATE INDEX idx_{{../tableName}}_{{name}} ON {{../tableName}}({{name}});
+CREATE INDEX IF NOT EXISTS idx_{{../tableName}}_{{name}} ON {{../tableName}}({{name}});
 {{/if}}
 {{/each}}
 

@@ -519,14 +519,27 @@ export default function FormBuilderPage() {
 
   const handleSaveFormConfig = async () => {
     try {
-      // Save form config AND UI config to backend
+      // Prepare field configurations to save
+      const fieldConfigurations = fields.map((field, index) => ({
+        name: field.name,
+        label: field.label,
+        inputType: field.inputType,
+        options: field.options || [],
+        placeholder: field.placeholder || '',
+        helpText: field.helpText || '',
+        isVisibleInForm: field.isVisibleInForm,
+        validations: field.validations || [],
+        order: index, // Update order based on current position
+      }));
+
+      // Save BOTH UI config AND field configurations to backend
       await moduleGeneratorService.update(moduleId, {
         uiConfig: JSON.stringify(uiConfig),
-        // Note: Field configurations would be saved separately if needed
+        fieldConfigurations: JSON.stringify(fieldConfigurations), // NEW: Save field configs
       });
       
       toast.success('Form configuration saved!', {
-        description: `Create: ${uiConfig.createFormType}, Edit: ${uiConfig.editFormType}`
+        description: `Saved UI config and ${fieldConfigurations.length} field configurations`
       });
       
       // Redirect to assign page (Step 3)

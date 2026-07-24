@@ -225,6 +225,7 @@ export class ModuleGeneratorService {
         generateDto, 
         tenantSchema,
         module?.uiConfig, // Pass UI config
+        module?.fieldConfigurations, // Pass field configurations (NEW!)
       );
 
       if (!generationResult.success) {

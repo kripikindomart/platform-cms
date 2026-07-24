@@ -43,6 +43,12 @@ export interface FieldContext {
   defaultValue?: string;
   enumOptions?: string[];
   validations: any[];
+  // NEW: From Form Builder
+  inputType?: string; // text, textarea, email, select, date, wysiwyg, etc
+  placeholder?: string;
+  helpText?: string;
+  isVisibleInForm?: boolean;
+  options?: string[]; // For select/radio/checkbox
 }
 
 export interface GenerationResult {
@@ -71,10 +77,11 @@ export class CodeGenerationService {
     dto: GenerateModuleDto,
     tenantSchema: string,
     uiConfig?: any,
+    fieldConfigurations?: string,
   ): Promise<GenerationResult> {
     this.logger.log(`Generating module: ${dto.moduleName}`);
 
-    const context = this.buildContext(dto, tenantSchema, uiConfig);
+    const context = this.buildContext(dto, tenantSchema, uiConfig, fieldConfigurations);
     const filesCreated: string[] = [];
 
     try {
@@ -147,6 +154,7 @@ export class CodeGenerationService {
     dto: GenerateModuleDto,
     tenantSchema: string,
     uiConfig?: any,
+    fieldConfigurations?: string,
   ): GenerationContext {
     const className = this.toPascalCase(dto.moduleName);
     const tableName = this.toSnakeCase(dto.moduleName);
@@ -157,6 +165,35 @@ export class CodeGenerationService {
       parsedUiConfig = typeof uiConfig === 'string' ? JSON.parse(uiConfig) : uiConfig;
     }
 
+    // Parse fieldConfigurations if it's a string
+    let parsedFieldConfigs: any[] = [];
+    if (fieldConfigurations) {
+      try {
+        parsedFieldConfigs = typeof fieldConfigurations === 'string' 
+          ? JSON.parse(fieldConfigurations) 
+          : fieldConfigurations;
+      } catch (e) {
+        this.logger.warn(`Failed to parse fieldConfigurations: ${e.message}`);
+      }
+    }
+
+    // Build fields with merged configuration
+    const fields = dto.fields.map((f) => {
+      const fieldConfig = parsedFieldConfigs.find((fc: any) => fc.name === f.name);
+      const baseField = this.buildFieldContext(f);
+      
+      // Merge with field configuration from Form Builder
+      return {
+        ...baseField,
+        inputType: fieldConfig?.inputType || baseField.inputType,
+        placeholder: fieldConfig?.placeholder || '',
+        helpText: fieldConfig?.helpText || '',
+        isVisibleInForm: fieldConfig?.isVisibleInForm !== undefined ? fieldConfig.isVisibleInForm : true,
+        validations: fieldConfig?.validations || [],
+        options: fieldConfig?.options || [],
+      };
+    });
+
     return {
       moduleName: dto.moduleName,
       displayName: dto.displayName,
@@ -166,7 +203,7 @@ export class CodeGenerationService {
       isTenantIsolated: dto.isTenantIsolated ?? true,
       hasSoftDelete: dto.hasSoftDelete ?? true,
       hasAudit: dto.hasAudit ?? true,
-      fields: dto.fields.map((f) => this.buildFieldContext(f)),
+      fields,
       searchableFields: dto.searchableFields || [],
       filterableFields: dto.filterableFields || [],
       sortableFields: dto.sortableFields || [],

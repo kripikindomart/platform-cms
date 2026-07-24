@@ -35,6 +35,9 @@ export const visualModules = pgTable('visual_modules', {
   // UI/UX Configuration (JSONB)
   uiConfig: text('ui_config').$type<string>().notNull().default('{"createFormType":"page","editFormType":"page"}'),
   
+  // Field Configurations (JSONB) - inputType, placeholder, helpText, validations per field
+  fieldConfigurations: text('field_configurations').$type<string>(),
+  
   // Audit
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   createdBy: bigint('created_by', { mode: 'number' }).notNull().references(() => users.id, { onDelete: 'set null' }),

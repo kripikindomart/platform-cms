@@ -42,7 +42,9 @@ export interface GenerateModuleDto {
   uiConfig?: string | object; // UI/UX configuration
 }
 
-export interface UpdateModuleDto extends Partial<GenerateModuleDto> {}
+export interface UpdateModuleDto extends Partial<GenerateModuleDto> {
+  fieldConfigurations?: string; // JSON string of field configurations (inputType, placeholder, helpText, validations)
+}
 
 export interface QueryModulesDto {
   page?: number;

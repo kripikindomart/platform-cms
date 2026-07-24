@@ -10,7 +10,7 @@ export class {{capitalize className}}ResponseDto {
 
 {{#each fields}}
   @ApiProperty()
-  {{camelCase}}{{#unless isRequired}}?{{/unless}}: {{tsType}};
+  {{camelCase}}{{#if isRequired}}!{{else}}?{{/if}}: {{tsType}};
 
 {{/each}}
   {{#if hasAudit}}

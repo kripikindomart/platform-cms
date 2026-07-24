@@ -5,6 +5,7 @@ import { GenerateModuleDto } from './dto/generate-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { QueryModulesDto } from './dto/query-modules.dto';
 import { TenantContextService } from '../../common/context/tenant-context.service';
+import { TenantsRepository } from '../tenants/tenants.repository';
 
 /**
  * Module Generator Service
@@ -23,6 +24,7 @@ export class ModuleGeneratorService {
     private readonly repository: ModuleMetadataRepository,
     private readonly codeGenerationService: CodeGenerationService,
     private readonly tenantContext: TenantContextService,
+    private readonly tenantsRepository: TenantsRepository,
   ) {}
 
   /**
@@ -197,8 +199,8 @@ export class ModuleGeneratorService {
             length: f.fieldLength,
             precision: f.precision,
             scale: f.scale,
-            isRequired: false, // TODO: Add to schema
-            isUnique: false, // TODO: Add to schema
+            isRequired: f.isRequired ?? false,
+            isUnique: f.isUnique ?? false,
             isVisibleInList: f.isVisibleInList,
             defaultValue: f.defaultValue,
             validations: [], // TODO: Load from form config
@@ -211,7 +213,11 @@ export class ModuleGeneratorService {
       // TODO: Check visual_module_installations table
 
       // Step 3: Get tenant schema
-      const tenantSchema = `tenant_${tenantId}`; // TODO: Get from tenant service
+      const tenant = await this.tenantsRepository.findById(tenantId);
+      if (!tenant) {
+        throw new NotFoundException(`Tenant dengan ID ${tenantId} tidak ditemukan`);
+      }
+      const tenantSchema = tenant.schema_name;
 
       // Step 4: Generate code files
       this.logger.log(`Generating code files for module: ${generateDto.moduleName}`);
@@ -219,6 +225,7 @@ export class ModuleGeneratorService {
         generateDto, 
         tenantSchema,
         module?.uiConfig, // Pass UI config
+        module?.fieldConfigurations, // Pass field configurations (NEW!)
       );
 
       if (!generationResult.success) {
@@ -243,8 +250,8 @@ export class ModuleGeneratorService {
         tenantSchema,
       );
 
-      // Step 7: Record assignment
-      // TODO: Insert to visual_module_installations
+      // Step 7: Record assignment (which tenant has this module installed)
+      await this.repository.recordInstallation(moduleId, tenantId, userId);
 
       const executionTime = ((Date.now() - startTime) / 1000).toFixed(2);
       this.logger.log(`Module '${generateDto.moduleName}' assigned to tenant ${tenantId} in ${executionTime}s`);

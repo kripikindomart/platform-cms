@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CaslAbilityFactory, AppAbility } from './casl-ability.factory';
 import { CHECK_POLICIES_KEY, PolicyHandler } from '@/common/decorators/check-policies.decorator';
@@ -39,7 +39,10 @@ export class CaslGuard implements CanActivate {
 
     if (!allowed) {
       console.log('[CaslGuard] Permission DENIED for user:', user.email);
-      throw new UnauthorizedException('Anda tidak memiliki izin untuk mengakses resource ini');
+      // 403, not 401: the user IS authenticated, they just lack this permission.
+      // Keeping this distinct from the 401 above lets the frontend tell
+      // "session expired" (401 -> login) apart from "no access" (403 -> dashboard).
+      throw new ForbiddenException('Anda tidak memiliki izin untuk mengakses resource ini');
     }
 
     return true;

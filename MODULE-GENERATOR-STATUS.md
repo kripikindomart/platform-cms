@@ -17,7 +17,8 @@ Platform CMS memiliki fitur **Visual Module Builder** yang memungkinkan user mem
 - ✅ Hard delete module BERFUNGSI (hapus semua files + database records)
 - ✅ Menu & Permissions generation BERFUNGSI
 - ✅ UI Config (Modal vs Page) tersimpan di database
-- ❌ Frontend generation BELUM DIIMPLEMENTASI (method kosong)
+- ✅ Frontend generation SELESAI (list/create/edit, modal & page, sesuai uiConfig) - lihat "UPDATE 23 Juli 2026" di bawah
+- ⚠️ Validation rules generation MASIH BELUM (tersimpan di DB, belum di-generate ke code)
 
 ---
 
@@ -122,36 +123,36 @@ date: dto.date instanceof Date ? dto.date.toISOString() : dto.date
 
 ---
 
-## 🔴 APA YANG BELUM SELESAI
+## UPDATE 23 Juli 2026 - Frontend Generation SELESAI
 
-### 1. Frontend Generation - METHOD KOSONG ❌
-**Priority**: HIGH  
-**File**: `backend/src/modules/module-generator/services/code-generation.service.ts`
+**Dikerjakan oleh**: AI Agent (Claude Code Web), lanjutan dari handoff di bawah ini.
 
-**Method**: `generateFrontendPages(context: GenerationContext)`
+`generateFrontendPages()` di `code-generation.service.ts` sudah diimplementasikan penuh (sebelumnya `return []`). Setiap assign module ke tenant sekarang generate 9 file frontend tambahan:
 
-**Current Status**: Return empty array `[]`
+- `lib/api/services/{moduleName}.service.ts` - API client (list/getById/create/update/delete)
+- `hooks/use-{moduleName}.ts` - data hook (loading/error/pagination state)
+- `app/(private)/org/[tenant]/portal/{moduleName}/page.tsx` - list page
+- `.../components/{moduleName}-table.tsx` - table + pagination + dropdown actions
+- `.../components/delete-dialog.tsx` - konfirmasi hapus
+- Create form: `.../components/create-{moduleName}-modal.tsx` ATAU `.../create/page.tsx`, tergantung `uiConfig.createFormType`
+- Edit form: `.../components/edit-{moduleName}-modal.tsx` ATAU `.../[id]/edit/page.tsx`, tergantung `uiConfig.editFormType`
 
-**Yang Harus Diimplementasi**:
-1. List Page (`app/(private)/org/[tenant]/portal/{moduleName}/page.tsx`)
-2. Create Modal/Page (tergantung `uiConfig.createFormType`)
-3. Edit Modal/Page (tergantung `uiConfig.editFormType`)
-4. Detail Page (optional)
+Template Handlebars-nya ada di `backend/src/modules/module-generator/templates/frontend/`. Styling mengikuti pola premium yang sudah dipakai di halaman lain (rounded-2xl, gradient indigo->purple, shadcn/ui + react-hook-form + zod), teks UI Bahasa Indonesia.
 
-**Template Location**: `backend/src/modules/module-generator/templates/frontend/` (BELUM ADA)
+**Bug tambahan yang ikut diperbaiki** (ditemukan saat implementasi, bukan scope awal tapi memblokir hasil generate yang benar):
+- `buildFieldContext()` tidak pernah meneruskan `label`, `isVisibleInList`, `enumOptions` ke template context walau sudah ada di DTO - kolom tabel dan form jadi tanpa label.
+- `getTypeMapping()` tidak punya entry untuk type `'number'` dan `'enum'` (padahal itu persis nilai yang divalidasi `ModuleFieldDto.type`) - field number diam-diam ke-generate sebagai VARCHAR, bukan NUMERIC.
+- `rollbackGeneration()` (hard delete) belum menghapus file service/hook frontend yang lokasinya di luar folder `portal/{moduleName}` - sekarang sudah ditambahkan.
 
-**Yang Perlu Dibuat**:
-- `list-page.tsx.hbs` - Table dengan pagination, search, filter
-- `create-modal.tsx.hbs` - Modal dialog untuk create
-- `create-page.tsx.hbs` - Full page untuk create (form kompleks)
-- `edit-modal.tsx.hbs` - Modal dialog untuk edit
-- `edit-page.tsx.hbs` - Full page untuk edit (form kompleks)
+**Belum tuntas / follow-up**: tabel `visual_module_fields` belum punya kolom `enum_options`, jadi opsi enum cuma bertahan di jalur create+assign satu request; assign-by-id dari draft module yang sudah tersimpan belum bawa `enumOptions` (juga `isRequired`/`isUnique`/`validations` - ini sudah jadi TODO lama di `module-generator.service.ts`).
 
-**Referensi UI**: Lihat existing pages di `frontend/app/(private)/org/[tenant]/portal/` untuk pattern yang digunakan.
+Cara testing manual ada di bagian "CARA TESTING" di bawah - jalankan Test 1 (Generate Module Baru) lalu cek folder frontend ikut ter-generate.
 
 ---
 
-### 2. Validation Rules Generation ❌
+## 🔴 APA YANG BELUM SELESAI (sisa dari sebelum update di atas)
+
+### 1. Validation Rules Generation ❌
 **Priority**: MEDIUM  
 **Status**: Database schema sudah ada, generation belum
 
@@ -409,25 +410,15 @@ if (!tableExists) {
 
 ## 🚀 LANGKAH SELANJUTNYA (UNTUK AI AGENT BERIKUTNYA)
 
-Ini adalah prioritas task yang harus dikerjakan:
+~~Priority 1: Frontend Generation~~ - SELESAI, lihat "UPDATE 23 Juli 2026" di atas.
 
-### Priority 1: Frontend Generation (CRITICAL)
-**Estimasi**: 8-12 jam
+Sisa prioritas yang belum dikerjakan:
 
-**Tasks**:
-1. Buat template Handlebars untuk frontend pages
-2. Implement `generateFrontendPages()` method
-3. Support conditional generation (modal vs page)
-4. Test dengan generate module baru
+### Priority 1: Validation Rules Generation
+Simpan `enumOptions` ke `visual_module_fields` (perlu migration + repository update), lalu generate validation decorators (DTO) dan zod validation (frontend) dari `field_validations` table.
 
-**Files to Create**:
-- `templates/frontend/list-page.tsx.hbs`
-- `templates/frontend/create-modal.tsx.hbs`
-- `templates/frontend/create-page.tsx.hbs`
-- `templates/frontend/edit-modal.tsx.hbs`
-- `templates/frontend/edit-page.tsx.hbs`
-
-**Referensi**: Lihat existing pages di frontend untuk pattern yang digunakan.
+### Priority 2: Migration Auto-Run
+Auto-run migration setelah generate (optional flag), rollback migration saat delete module.
 
 ---
 

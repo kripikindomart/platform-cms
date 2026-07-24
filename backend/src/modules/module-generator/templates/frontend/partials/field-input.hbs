@@ -1,0 +1,92 @@
+{{#if isVisibleInForm}}
+            <FormField
+              control={form.control}
+              name="{{camelCase}}"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{{label}}{{#if isRequired}} *{{/if}}</FormLabel>
+                  <FormControl>
+                    {{#if (eq (resolveInputType inputType type) "textarea")}}
+                    <Textarea rows={4} placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "wysiwyg")}}
+                    <RichTextEditor value={field.value} onChange={field.onChange} placeholder="{{placeholder}}" />
+                    {{else if (eq (resolveInputType inputType type) "markdown")}}
+                    <Textarea rows={8} className="font-mono text-sm" placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "json-editor")}}
+                    <Textarea rows={6} className="font-mono text-sm" placeholder="{{#if placeholder}}{{placeholder}}{{else}}{}{{/if}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "code-editor")}}
+                    <Textarea rows={10} className="font-mono text-sm" placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "number")}}
+                    <Input type="number" placeholder="{{placeholder}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "range")}}
+                    <Input type="range" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "rating")}}
+                    <Input type="number" min={1} max={5} placeholder="{{#if placeholder}}{{placeholder}}{{else}}1-5{{/if}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "switch")}}
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    {{else if (eq (resolveInputType inputType type) "checkbox")}}
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    {{else if (eq (resolveInputType inputType type) "radio")}}
+                    <RadioGroup
+                      name="{{camelCase}}"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={[
+                        {{#each options}}
+                        { value: '{{this}}', label: '{{this}}' },
+                        {{/each}}
+                        {{#unless options.length}}
+                        {{#each enumOptions}}
+                        { value: '{{this}}', label: '{{this}}' },
+                        {{/each}}
+                        {{/unless}}
+                      ]}
+                    />
+                    {{else if (or (eq (resolveInputType inputType type) "select") (eq (resolveInputType inputType type) "button-group"))}}
+                    <Select
+                      {...field}
+                      options={[
+                        {{#each options}}
+                        { value: '{{this}}', label: '{{this}}' },
+                        {{/each}}
+                        {{#unless options.length}}
+                        {{#each enumOptions}}
+                        { value: '{{this}}', label: '{{this}}' },
+                        {{/each}}
+                        {{/unless}}
+                      ]}
+                    />
+                    {{else if (eq (resolveInputType inputType type) "date")}}
+                    <Input type="date" placeholder="{{placeholder}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "datetime-local")}}
+                    <Input type="datetime-local" placeholder="{{placeholder}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "time")}}
+                    <Input type="time" placeholder="{{placeholder}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "month")}}
+                    <Input type="month" placeholder="{{placeholder}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "week")}}
+                    <Input type="week" placeholder="{{placeholder}}" {...field} value={field.value ?? ''} />
+                    {{else if (eq (resolveInputType inputType type) "email")}}
+                    <Input type="email" placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "url")}}
+                    <Input type="url" placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "tel")}}
+                    <Input type="tel" placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "password")}}
+                    <Input type="password" placeholder="{{placeholder}}" {...field} />
+                    {{else if (eq (resolveInputType inputType type) "color")}}
+                    <Input type="color" {...field} value={field.value ?? '#000000'} />
+                    {{else if (eq (resolveInputType inputType type) "hidden")}}
+                    <input type="hidden" {...field} />
+                    {{else}}
+                    <Input type="text" placeholder="{{placeholder}}" {...field} />
+                    {{/if}}
+                  </FormControl>
+                  {{#if helpText}}
+                  <FormDescription>{{helpText}}</FormDescription>
+                  {{/if}}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+{{/if}}

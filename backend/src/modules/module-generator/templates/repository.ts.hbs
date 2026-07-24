@@ -56,7 +56,7 @@ export class {{capitalize className}}Repository {
         conditions.push(
           sql`(
             {{#each searchableFields}}
-            ${ {{../tableName}}.{{this}} } ILIKE ${`%${search}%`}{{#unless @last}} OR{{/unless}}
+            ${ {{../tableName}}.{{toCamelCase this}} } ILIKE ${`%${search}%`}{{#unless @last}} OR{{/unless}}
             {{/each}}
           )`
         );
@@ -69,12 +69,16 @@ export class {{capitalize className}}Repository {
         .from({{tableName}})
         .where(and(...conditions));
 
+      // sort may come in as snake_case (matching the field name shown in the
+      // builder); table properties are camelCase, so normalize before use.
+      const sortColumn = sort.replace(/_([a-z0-9])/g, (_match, c) => c.toUpperCase());
+
       // Get data
       const data = await this.db
         .select()
         .from({{tableName}})
         .where(and(...conditions))
-        .orderBy(order === 'asc' ? asc(({{tableName}} as any)[sort]) : desc(({{tableName}} as any)[sort]))
+        .orderBy(order === 'asc' ? asc(({{tableName}} as any)[sortColumn]) : desc(({{tableName}} as any)[sortColumn]))
         .limit(limit)
         .offset(offset);
 

@@ -1,0 +1,3 @@
+ALTER TABLE public.visual_module_fields
+  ADD COLUMN IF NOT EXISTS is_required BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_unique BOOLEAN NOT NULL DEFAULT false;

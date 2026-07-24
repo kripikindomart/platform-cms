@@ -12,6 +12,7 @@ export interface ModuleField {
   precision?: number;
   scale?: number;
   isVisibleInList: boolean;
+  isRequired: boolean;
   isSearchable: boolean;
   isFilterable: boolean;
   isSortable: boolean;

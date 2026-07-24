@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { portalUrl } from '@/lib/utils/route-helper';
 
 export class ApiError extends Error {
   constructor(
@@ -94,6 +95,17 @@ class ApiClient {
         message: 'An error occurred',
         code: 'UNKNOWN_ERROR',
       }));
+
+      if (typeof window !== 'undefined') {
+        if (response.status === 401) {
+          // Not authenticated (missing/expired token) - clear session and go to login.
+          document.cookie = 'token=; path=/; max-age=0';
+          window.location.href = '/login';
+        } else if (response.status === 403) {
+          // Authenticated but not permitted for this resource - back to the tenant dashboard.
+          window.location.href = portalUrl('dashboard');
+        }
+      }
 
       throw new ApiError(
         error.message || 'Request failed',

@@ -35,6 +35,9 @@ export const visualModules = pgTable('visual_modules', {
   // UI/UX Configuration (JSONB)
   uiConfig: text('ui_config').$type<string>().notNull().default('{"createFormType":"page","editFormType":"page"}'),
   
+  // Field Configurations (JSONB) - inputType, placeholder, helpText, validations per field
+  fieldConfigurations: text('field_configurations').$type<string>(),
+  
   // Audit
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   createdBy: bigint('created_by', { mode: 'number' }).notNull().references(() => users.id, { onDelete: 'set null' }),
@@ -64,8 +67,10 @@ export const visualModuleFields = pgTable('visual_module_fields', {
   
   // Display configuration
   isVisibleInList: boolean('is_visible_in_list').notNull().default(true),
-  
+
   // Constraints
+  isRequired: boolean('is_required').notNull().default(false),
+  isUnique: boolean('is_unique').notNull().default(false),
   defaultValue: text('default_value'),
   
   // Order

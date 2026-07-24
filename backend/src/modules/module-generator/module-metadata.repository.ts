@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, sql, and, isNull, desc } from 'drizzle-orm';
-import { visualModules, visualModuleFields, type VisualModule } from '../../database/schema/public/visual-modules.schema';
+import { visualModules, visualModuleFields, visualModuleInstallations, type VisualModule } from '../../database/schema/public/visual-modules.schema';
 import { validationTypes, visualModuleFieldValidations } from '../../database/schema/public/validation-types.schema';
 
 /**
@@ -195,6 +195,8 @@ export class ModuleMetadataRepository {
         precision: field.precision,
         scale: field.scale,
         isVisibleInList: field.isVisibleInList ?? true,
+        isRequired: field.isRequired ?? false,
+        isUnique: field.isUnique ?? false,
         defaultValue: field.defaultValue,
         fieldOrder: field.order ?? index,
       }));
@@ -292,5 +294,46 @@ export class ModuleMetadataRepository {
         .insert(visualModuleFieldValidations)
         .values(validationData);
     }
+  }
+
+  /**
+   * Record (or refresh) that a module has been installed/assigned to a tenant.
+   * Upserted manually since visual_module_installations has no unique
+   * constraint on (module_id, tenant_id) - only a PK on id.
+   */
+  async recordInstallation(moduleId: number, tenantId: number, installedBy: number): Promise<void> {
+    const [existing] = await this.db
+      .select({ id: visualModuleInstallations.id })
+      .from(visualModuleInstallations)
+      .where(
+        and(
+          eq(visualModuleInstallations.moduleId, moduleId),
+          eq(visualModuleInstallations.tenantId, tenantId),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      await this.db
+        .update(visualModuleInstallations)
+        .set({ isEnabled: true, updatedAt: new Date() })
+        .where(eq(visualModuleInstallations.id, existing.id));
+    } else {
+      await this.db.insert(visualModuleInstallations).values({
+        moduleId,
+        tenantId,
+        installedBy,
+      });
+    }
+  }
+
+  /**
+   * Find all tenant installations for a module
+   */
+  async findInstallations(moduleId: number) {
+    return this.db
+      .select()
+      .from(visualModuleInstallations)
+      .where(eq(visualModuleInstallations.moduleId, moduleId));
   }
 }

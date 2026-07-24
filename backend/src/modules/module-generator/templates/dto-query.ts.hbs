@@ -23,20 +23,18 @@ export class Query{{capitalize className}}Dto {
   @Min(1)
   limit?: number = 10;
 
-  {{#if searchableFields.length}}
-  @ApiProperty({ required: false, description: 'Search across: {{join searchableFields ", "}}' })
+  @ApiProperty({ required: false{{#if searchableFields.length}}, description: 'Search across: {{join searchableFields ", "}}'{{/if}} })
   @IsOptional()
   @IsString()
   search?: string;
-  {{/if}}
 
-  {{#if sortableFields.length}}
-  @ApiProperty({ required: false, enum: [{{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}] })
+  @ApiProperty({ required: false, default: 'id'{{#if sortableFields.length}}, enum: ['id', {{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}]{{/if}} })
   @IsOptional()
   @IsString()
-  @IsIn([{{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}])
-  sort?: string;
+  {{#if sortableFields.length}}
+  @IsIn(['id', {{#each sortableFields}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}}])
   {{/if}}
+  sort?: string = 'id';
 
   @ApiProperty({ required: false, enum: ['asc', 'desc'], default: 'desc' })
   @IsOptional()

@@ -1,0 +1,116 @@
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup } from '@/components/ui/radio-group';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { {{toCamelCase moduleName}}Service } from '@/lib/api/services/{{moduleName}}.service';
+
+const formSchema = z.object({
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "boolean")}}
+  {{camelCase}}: z.boolean(),
+{{else}}
+  {{camelCase}}: z.string(){{#if isRequired}}.min(1, '{{label}} wajib diisi'){{else}}.optional(){{/if}},
+{{/if}}
+{{/if}}
+{{/each}}
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+interface Create{{className}}ModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+/**
+ * Create {{displayName}} Modal
+ * @generated
+ */
+export function Create{{className}}Modal({ open, onOpenChange, onSuccess }: Create{{className}}ModalProps) {
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "boolean")}}
+      {{camelCase}}: false,
+{{else}}
+      {{camelCase}}: '',
+{{/if}}
+{{/if}}
+{{/each}}
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const payload = {
+        ...data,
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "number")}}
+        {{camelCase}}: data.{{camelCase}} === '' ? undefined : Number(data.{{camelCase}}),
+{{/if}}
+{{/if}}
+{{/each}}
+      };
+      await {{toCamelCase moduleName}}Service.create(payload as any);
+      toast.success('{{displayName}} berhasil dibuat');
+      form.reset();
+      onOpenChange(false);
+      onSuccess();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal membuat {{displayName}}');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>Tambah {{displayName}}</DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+{{#each fields}}
+{{> field-input}}
+{{/each}}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+              >
+                {form.formState.isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

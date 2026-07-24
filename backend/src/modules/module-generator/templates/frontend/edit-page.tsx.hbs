@@ -1,0 +1,182 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { ArrowLeft, FileText } from 'lucide-react';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup } from '@/components/ui/radio-group';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PortalLink } from '@/components/ui/portal-link';
+import { usePortalRouter } from '@/hooks/use-portal-router';
+import { {{toCamelCase moduleName}}Service } from '@/lib/api/services/{{moduleName}}.service';
+
+const formSchema = z.object({
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "boolean")}}
+  {{camelCase}}: z.boolean(),
+{{else}}
+  {{camelCase}}: z.string(){{#if isRequired}}.min(1, '{{label}} wajib diisi'){{else}}.optional(){{/if}},
+{{/if}}
+{{/if}}
+{{/each}}
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+/**
+ * Edit {{displayName}} Page
+ * @generated
+ */
+export default function Edit{{className}}Page() {
+  const params = useParams();
+  const { push } = usePortalRouter();
+  const id = Number(params.id);
+
+  const [loading, setLoading] = useState(true);
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "boolean")}}
+      {{camelCase}}: false,
+{{else}}
+      {{camelCase}}: '',
+{{/if}}
+{{/if}}
+{{/each}}
+    },
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const item = await {{toCamelCase moduleName}}Service.getById(id);
+        form.reset({
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "boolean")}}
+          {{camelCase}}: item.{{camelCase}} ?? false,
+{{else if (eq type "number")}}
+          {{camelCase}}: item.{{camelCase}} != null ? String(item.{{camelCase}}) : '',
+{{else}}
+          {{camelCase}}: item.{{camelCase}} ?? '',
+{{/if}}
+{{/if}}
+{{/each}}
+        });
+      } catch (error) {
+        toast.error('Gagal memuat data {{displayName}}');
+        push('{{moduleName}}');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const payload = {
+        ...data,
+{{#each fields}}
+{{#if isVisibleInForm}}
+{{#if (eq type "number")}}
+        {{camelCase}}: data.{{camelCase}} === '' ? undefined : Number(data.{{camelCase}}),
+{{/if}}
+{{/if}}
+{{/each}}
+      };
+      await {{toCamelCase moduleName}}Service.update(id, payload as any);
+      toast.success('{{displayName}} berhasil diperbarui');
+      push('{{moduleName}}');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal memperbarui {{displayName}}');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <PortalLink href="{{moduleName}}">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </Button>
+          </PortalLink>
+
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Edit {{displayName}}</h1>
+            <p className="text-neutral-600 mt-1">Perbarui data {{displayName}}</p>
+          </div>
+        </div>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm">
+            <div className="p-6 border-b border-neutral-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-900">Informasi {{displayName}}</h3>
+                  <p className="text-sm text-neutral-600">Lengkapi data di bawah ini</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+{{#each fields}}
+{{> field-input}}
+{{/each}}
+              </div>
+            </div>
+
+            <div className="p-6 bg-neutral-50 rounded-b-2xl">
+              <div className="flex items-center justify-end gap-3">
+                <PortalLink href="{{moduleName}}">
+                  <Button type="button" variant="outline" disabled={form.formState.isSubmitting}>
+                    Batal
+                  </Button>
+                </PortalLink>
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
+                >
+                  {form.formState.isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </Form>
+    </div>
+  );
+}

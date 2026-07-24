@@ -1,0 +1,182 @@
+'use client';
+
+import { useState } from 'react';
+import { Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Pagination } from '@/components/ui/pagination';
+import { PortalLink } from '@/components/ui/portal-link';
+import { {{className}} } from '@/lib/api/services/{{moduleName}}.service';
+import { DeleteDialog } from './delete-dialog';
+{{#if (eq uiConfig.editFormType "modal")}}
+import { Edit{{className}}Modal } from './edit-{{moduleName}}-modal';
+{{/if}}
+
+interface {{className}}TableProps {
+  items: {{className}}[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onRefetch: () => void;
+}
+
+/**
+ * {{displayName}} Table
+ * @generated
+ */
+export function {{className}}Table({
+  items,
+  total,
+  page,
+  limit,
+  totalPages,
+  onPageChange,
+  onRefetch,
+}: {{className}}TableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  {{#if (eq uiConfig.editFormType "modal")}}
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  {{/if}}
+  const [selectedItem, setSelectedItem] = useState<{{className}} | null>(null);
+
+  const handleDelete = (item: {{className}}) => {
+    setSelectedItem(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSuccess = () => {
+    setDeleteDialogOpen(false);
+    setSelectedItem(null);
+    onRefetch();
+  };
+
+  {{#if (eq uiConfig.editFormType "modal")}}
+  const handleEdit = (item: {{className}}) => {
+    setSelectedItem(item);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    setEditModalOpen(false);
+    setSelectedItem(null);
+    onRefetch();
+  };
+  {{/if}}
+
+  return (
+    <>
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-neutral-50">
+{{#each fields}}
+{{#if isVisibleInList}}
+              <TableHead className="font-semibold">{{label}}</TableHead>
+{{/if}}
+{{/each}}
+              <TableHead className="font-semibold text-right">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={100} className="text-center py-12 text-neutral-500">
+                  Tidak ada data
+                </TableCell>
+              </TableRow>
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.id} className="hover:bg-neutral-50">
+{{#each fields}}
+{{#if isVisibleInList}}
+{{#if (eq type "boolean")}}
+                  <TableCell>
+                    <Badge variant={item.{{camelCase}} ? 'default' : 'secondary'}>
+                      {item.{{camelCase}} ? 'Ya' : 'Tidak'}
+                    </Badge>
+                  </TableCell>
+{{else}}
+                  <TableCell>{String(item.{{camelCase}} ?? '-')}</TableCell>
+{{/if}}
+{{/if}}
+{{/each}}
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {{#if (eq uiConfig.editFormType "modal")}}
+                        <DropdownMenuItem onClick={() => handleEdit(item)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        {{else}}
+                        <PortalLink href={`{{moduleName}}/${item.id}/edit`}>
+                          <DropdownMenuItem>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        </PortalLink>
+                        {{/if}}
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600"
+                          onClick={() => handleDelete(item)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Hapus
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        <div className="border-t border-neutral-100 px-6 py-4">
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={onPageChange} />
+        </div>
+      </div>
+
+      {selectedItem && (
+        <DeleteDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          item={selectedItem}
+          onSuccess={handleDeleteSuccess}
+        />
+      )}
+
+      {{#if (eq uiConfig.editFormType "modal")}}
+      {selectedItem && (
+        <Edit{{className}}Modal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          item={selectedItem}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+      {{/if}}
+    </>
+  );
+}

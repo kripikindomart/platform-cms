@@ -132,9 +132,20 @@ export class CodeGenerationService {
       };
     } catch (error: any) {
       this.logger.error(`Generation failed: ${error.message}`, error.stack);
-      
+
       // Rollback: Delete created files
       await this.rollbackFiles(filesCreated);
+
+      // A prior successful generate may have already registered this module
+      // in app.module.ts (e.g. this failure happened on a "Regenerate Code"
+      // re-run). Since its files were just deleted above, leaving that
+      // registration in place would break the backend's compile with a
+      // dangling import - so keep app.module.ts in sync with the rollback.
+      try {
+        await this.unregisterModuleFromAppModule(context.moduleName);
+      } catch (unregisterError: any) {
+        this.logger.warn(`Could not unregister module from AppModule during rollback: ${unregisterError.message}`);
+      }
 
       return {
         success: false,

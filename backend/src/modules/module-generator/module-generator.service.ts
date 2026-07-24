@@ -199,8 +199,8 @@ export class ModuleGeneratorService {
             length: f.fieldLength,
             precision: f.precision,
             scale: f.scale,
-            isRequired: false, // TODO: Add to schema
-            isUnique: false, // TODO: Add to schema
+            isRequired: f.isRequired ?? false,
+            isUnique: f.isUnique ?? false,
             isVisibleInList: f.isVisibleInList,
             defaultValue: f.defaultValue,
             validations: [], // TODO: Load from form config

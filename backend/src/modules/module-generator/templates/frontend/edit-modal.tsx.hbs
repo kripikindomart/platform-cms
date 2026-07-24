@@ -23,10 +23,12 @@ import { {{className}}, {{toCamelCase moduleName}}Service } from '@/lib/api/serv
 
 const formSchema = z.object({
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "boolean")}}
   {{camelCase}}: z.boolean(),
 {{else}}
   {{camelCase}}: z.string(){{#if isRequired}}.min(1, '{{label}} wajib diisi'){{else}}.optional(){{/if}},
+{{/if}}
 {{/if}}
 {{/each}}
 });
@@ -49,12 +51,14 @@ export function Edit{{className}}Modal({ open, onOpenChange, item, onSuccess }: 
     resolver: zodResolver(formSchema),
     defaultValues: {
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "boolean")}}
       {{camelCase}}: item.{{camelCase}} ?? false,
 {{else if (eq type "number")}}
       {{camelCase}}: item.{{camelCase}} != null ? String(item.{{camelCase}}) : '',
 {{else}}
       {{camelCase}}: item.{{camelCase}} ?? '',
+{{/if}}
 {{/if}}
 {{/each}}
     },
@@ -64,12 +68,14 @@ export function Edit{{className}}Modal({ open, onOpenChange, item, onSuccess }: 
     if (open) {
       form.reset({
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "boolean")}}
         {{camelCase}}: item.{{camelCase}} ?? false,
 {{else if (eq type "number")}}
         {{camelCase}}: item.{{camelCase}} != null ? String(item.{{camelCase}}) : '',
 {{else}}
         {{camelCase}}: item.{{camelCase}} ?? '',
+{{/if}}
 {{/if}}
 {{/each}}
       });
@@ -82,8 +88,10 @@ export function Edit{{className}}Modal({ open, onOpenChange, item, onSuccess }: 
       const payload = {
         ...data,
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "number")}}
         {{camelCase}}: data.{{camelCase}} === '' ? undefined : Number(data.{{camelCase}}),
+{{/if}}
 {{/if}}
 {{/each}}
       };

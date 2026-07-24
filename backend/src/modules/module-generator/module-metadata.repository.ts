@@ -195,6 +195,8 @@ export class ModuleMetadataRepository {
         precision: field.precision,
         scale: field.scale,
         isVisibleInList: field.isVisibleInList ?? true,
+        isRequired: field.isRequired ?? false,
+        isUnique: field.isUnique ?? false,
         defaultValue: field.defaultValue,
         fieldOrder: field.order ?? index,
       }));

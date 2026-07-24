@@ -67,8 +67,10 @@ export const visualModuleFields = pgTable('visual_module_fields', {
   
   // Display configuration
   isVisibleInList: boolean('is_visible_in_list').notNull().default(true),
-  
+
   // Constraints
+  isRequired: boolean('is_required').notNull().default(false),
+  isUnique: boolean('is_unique').notNull().default(false),
   defaultValue: text('default_value'),
   
   // Order

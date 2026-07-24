@@ -31,6 +31,7 @@ export default function CreateModulePage() {
     precision?: number;
     scale?: number;
     isVisibleInList: boolean;
+    isRequired: boolean;
     isSearchable: boolean;
     isFilterable: boolean;
     isSortable: boolean;
@@ -68,8 +69,8 @@ export default function CreateModulePage() {
           name: f.name,
           label: f.label,
           type: f.type,
-          isRequired: false,
-          isUnique: false,
+          isRequired: f.type === 'uuid' ? false : f.isRequired,
+          isUnique: f.type === 'uuid',
           isVisibleInList: f.isVisibleInList,
           length: f.length,
           precision: f.precision,

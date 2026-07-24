@@ -18,10 +18,12 @@ import { {{toCamelCase moduleName}}Service } from '@/lib/api/services/{{moduleNa
 
 const formSchema = z.object({
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "boolean")}}
   {{camelCase}}: z.boolean(),
 {{else}}
   {{camelCase}}: z.string(){{#if isRequired}}.min(1, '{{label}} wajib diisi'){{else}}.optional(){{/if}},
+{{/if}}
 {{/if}}
 {{/each}}
 });
@@ -39,10 +41,12 @@ export default function Create{{className}}Page() {
     resolver: zodResolver(formSchema),
     defaultValues: {
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "boolean")}}
       {{camelCase}}: false,
 {{else}}
       {{camelCase}}: '',
+{{/if}}
 {{/if}}
 {{/each}}
     },
@@ -53,8 +57,10 @@ export default function Create{{className}}Page() {
       const payload = {
         ...data,
 {{#each fields}}
+{{#if isVisibleInForm}}
 {{#if (eq type "number")}}
         {{camelCase}}: data.{{camelCase}} === '' ? undefined : Number(data.{{camelCase}}),
+{{/if}}
 {{/if}}
 {{/each}}
       };

@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS {{tableName}} (
   id BIGSERIAL PRIMARY KEY,
 
   {{#each fields}}
-  {{name}} {{dbType}}{{#if length}}({{length}}){{/if}}{{#if precision}}({{precision}}, {{scale}}){{/if}}{{#if isRequired}} NOT NULL{{/if}}{{#if defaultValue}} DEFAULT {{defaultValue}}{{/if}},
+  {{name}} {{dbType}}{{#if length}}({{length}}){{/if}}{{#if precision}}({{precision}}, {{scale}}){{/if}}{{#if isRequired}} NOT NULL{{/if}}{{#if (eq dbType "UUID")}} DEFAULT gen_random_uuid(){{else if defaultValue}} DEFAULT {{defaultValue}}{{/if}},
   {{/each}}
 
   {{#if hasAudit}}
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS {{tableName}} (
 
   -- Unique constraints
   {{#each fields}}
-  {{#if isUnique}}
+  {{#if (or isUnique (eq dbType "UUID"))}}
   CONSTRAINT {{../tableName}}_{{name}}_unique UNIQUE ({{name}}),
   {{/if}}
   {{/each}}
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_{{tableName}}_created_at ON {{tableName}}(created
 {{/if}}
 
 {{#each fields}}
-{{#if isUnique}}
+{{#if (or isUnique (eq dbType "UUID"))}}
 CREATE INDEX IF NOT EXISTS idx_{{../tableName}}_{{name}} ON {{../tableName}}({{name}});
 {{/if}}
 {{/each}}

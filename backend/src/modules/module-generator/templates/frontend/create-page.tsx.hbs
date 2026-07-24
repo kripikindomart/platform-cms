@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,16 +77,12 @@ export default function Create{{className}}Page() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card className="rounded-2xl border-neutral-100 shadow-sm">
-            <CardHeader>
-              <CardTitle>Informasi {{displayName}}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 space-y-4">
+            <h2 className="text-base font-medium text-neutral-900">Informasi {{displayName}}</h2>
 {{#each fields}}
 {{> field-input}}
 {{/each}}
-            </CardContent>
-          </Card>
+          </div>
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => push('{{moduleName}}')}>

@@ -29,9 +29,20 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// Keep in sync with CodeGenerationService.getTypeMapping() on the backend -
+// each value here must map to a real Postgres column type there.
 const fieldTypes = [
-  'string', 'text', 'number', 'boolean', 'date',
-  'datetime', 'email', 'url', 'json', 'uuid'
+  { value: 'string', label: 'Text (VARCHAR)' },
+  { value: 'text', label: 'Long Text (TEXT)' },
+  { value: 'number', label: 'Number (NUMERIC)' },
+  { value: 'boolean', label: 'Yes/No (BOOLEAN)' },
+  { value: 'date', label: 'Date (DATE)' },
+  { value: 'datetime', label: 'Date & Time (TIMESTAMP)' },
+  { value: 'email', label: 'Email (VARCHAR)' },
+  { value: 'url', label: 'URL (VARCHAR)' },
+  { value: 'json', label: 'JSON (JSONB)' },
+  { value: 'uuid', label: 'UUID (UUID)' },
+  { value: 'enum', label: 'Enum/Pilihan (VARCHAR)' },
 ] as const;
 
 export interface ModuleField {
@@ -133,13 +144,13 @@ function SortableRow({ field, index, onUpdate, onDelete, isDisabled }: SortableR
           value={field.type}
           onValueChange={(value) => onUpdate(index, { type: value })}
         >
-          <SelectTrigger className="h-9 w-32">
+          <SelectTrigger className="h-9 w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {fieldTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
+            {fieldTypes.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
               </SelectItem>
             ))}
           </SelectContent>

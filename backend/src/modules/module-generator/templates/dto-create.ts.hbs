@@ -37,7 +37,7 @@ export class Create{{capitalize className}}Dto {
   {{#if (eq type 'url')}}
   @IsUrl()
   {{/if}}
-  {{camelCase}}{{#unless (and isRequired (ne type "uuid"))}}?{{/unless}}: {{tsType}};
+  {{camelCase}}{{#if (and isRequired (ne type "uuid"))}}!{{else}}?{{/if}}: {{tsType}};
 
 {{/each}}
 }
